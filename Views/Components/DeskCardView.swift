@@ -78,11 +78,11 @@ struct DeskCardView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(20)
+        .padding(22)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color(UIColor.secondarySystemGroupedBackground))
-                .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 8)
+                .shadow(color: Color.black.opacity(0.14), radius: 20, x: 0, y: 10)
         )
     }
 

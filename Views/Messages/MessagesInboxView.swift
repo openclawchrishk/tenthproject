@@ -23,7 +23,7 @@ struct MessagesInboxView: View {
                     subtitle: "對話與 Desk 邀請"
                 )
                 Picker("", selection: $segment) {
-                    Text("對話").tag(0)
+                    Text("訊息").tag(0)
                     Text("邀請").tag(1)
                 }
                 .pickerStyle(.segmented)

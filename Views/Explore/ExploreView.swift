@@ -14,7 +14,7 @@ struct ExploreView: View {
                 )
 
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 24) {
                         if viewModel.isLoading {
                             ProgressView()
                                 .padding(.top, 40)
@@ -24,7 +24,7 @@ struct ExploreView: View {
                                 .foregroundStyle(.red)
                                 .padding()
                         } else if let desk = viewModel.currentDesk {
-                            VStack(spacing: 16) {
+                            VStack(spacing: 18) {
                                 DeskCardView(desk: desk) {
                                     Task { await viewModel.viewAgain() }
                                 }
@@ -39,19 +39,22 @@ struct ExploreView: View {
                                             .foregroundStyle(AppColor.primary, AppColor.secondary)
                                         Text("查看完整專案詳情")
                                             .fontWeight(.semibold)
+                                            .foregroundStyle(AppColor.primary)
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .foregroundStyle(.tertiary)
                                     }
-                                    .padding()
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
                                             .fill(Color(UIColor.secondarySystemGroupedBackground))
+                                            .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
                                     )
                                 }
                                 .buttonStyle(.plain)
                             }
-                            .padding(.horizontal)
+                            .padding(.horizontal, 20)
                         } else {
                             ContentUnavailableView(
                                 "暫無 Desk",
@@ -69,6 +72,5 @@ struct ExploreView: View {
             .task { await viewModel.load() }
             .navigationBarHidden(true)
         }
-        .tint(AppColor.primary)
     }
 }
