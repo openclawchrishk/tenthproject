@@ -11,15 +11,15 @@ enum TabBarAppearanceConfigurator {
         appearance.shadowColor = UIColor.black.withAlphaComponent(0.35)
 
         let itemAppearance = UITabBarItemAppearance()
-        // Tinted tab icons: both states use explicit brand hues (never template gray / white).
-        itemAppearance.normal.iconColor = UIColor(AppColor.tabBarUnselected)
+        // Selected = AppColor.primary, unselected = AppColor.textSecondary (UIKit has no SwiftUI .foregroundStyle on tab items).
+        itemAppearance.normal.iconColor = UIColor(AppColor.textSecondary)
         itemAppearance.normal.titleTextAttributes = [
-            .foregroundColor: UIColor(AppColor.tabBarUnselected),
+            .foregroundColor: UIColor(AppColor.textSecondary),
             .font: UIFont.systemFont(ofSize: 10, weight: .medium),
         ]
-        itemAppearance.selected.iconColor = UIColor(AppColor.tabBarSelected)
+        itemAppearance.selected.iconColor = UIColor(AppColor.primary)
         itemAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(AppColor.tabBarSelected),
+            .foregroundColor: UIColor(AppColor.primary),
             .font: UIFont.systemFont(ofSize: 10, weight: .semibold),
         ]
 
@@ -31,7 +31,7 @@ enum TabBarAppearanceConfigurator {
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
         tabBar.isTranslucent = false
-        tabBar.tintColor = UIColor(AppColor.tabBarSelected)
-        tabBar.unselectedItemTintColor = UIColor(AppColor.tabBarUnselected)
+        tabBar.tintColor = UIColor(AppColor.primary)
+        tabBar.unselectedItemTintColor = UIColor(AppColor.textSecondary)
     }
 }

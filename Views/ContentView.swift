@@ -66,25 +66,49 @@ struct MainTabView: View {
         TabView {
             ExploreView()
                 .tabItem {
-                    Label("探索", systemImage: "person.2.fill")
+                    Label {
+                        Text("探索")
+                    } icon: {
+                        Image(systemName: "person.2.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    }
                 }
 
             DeskHubView()
                 .tabItem {
-                    Label("Desk", systemImage: "briefcase.fill")
+                    Label {
+                        Text("Desk")
+                    } icon: {
+                        Image(systemName: "briefcase.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    }
                 }
 
             MessagesInboxView()
                 .tabItem {
-                    Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
+                    Label {
+                        Text("訊息")
+                    } icon: {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    }
                 }
 
             ProfileView()
                 .tabItem {
-                    Label("我的", systemImage: "person.crop.circle.fill")
+                    Label {
+                        Text("我的")
+                    } icon: {
+                        Image(systemName: "person.crop.circle.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    }
                 }
         }
-        // Do not set `.tint` here — it overrides UITabBarAppearance and grays out unselected items.
+        // Tab bar colors: selected = AppColor.primary, unselected = AppColor.textSecondary via `TabBarAppearanceConfigurator` (avoid `.tint` on TabView).
         .toolbarBackground(AppColor.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarColorScheme(.dark, for: .tabBar)
