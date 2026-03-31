@@ -1,3 +1,0 @@
-module XCTestDynamicOverlay {
-    header "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/include/XCTestDynamicOverlay-Swift.h"
-}
