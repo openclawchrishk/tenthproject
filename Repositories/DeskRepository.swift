@@ -91,4 +91,38 @@ final class DeskRepository {
             .eq("id", value: applicationId)
             .execute()
     }
+
+    /// Latest application from this user for the desk, if any.
+    func fetchMyApplication(deskId: UUID, applicantId: UUID) async throws -> DeskApplication? {
+        let rows: [DeskApplication] = try await client
+            .from("desk_applications")
+            .select()
+            .eq("desk_id", value: deskId)
+            .eq("applicant_id", value: applicantId)
+            .order("id", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
+    func submitApplication(deskId: UUID, applicantId: UUID, selectedRole: String, statement: String) async throws {
+        struct Insert: Encodable {
+            let id: UUID
+            let desk_id: UUID
+            let applicant_id: UUID
+            let selected_role: String
+            let statement: String
+            let status: String
+        }
+        let row = Insert(
+            id: UUID(),
+            desk_id: deskId,
+            applicant_id: applicantId,
+            selected_role: selectedRole,
+            statement: statement,
+            status: ApplicationStatus.pending.databaseValue
+        )
+        try await client.from("desk_applications").insert(row).execute()
+    }
 }

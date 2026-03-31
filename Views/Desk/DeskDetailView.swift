@@ -1,20 +1,34 @@
 import SwiftUI
 import UIKit
 
-/// Full project detail — mirrors Explore card fields and adds long-form sections.
+/// Full project detail — founder, tags, team, funding, apply / invite.
 struct DeskDetailView: View {
     let deskId: UUID
 
     @EnvironmentObject private var auth: AuthRepository
     @State private var desk: Desk?
+    @State private var founder: UserProfile?
+    @State private var myApplication: DeskApplication?
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var inviteeIdText = ""
     @State private var inviteMessage: String?
     @State private var inviteInFlight = false
 
+    @State private var showApplySheet = false
+    @State private var applySelectedRole: String = ""
+    @State private var applyStatement = ""
+    @State private var applyError: String?
+    @State private var applyInFlight = false
+
     private let deskRepository = DeskRepository()
     private let inviteRepository = InviteRepository()
+    private let userRepository = UserRepository()
+
+    private var isFounder: Bool {
+        guard let uid = auth.currentUser?.id, let desk else { return false }
+        return uid == desk.founderId
+    }
 
     var body: some View {
         Group {
@@ -31,6 +45,11 @@ struct DeskDetailView: View {
         .navigationTitle("專案詳情")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .sheet(isPresented: $showApplySheet) {
+            if let desk {
+                applySheet(desk)
+            }
+        }
     }
 
     @ViewBuilder
@@ -38,7 +57,11 @@ struct DeskDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerBlock(desk)
+                if let founder {
+                    founderBlock(founder)
+                }
                 cardParitySummary(desk)
+                skillsNeededTagsSection(desk)
                 section(title: "簡介", icon: "text.alignleft", color: AppColor.primary) {
                     Text(desk.pitch)
                         .font(.body)
@@ -51,11 +74,11 @@ struct DeskDetailView: View {
                     Text(desk.expectations ?? "—")
                         .font(.body)
                 }
-                section(title: "資金 / 資源需求", icon: "dollarsign.circle", color: AppColor.accentPurple) {
+                section(title: "期望資助", icon: "dollarsign.circle", color: AppColor.accentPurple) {
                     Text(desk.fundingNeeds ?? "—")
                         .font(.body)
                 }
-                section(title: "技能與招募角色", icon: "person.3.fill", color: AppColor.secondary) {
+                section(title: "招募角色與技能", icon: "person.3.fill", color: AppColor.secondary) {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(desk.recruitingRoles) { role in
                             HStack(alignment: .top) {
@@ -84,13 +107,245 @@ struct DeskDetailView: View {
                     FlowTags(tags: desk.industryTags)
                 }
                 metaRow(desk)
-                if auth.currentUser?.id == desk.founderId {
+                if isFounder {
                     inviteBlock(desk)
                 }
             }
             .padding()
+            .padding(.bottom, visitorBottomPadding(desk))
         }
         .background(AppColor.background.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom) {
+            bottomActionBar(desk)
+        }
+    }
+
+    private func visitorBottomPadding(_ desk: Desk) -> CGFloat {
+        if !isFounder, desk.status == .recruiting, auth.currentUser != nil { return 8 }
+        return 0
+    }
+
+    @ViewBuilder
+    private func bottomActionBar(_ desk: Desk) -> some View {
+        if isFounder {
+            EmptyView()
+        } else if let uid = auth.currentUser?.id, uid != desk.founderId, desk.status == .recruiting {
+            VStack(spacing: 0) {
+                Divider()
+                if myApplication != nil {
+                    Button {
+                        showApplySheet = true
+                    } label: {
+                        Label("已申請 · 點擊查看狀態", systemImage: "checkmark.seal.fill")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(AppColor.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                } else {
+                    Button {
+                        prepareApplySheet(desk)
+                        showApplySheet = true
+                    } label: {
+                        Label("申請加入", systemImage: "paperplane.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColor.primary)
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
+                }
+                Spacer().frame(height: 0)
+            }
+            .background(AppColor.background)
+        } else {
+            EmptyView()
+        }
+    }
+
+    private func prepareApplySheet(_ desk: Desk) {
+        applyError = nil
+        applyStatement = ""
+        if let first = desk.recruitingRoles.first {
+            applySelectedRole = first.title
+        } else {
+            applySelectedRole = "成員"
+        }
+    }
+
+    private func applySheet(_ desk: Desk) -> some View {
+        NavigationStack {
+            Form {
+                if let app = myApplication {
+                    Section {
+                        Text(applicationStatusLabel(app.status))
+                            .foregroundStyle(.secondary)
+                    } header: {
+                        Text("申請狀態")
+                    }
+                } else {
+                    Section {
+                        if desk.recruitingRoles.isEmpty {
+                            Text(applySelectedRole)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Picker("應徵角色", selection: $applySelectedRole) {
+                                ForEach(desk.recruitingRoles, id: \.id) { r in
+                                    Text(r.title).tag(r.title)
+                                }
+                            }
+                        }
+                        TextField("自我介紹與動機", text: $applyStatement, axis: .vertical)
+                            .lineLimit(4...10)
+                    } header: {
+                        Text("申請內容")
+                    }
+                    if let applyError {
+                        Section {
+                            Text(applyError)
+                                .foregroundStyle(.red)
+                                .font(.footnote)
+                        }
+                    }
+                    Section {
+                        Button {
+                            Task { await submitApply(desk) }
+                        } label: {
+                            if applyInFlight {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                    Spacer()
+                                }
+                            } else {
+                                Text("送出申請")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .disabled(applyInFlight || applyStatement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+            .navigationTitle("申請加入")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("關閉") { showApplySheet = false }
+                }
+            }
+        }
+    }
+
+    private func applicationStatusLabel(_ s: ApplicationStatus) -> String {
+        switch s {
+        case .pending: return "待審核"
+        case .accepted: return "已批准"
+        case .declined: return "已拒絕"
+        case .hold: return "暫緩"
+        }
+    }
+
+    private func submitApply(_ desk: Desk) async {
+        guard let uid = auth.currentUser?.id else {
+            applyError = "請先登入"
+            return
+        }
+        applyInFlight = true
+        applyError = nil
+        defer { applyInFlight = false }
+        let statement = applyStatement.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !statement.isEmpty else {
+            applyError = "請填寫自我介紹"
+            return
+        }
+        do {
+            try await deskRepository.submitApplication(
+                deskId: desk.id,
+                applicantId: uid,
+                selectedRole: applySelectedRole,
+                statement: statement
+            )
+            myApplication = try await deskRepository.fetchMyApplication(deskId: desk.id, applicantId: uid)
+            showApplySheet = false
+        } catch {
+            applyError = error.localizedDescription
+        }
+    }
+
+    private func founderBlock(_ founder: UserProfile) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            founderAvatar(avatarUrl: founder.avatarUrl)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("創辦人")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(founder.displayName.isEmpty ? "—" : founder.displayName)
+                    .font(.headline)
+            }
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+    }
+
+    private func founderAvatar(avatarUrl: String?) -> some View {
+        Group {
+            if let s = avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+               let url = URL(string: s) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "person.crop.circle.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    case .empty:
+                        ProgressView()
+                    @unknown default:
+                        Image(systemName: "person.crop.circle.fill")
+                            .foregroundStyle(AppColor.primary)
+                    }
+                }
+                .frame(width: 56, height: 56)
+                .clipShape(Circle())
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 56))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(AppColor.primary, AppColor.secondary)
+            }
+        }
+    }
+
+    private func skillsNeededTagsSection(_ desk: Desk) -> some View {
+        let tags = skillTags(for: desk)
+        return Group {
+            if !tags.isEmpty {
+                section(title: "所需技能", icon: "sparkles", color: AppColor.accentOrange) {
+                    FlowTags(tags: tags)
+                }
+            }
+        }
+    }
+
+    private func skillTags(for desk: Desk) -> [String] {
+        var tags: [String] = []
+        for r in desk.recruitingRoles {
+            tags.append(r.title)
+            if let s = r.skillDescription, !s.isEmpty { tags.append(s) }
+        }
+        return Array(Set(tags)).sorted()
     }
 
     private func headerBlock(_ desk: Desk) -> some View {
@@ -183,7 +438,7 @@ struct DeskDetailView: View {
     private func metaRow(_ desk: Desk) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
-                Text("團隊規模：\(desk.currentMemberCount) / \(desk.memberLimit) 人")
+                Text("團隊規模：\(desk.currentMemberCount) / \(desk.memberLimit) 人（含創辦人與名額）")
             } icon: {
                 Image(systemName: "person.2.fill")
                     .foregroundStyle(AppColor.primary)
@@ -235,6 +490,7 @@ struct DeskDetailView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
+            .foregroundStyle(.white)
             .tint(AppColor.primary)
             .disabled(inviteInFlight || inviteeIdText.count < 32)
         }
@@ -274,10 +530,22 @@ struct DeskDetailView: View {
         loadError = nil
         defer { isLoading = false }
         do {
-            desk = try await deskRepository.fetchDesk(id: deskId)
+            let d = try await deskRepository.fetchDesk(id: deskId)
+            desk = d
+            async let founderFetch: UserProfile? = fetchFounder(id: d.founderId)
+            if let uid = auth.currentUser?.id {
+                myApplication = try await deskRepository.fetchMyApplication(deskId: d.id, applicantId: uid)
+            } else {
+                myApplication = nil
+            }
+            founder = await founderFetch
         } catch {
             loadError = error.localizedDescription
         }
+    }
+
+    private func fetchFounder(id: UUID) async -> UserProfile? {
+        try? await userRepository.fetchUser(id: id)
     }
 
     private static let dateFormatter: DateFormatter = {
