@@ -1,0 +1,3 @@
+module PostgREST {
+    header "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/PostgREST.build/include/PostgREST-Swift.h"
+}

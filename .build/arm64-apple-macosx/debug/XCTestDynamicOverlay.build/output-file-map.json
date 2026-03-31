@@ -1,0 +1,19 @@
+{
+  "": {
+    "swift-dependencies": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/primary.swiftdeps"
+  },
+  "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/checkouts/xctest-dynamic-overlay/Sources/XCTestDynamicOverlay/Internal/Deprecations.swift": {
+    "dependencies": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Deprecations.d",
+    "object": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Deprecations.swift.o",
+    "swiftmodule": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Deprecations~partial.swiftmodule",
+    "swift-dependencies": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Deprecations.swiftdeps",
+    "diagnostics": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Deprecations.dia"
+  },
+  "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/checkouts/xctest-dynamic-overlay/Sources/XCTestDynamicOverlay/Internal/Exports.swift": {
+    "dependencies": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Exports.d",
+    "object": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Exports.swift.o",
+    "swiftmodule": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Exports~partial.swiftmodule",
+    "swift-dependencies": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Exports.swiftdeps",
+    "diagnostics": "/Users/openclaw/Documents/trae_projects/tenthproject/DeskerHK/.build/arm64-apple-macosx/debug/XCTestDynamicOverlay.build/Exports.dia"
+  }
+}

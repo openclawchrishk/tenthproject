@@ -3,16 +3,18 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var onboardingViewModel = OnboardingViewModel()
     @StateObject private var authRepository = AuthRepository()
-    
+
     var body: some View {
         Group {
             if authRepository.session == nil {
-                // 這裡應該是 LoginView，現在暫時直接顯示 Onboarding
                 OnboardingFlowView(viewModel: onboardingViewModel)
+                    .environmentObject(authRepository)
             } else if authRepository.currentUser == nil {
                 OnboardingFlowView(viewModel: onboardingViewModel)
+                    .environmentObject(authRepository)
             } else {
                 MainTabView()
+                    .environmentObject(authRepository)
             }
         }
     }
@@ -20,54 +22,73 @@ struct ContentView: View {
 
 struct OnboardingFlowView: View {
     @ObservedObject var viewModel: OnboardingViewModel
-    
+    @EnvironmentObject private var auth: AuthRepository
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             switch viewModel.currentStep {
             case .roleSelection:
                 RoleSelectionView(viewModel: viewModel)
             case .basicInfo:
                 BasicInfoView(viewModel: viewModel)
             case .skillsAndNeeds:
-                // 這裡可以實現第三步
-                Text("技能與需求 (開發中)")
-                    .onTapGesture {
-                        viewModel.proceedToNextStep()
-                    }
+                SkillsAndNeedsView(viewModel: viewModel)
             case .completed:
-                Text("Onboarding 完成！")
-                    .onAppear {
-                        Task {
-                            await viewModel.completeOnboarding()
-                        }
+                VStack(spacing: 20) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 56))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    Text("設定完成")
+                        .font(.title.bold())
+                    Text("你的產業標籤、技能與需求已儲存。")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(AppColor.background)
+                .onAppear {
+                    Task {
+                        await viewModel.finalizeOnboarding(auth: auth)
                     }
+                }
             }
         }
     }
 }
 
 struct MainTabView: View {
+    @EnvironmentObject private var auth: AuthRepository
+
     var body: some View {
         TabView {
-            Text("Explore 人")
+            ExploreView()
                 .tabItem {
-                    Label("探索", systemImage: "person.2")
+                    Label("探索", systemImage: "person.2.fill")
                 }
-            
-            Text("Explore Desk")
+
+            DeskHubView()
                 .tabItem {
-                    Label("Desk", systemImage: "briefcase")
+                    Label("Desk", systemImage: "briefcase.fill")
                 }
-            
-            Text("訊息")
+
+            MessagesInboxView()
                 .tabItem {
-                    Label("訊息", systemImage: "message")
+                    Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
                 }
-            
-            Text("個人資料")
+
+            ProfileView()
                 .tabItem {
-                    Label("我的", systemImage: "person.crop.circle")
+                    Label("我的", systemImage: "person.crop.circle.fill")
                 }
+        }
+        .tint(AppColor.tabBarSelected)
+        .toolbarBackground(AppColor.tabBarBackground, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .onAppear {
+            TabBarAppearanceConfigurator.apply()
         }
     }
 }
