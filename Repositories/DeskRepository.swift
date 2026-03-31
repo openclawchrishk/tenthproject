@@ -87,7 +87,7 @@ final class DeskRepository {
         }
         try await client
             .from("desk_applications")
-            .update(Patch(status: status.rawValue))
+            .update(Patch(status: status.databaseValue))
             .eq("id", value: applicationId)
             .execute()
     }

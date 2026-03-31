@@ -5,41 +5,43 @@ struct AppHeaderView: View {
     var subtitle: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "1C1C1E"), Color(hex: "3A3A3C")],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-            if let subtitle {
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(hex: "111827"))
+                .tracking(-0.3)
+            if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.labelSecondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color(hex: "6B7280"))
+                    .lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(
-            ZStack {
-                AppColor.headerGradient
-                LinearGradient(
-                    colors: [Color.white.opacity(0.95), Color(hex: "F5F7FA")],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
-        .overlay(
-            Rectangle()
-                .fill(Color.black.opacity(0.06))
-                .frame(height: 0.5),
-            alignment: .bottom
-        )
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .background {
+            LinearGradient(
+                colors: [
+                    Color.white,
+                    Color(hex: "F9FAFB"),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .overlay(alignment: .bottom) {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.07),
+                    Color.clear,
+                ],
+                startPoint: .bottom,
+                endPoint: .top
+            )
+            .frame(height: 1)
+        }
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
     }
 }

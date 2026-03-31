@@ -37,27 +37,4 @@ final class UserRepository {
             .execute()
     }
 
-    /// Updates only tags and skills fields (same columns as Skills & Needs step).
-    func updateSkillsAndNeeds(
-        userId: UUID,
-        industryTags: [String],
-        skills: [String],
-        needs: [String]
-    ) async throws {
-        struct Patch: Encodable {
-            let industry_tags: [String]
-            let skills: [String]
-            let needs: [String]
-        }
-        let patch = Patch(
-            industry_tags: industryTags,
-            skills: skills,
-            needs: needs
-        )
-        try await client
-            .from("users")
-            .update(patch)
-            .eq("id", value: userId)
-            .execute()
-    }
 }

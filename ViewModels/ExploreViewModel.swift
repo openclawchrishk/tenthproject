@@ -19,7 +19,7 @@ final class ExploreViewModel: ObservableObject {
         do {
             let list = try await repository.fetchExploreDesks()
             desks = list
-            pickCurrentDesk()
+            pickCurrentDesk(excluding: nil)
         } catch {
             errorMessage = error.localizedDescription
             desks = []
@@ -27,18 +27,25 @@ final class ExploreViewModel: ObservableObject {
         }
     }
 
-    /// Reloads pool and picks another desk (or reshuffles) so the card shows fresh content.
+    /// Reloads from the server and shows another card when possible so **再看一次** always refreshes content.
     func viewAgain() async {
         refreshGeneration = UUID()
+        let previousId = currentDesk?.id
+        isLoading = true
         errorMessage = nil
+        defer { isLoading = false }
         do {
             let list = try await repository.fetchExploreDesks()
             desks = list
-            if desks.count > 1 {
-                let previous = currentDesk?.id
-                let others = desks.filter { $0.id != previous }
+            if desks.isEmpty {
+                currentDesk = nil
+                return
+            }
+            if desks.count > 1, let prev = previousId {
+                let others = desks.filter { $0.id != prev }
                 currentDesk = others.randomElement() ?? desks.randomElement()
             } else {
+                // Single item: still re-assign so SwiftUI refreshes bound subviews.
                 currentDesk = desks.first
             }
         } catch {
@@ -46,7 +53,16 @@ final class ExploreViewModel: ObservableObject {
         }
     }
 
-    private func pickCurrentDesk() {
-        currentDesk = desks.randomElement()
+    private func pickCurrentDesk(excluding: UUID?) {
+        guard !desks.isEmpty else {
+            currentDesk = nil
+            return
+        }
+        if let ex = excluding, desks.count > 1 {
+            let others = desks.filter { $0.id != ex }
+            currentDesk = others.randomElement() ?? desks.randomElement()
+        } else {
+            currentDesk = desks.randomElement()
+        }
     }
 }

@@ -158,11 +158,40 @@ struct DeskApplication: Codable, Identifiable, Equatable {
     }
 }
 
-enum ApplicationStatus: String, Codable {
-    case pending = "pending"
-    case active = "active"
-    case declined = "declined"
-    case hold = "hold"
+/// Matches `desk_applications.status` in Supabase. Decodes legacy `"active"` as **accepted** (same meaning).
+enum ApplicationStatus: Equatable, Codable {
+    case pending
+    case accepted
+    case declined
+    case hold
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        let s = try c.decode(String.self)
+        switch s {
+        case "pending": self = .pending
+        case "accepted", "active": self = .accepted
+        case "declined": self = .declined
+        case "hold": self = .hold
+        default:
+            self = .pending
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(databaseValue)
+    }
+
+    /// Value persisted to `desk_applications.status` (many schemas use `"active"` for approved rows).
+    var databaseValue: String {
+        switch self {
+        case .pending: return "pending"
+        case .accepted: return "active"
+        case .declined: return "declined"
+        case .hold: return "hold"
+        }
+    }
 }
 
 /// Application row plus resolved applicant name for founder UI.

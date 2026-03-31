@@ -28,7 +28,7 @@ struct ExploreView: View {
                                 DeskCardView(desk: desk) {
                                     Task { await viewModel.viewAgain() }
                                 }
-                                .id(viewModel.refreshGeneration)
+                                .id("\(viewModel.refreshGeneration.uuidString)-\(desk.id.uuidString)")
 
                                 NavigationLink {
                                     DeskDetailView(deskId: desk.id)

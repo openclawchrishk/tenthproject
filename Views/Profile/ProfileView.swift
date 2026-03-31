@@ -105,17 +105,15 @@ struct ProfileView: View {
     }
 
     private func save() async {
-        guard let uid = auth.currentUser?.id else { return }
+        guard var profile = auth.currentUser else { return }
         isSaving = true
         banner = nil
         defer { isSaving = false }
         do {
-            try await userRepo.updateSkillsAndNeeds(
-                userId: uid,
-                industryTags: Array(industryTags),
-                skills: Array(skills),
-                needs: Array(needs)
-            )
+            profile.industryTags = Array(industryTags)
+            profile.skills = Array(skills)
+            profile.needs = Array(needs)
+            try await userRepo.upsertUser(profile)
             await auth.refreshProfile()
             banner = "已儲存"
         } catch {

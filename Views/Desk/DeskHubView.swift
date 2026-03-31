@@ -110,7 +110,7 @@ struct DeskHubView: View {
             if item.application.status == .pending {
                 HStack(spacing: 12) {
                     Button {
-                        Task { await setStatus(item, to: .active) }
+                        Task { await setStatus(item, to: .accepted) }
                     } label: {
                         Label("批准", systemImage: "checkmark.circle.fill")
                     }
@@ -137,7 +137,7 @@ struct DeskHubView: View {
     private func statusLabel(_ s: ApplicationStatus) -> String {
         switch s {
         case .pending: return "待審核"
-        case .active: return "已批准"
+        case .accepted: return "已批准"
         case .declined: return "已拒絕"
         case .hold: return "暫緩"
         }
@@ -146,7 +146,7 @@ struct DeskHubView: View {
     private func statusColor(_ s: ApplicationStatus) -> Color {
         switch s {
         case .pending: return AppColor.accentOrange
-        case .active: return AppColor.secondary
+        case .accepted: return AppColor.secondary
         case .declined: return .red
         case .hold: return .gray
         }

@@ -84,9 +84,10 @@ struct MainTabView: View {
                     Label("我的", systemImage: "person.crop.circle.fill")
                 }
         }
-        .tint(AppColor.tabBarSelected)
+        // Do not set `.tint` here — it overrides UITabBarAppearance and grays out unselected items.
         .toolbarBackground(AppColor.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .toolbarColorScheme(.dark, for: .tabBar)
         .onAppear {
             TabBarAppearanceConfigurator.apply()
         }

@@ -6,24 +6,38 @@ final class MessageRepository {
     private let client = SupabaseManager.shared.client
 
     func fetchConversations(for userId: UUID) async throws -> [Conversation] {
-        let a: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .eq("participant_a", value: userId)
-            .order("updated_at", ascending: false, nullsFirst: false)
-            .execute()
-            .value
-        let b: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .eq("participant_b", value: userId)
-            .order("updated_at", ascending: false, nullsFirst: false)
-            .execute()
-            .value
-        var byId: [UUID: Conversation] = [:]
-        for c in a + b { byId[c.id] = c }
-        return byId.values.sorted {
-            ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+        let uid = userId.uuidString
+        let orFilter = "participant_a.eq.\(uid),participant_b.eq.\(uid)"
+        do {
+            let list: [Conversation] = try await client
+                .from("conversations")
+                .select()
+                .or(orFilter)
+                .order("updated_at", ascending: false, nullsFirst: false)
+                .execute()
+                .value
+            return list
+        } catch {
+            // Fallback: two queries (older PostgREST / filter quirks).
+            let a: [Conversation] = try await client
+                .from("conversations")
+                .select()
+                .eq("participant_a", value: userId)
+                .order("updated_at", ascending: false, nullsFirst: false)
+                .execute()
+                .value
+            let b: [Conversation] = try await client
+                .from("conversations")
+                .select()
+                .eq("participant_b", value: userId)
+                .order("updated_at", ascending: false, nullsFirst: false)
+                .execute()
+                .value
+            var byId: [UUID: Conversation] = [:]
+            for c in a + b { byId[c.id] = c }
+            return byId.values.sorted {
+                ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+            }
         }
     }
 

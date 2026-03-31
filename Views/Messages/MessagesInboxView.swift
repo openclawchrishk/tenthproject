@@ -132,10 +132,19 @@ struct MessagesInboxView: View {
         isLoading = true
         errorText = nil
         defer { isLoading = false }
+
+        var messagesError: String?
+        var invitesError: String?
+
         do {
-            let m = try await messagesRepo.fetchRecentMessagesPreview(for: uid)
+            messages = try await messagesRepo.fetchRecentMessagesPreview(for: uid)
+        } catch {
+            messages = []
+            messagesError = error.localizedDescription
+        }
+
+        do {
             let i = try await invitesRepo.fetchInvitesForUser(userId: uid)
-            messages = m
             invites = i
             var names: [UUID: String] = [:]
             let deskIds = Array(Set(i.map(\.deskId)))
@@ -146,7 +155,17 @@ struct MessagesInboxView: View {
             }
             deskNames = names
         } catch {
-            errorText = error.localizedDescription
+            invites = []
+            deskNames = [:]
+            invitesError = error.localizedDescription
+        }
+
+        if let a = messagesError, let b = invitesError {
+            errorText = "對話：\(a)\n邀請：\(b)"
+        } else if let a = messagesError {
+            errorText = "對話載入失敗：\(a)"
+        } else if let b = invitesError {
+            errorText = "邀請載入失敗：\(b)"
         }
     }
 

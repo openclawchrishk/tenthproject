@@ -38,6 +38,7 @@ struct DeskDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerBlock(desk)
+                cardParitySummary(desk)
                 section(title: "簡介", icon: "text.alignleft", color: AppColor.primary) {
                     Text(desk.pitch)
                         .font(.body)
@@ -100,10 +101,51 @@ struct DeskDetailView: View {
                 Spacer()
                 statusText(desk.status)
             }
+            Text(desk.pitch)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Text("\(desk.region) · \(desk.languagePreference.joined(separator: ", "))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    /// One block that mirrors the Explore card: expectations line + skills + team + date.
+    private func cardParitySummary(_ desk: Desk) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label {
+                Text(desk.expectations ?? desk.fundingNeeds ?? "—")
+                    .font(.body)
+            } icon: {
+                Image(systemName: "checklist")
+                    .foregroundStyle(AppColor.secondary)
+            }
+            Label {
+                Text(desk.skillsSummary)
+                    .font(.body)
+            } icon: {
+                Image(systemName: "person.3.fill")
+                    .foregroundStyle(AppColor.accentOrange)
+            }
+            HStack {
+                Label("\(desk.currentMemberCount)/\(desk.memberLimit) 人", systemImage: "person.2.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.primary)
+                Spacer()
+                if let created = desk.createdAt {
+                    Text(Self.dateFormatter.string(from: created))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
     }
 
     private func statusText(_ status: DeskStatus) -> some View {
