@@ -604,11 +604,10 @@ struct DeskDetailView: View {
         inviteInFlight = true
         defer { inviteInFlight = false }
         do {
-            try await inviteRepository.sendOrUpdateInvite(
+            try await inviteRepository.sendInvite(
                 deskId: desk.id,
                 inviterId: inviter,
-                inviteeId: invitee,
-                status: .pending
+                inviteeId: invitee
             )
             inviteMessage = "邀請已送出（或已更新現有邀請）。"
             inviteeIdText = ""

@@ -9,6 +9,7 @@ struct MessagesInboxView: View {
     @State private var deskNames: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var errorText: String?
+    @State private var processingInviteId: UUID?
 
     private let messagesRepo = MessageRepository()
     private let invitesRepo = InviteRepository()
@@ -145,6 +146,31 @@ struct MessagesInboxView: View {
                         Text(inv.inviteeId == auth.currentUser?.id ? "你收到邀請" : "你發出的邀請")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        if inv.status == .pending,
+                           inv.inviteeId == auth.currentUser?.id,
+                           let uid = auth.currentUser?.id {
+                            HStack(spacing: 12) {
+                                Button {
+                                    Task { await respondToDeskInvite(inv, as: uid, accept: true) }
+                                } label: {
+                                    Text("接受")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppColor.primary)
+                                .disabled(processingInviteId != nil)
+
+                                Button {
+                                    Task { await respondToDeskInvite(inv, as: uid, accept: false) }
+                                } label: {
+                                    Text("拒絕")
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(AppColor.error)
+                                .disabled(processingInviteId != nil)
+                            }
+                            .padding(.top, 4)
+                            .opacity(processingInviteId == inv.id ? 0.5 : 1)
+                        }
                     }
                     .padding(.vertical, 4)
                 }
@@ -158,6 +184,21 @@ struct MessagesInboxView: View {
         case .pending: return "待回覆"
         case .accepted: return "已接受"
         case .declined: return "已拒絕"
+        }
+    }
+
+    private func respondToDeskInvite(_ inv: Invite, as uid: UUID, accept: Bool) async {
+        processingInviteId = inv.id
+        defer { processingInviteId = nil }
+        do {
+            if accept {
+                try await invitesRepo.acceptInvite(inviteId: inv.id, actingUserId: uid)
+            } else {
+                try await invitesRepo.declineInvite(inviteId: inv.id, actingUserId: uid)
+            }
+            await loadAll()
+        } catch {
+            errorText = error.localizedDescription
         }
     }
 

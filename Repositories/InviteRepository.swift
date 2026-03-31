@@ -1,9 +1,57 @@
 import Foundation
 import Supabase
 
+enum InviteRepositoryError: LocalizedError {
+    case notInvitee
+    case invalidTransition
+
+    var errorDescription: String? {
+        switch self {
+        case .notInvitee: return "只有被邀請者可以回覆此邀請"
+        case .invalidTransition: return "此邀請已處理"
+        }
+    }
+}
+
 @MainActor
 final class InviteRepository {
     private let client = SupabaseManager.shared.client
+
+    /// Sends a Desk 邀請（或更新既有待處理邀請）。語意同 `sendOrUpdateInvite`。
+    func sendInvite(deskId: UUID, inviterId: UUID, inviteeId: UUID) async throws {
+        try await sendOrUpdateInvite(deskId: deskId, inviterId: inviterId, inviteeId: inviteeId, status: .pending)
+    }
+
+    /// 被邀請者接受邀請。
+    func acceptInvite(inviteId: UUID, actingUserId: UUID) async throws {
+        try await setInviteResponse(inviteId: inviteId, actingUserId: actingUserId, newStatus: .accepted)
+    }
+
+    /// 被邀請者拒絕邀請。
+    func declineInvite(inviteId: UUID, actingUserId: UUID) async throws {
+        try await setInviteResponse(inviteId: inviteId, actingUserId: actingUserId, newStatus: .declined)
+    }
+
+    private func setInviteResponse(inviteId: UUID, actingUserId: UUID, newStatus: InviteStatus) async throws {
+        let invite: Invite = try await client
+            .from("invites")
+            .select()
+            .eq("id", value: inviteId)
+            .single()
+            .execute()
+            .value
+        guard invite.inviteeId == actingUserId else { throw InviteRepositoryError.notInvitee }
+        guard invite.status == .pending else { throw InviteRepositoryError.invalidTransition }
+
+        struct StatusPatch: Encodable {
+            let status: String
+        }
+        try await client
+            .from("invites")
+            .update(StatusPatch(status: newStatus.rawValue))
+            .eq("id", value: inviteId)
+            .execute()
+    }
 
     /// Sends or refreshes an invite. Uses **update-or-insert** so it never hits PostgreSQL duplicate-key errors if `upsert` / `on_conflict` does not match the DB unique constraint.
     func sendOrUpdateInvite(deskId: UUID, inviterId: UUID, inviteeId: UUID, status: InviteStatus = .pending) async throws {

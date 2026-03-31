@@ -14,6 +14,8 @@ class OnboardingViewModel: ObservableObject {
 
     @Published var currentStep: OnboardingStep = .roleSelection
 
+    static let languageOptions = ["廣東話", "普通話", "英文", "日本語", "其他"]
+
     static let industryOptions = [
         "金融科技", "教育", "醫療健康", "電商", "SaaS", "AI / 數據", "區塊鏈", "消費品牌",
     ]

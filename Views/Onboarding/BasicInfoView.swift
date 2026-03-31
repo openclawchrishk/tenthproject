@@ -40,9 +40,45 @@ struct BasicInfoView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
             }
             .padding(.horizontal)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("語言")
+                    .font(.headline)
+                Text("可複選")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], spacing: 8) {
+                    ForEach(OnboardingViewModel.languageOptions, id: \.self) { lang in
+                        let on = viewModel.selectedLanguages.contains(lang)
+                        Button {
+                            if on {
+                                viewModel.selectedLanguages.remove(lang)
+                            } else {
+                                viewModel.selectedLanguages.insert(lang)
+                            }
+                        } label: {
+                            Text(lang)
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(on ? AppColor.primary.opacity(0.2) : Color.white)
+                                .foregroundStyle(on ? AppColor.primary : .primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(on ? AppColor.primary : Color.clear, lineWidth: 2)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Commitment Level")
+                Text("投入程度")
                     .font(.headline)
                 
                 Picker("投入程度", selection: $viewModel.commitmentLevel) {
@@ -64,10 +100,10 @@ struct BasicInfoView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(viewModel.displayName.isEmpty ? Color.gray : AppColor.primary)
+                    .background((viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty) ? Color.gray : AppColor.primary)
                     .cornerRadius(12)
             }
-            .disabled(viewModel.displayName.isEmpty)
+            .disabled(viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty)
             .padding(.horizontal)
             .padding(.bottom, 30)
         }
