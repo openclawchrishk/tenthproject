@@ -20,12 +20,11 @@ DELETE FROM connections;
 DELETE FROM conversations;
 DELETE FROM desk_roles;
 DELETE FROM desks;
-DELETE FROM profiles;  -- if profiles table exists separately
-DELETE FROM users;     -- this will cascade to auth.users if CASCADE is set
+DELETE FROM users;     -- CASCADE deletes from auth.users
 
 COMMIT;
 
--- If you also want to reset auth.users (DANGER - deletes all accounts):
+-- If you also want to reset auth.users (DANGER - deletes ALL user accounts):
 -- BEGIN;
 -- DELETE FROM auth.users;
 -- COMMIT;
