@@ -14,6 +14,8 @@ enum AppColor {
     static let tabBarSelected = Color(hex: "0A84FF")
     static let labelPrimary = Color.primary
     static let labelSecondary = Color.secondary
+    /// Unselected tab labels / secondary body text (aligned with iOS secondary label).
+    static let textSecondary = Color(hex: "8E8E93")
 
     static let brandGradient = LinearGradient(
         colors: [Color(hex: "007AFF"), Color(hex: "00C7BE")],

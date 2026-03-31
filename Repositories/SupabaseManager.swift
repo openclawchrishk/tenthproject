@@ -1,17 +1,49 @@
 import Foundation
 import Supabase
 
-/// Central Supabase client. Replace URL and anon key with your project values (or load from Info.plist / xcconfig).
+/*
+ FATAL — Supabase is not configured for production until you either:
+ 1) Set environment variables in the Xcode scheme (Run → Arguments → Environment):
+    - SUPABASE_URL   (e.g. https://abcd1234.supabase.co)
+    - SUPABASE_ANON_KEY or SUPABASE_KEY  (project anon/public key)
+ 2) Or replace the fallback URL and key below with real values from the Supabase dashboard.
+
+ Without valid credentials, auth and database calls will fail at runtime.
+ */
 final class SupabaseManager {
     static let shared = SupabaseManager()
 
-    private let supabaseUrl = URL(string: "https://your-project.supabase.co")!
-    private let supabaseAnonKey = "your-anon-key"
+    private let supabaseUrl: URL
+    private let supabaseAnonKey: String
 
     let client: SupabaseClient
 
     private init() {
+        if let url = Self.urlFromEnvironment(), let key = Self.anonKeyFromEnvironment() {
+            supabaseUrl = url
+            supabaseAnonKey = key
+        } else {
+            // Placeholder — see FATAL block at top of file.
+            supabaseUrl = URL(string: "https://your-project.supabase.co")!
+            supabaseAnonKey = "your-anon-key"
+        }
         client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey)
+    }
+
+    private static func urlFromEnvironment() -> URL? {
+        let raw = ProcessInfo.processInfo.environment["SUPABASE_URL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let raw, !raw.isEmpty else { return nil }
+        let normalized = raw.lowercased().hasPrefix("http") ? raw : "https://\(raw)"
+        return URL(string: normalized)
+    }
+
+    private static func anonKeyFromEnvironment() -> String? {
+        let env = ProcessInfo.processInfo.environment
+        let key = (env["SUPABASE_ANON_KEY"] ?? env["SUPABASE_KEY"])?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let key, !key.isEmpty else { return nil }
+        return key
     }
 }
 
