@@ -69,6 +69,10 @@ struct SkillsAndNeedsView: View {
     }
 
     private func saveAndContinue() async {
+        guard auth.session != nil else {
+            saveError = "尚未登入，無法儲存。請先完成登入，再填寫產業與技能。"
+            return
+        }
         isSaving = true
         saveError = nil
         defer { isSaving = false }

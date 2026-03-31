@@ -58,7 +58,7 @@ struct ProfileView: View {
                             Section {
                                 Text(banner)
                                     .font(.footnote)
-                                    .foregroundStyle(banner.contains("失敗") ? Color.red : Color.secondary)
+                                    .foregroundStyle(bannerForeground(banner))
                             }
                         }
 
@@ -81,6 +81,24 @@ struct ProfileView: View {
                         }
                     }
                     .scrollContentBackground(.hidden)
+                    .overlay {
+                        if isSaving {
+                            ZStack {
+                                Color.black.opacity(0.06).ignoresSafeArea()
+                                VStack(spacing: 10) {
+                                    ProgressView()
+                                    Text("儲存中…")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding(28)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(.ultraThinMaterial)
+                                )
+                            }
+                        }
+                    }
                 } else {
                     ContentUnavailableView("尚未載入資料", systemImage: "person.crop.circle.badge.questionmark")
                 }
@@ -116,9 +134,17 @@ struct ProfileView: View {
             try await userRepo.upsertUser(profile)
             await auth.refreshProfile()
             banner = "已儲存"
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch {
             banner = "儲存失敗：\(error.localizedDescription)"
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
+    }
+
+    private func bannerForeground(_ banner: String) -> Color {
+        if banner.contains("失敗") { return .red }
+        if banner.contains("已儲存") { return Color(red: 0.2, green: 0.65, blue: 0.35) }
+        return .secondary
     }
 }
 

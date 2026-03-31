@@ -49,9 +49,10 @@ class OnboardingViewModel: ObservableObject {
 
     /// Persists industry / skills / needs and merges with existing `users` row if present.
     func persistSkillsAndNeeds(auth: AuthRepository) async throws {
-        guard let uid = auth.session?.user.id else {
+        guard let session = auth.session else {
             throw UserRepositoryError.notAuthenticated
         }
+        let uid = session.user.id
 
         let merged: UserProfile
         if let existing = try? await userRepo.fetchUser(id: uid) {
@@ -73,9 +74,9 @@ class OnboardingViewModel: ObservableObject {
         updated.region = region
         updated.languages = Array(selectedLanguages)
         updated.commitmentLevel = commitmentLevel
-        updated.industryTags = Array(industryTags)
-        updated.skills = Array(skills)
-        updated.needs = Array(needs)
+        updated.industryTags = Array(industryTags).sorted()
+        updated.skills = Array(skills).sorted()
+        updated.needs = Array(needs).sorted()
 
         try await userRepo.upsertUser(updated)
         try await auth.fetchUserProfile(userId: uid)
