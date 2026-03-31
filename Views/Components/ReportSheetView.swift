@@ -19,7 +19,7 @@ struct ReportSheetView: View {
                 }
                 if let errorText {
                     Section {
-                        Text(errorText).foregroundStyle(.red).font(.footnote)
+                        Text(errorText).foregroundStyle(AppColor.error).font(.footnote)
                     }
                 }
                 Section {

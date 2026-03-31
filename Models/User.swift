@@ -101,7 +101,12 @@ struct UserProfile: Identifiable, Codable, Equatable {
     var referralCount: Int
 
     var isPremium: Bool {
-        level == .level3
+        level >= .level3
+    }
+
+    /// PRD §4.5 — fraction of optional profile fields filled, always in `0...1`.
+    var profileCompleteness: Double {
+        min(1, max(0, computedProfileCompleteness))
     }
 
     var verificationBadgeStyle: VerificationBadgeStyle? {
@@ -276,7 +281,7 @@ struct UserUpsertPayload: Encodable {
         linked_in_url = user.linkedInUrl
         website_url = user.websiteUrl
         invitation_code = user.invitationCode
-        profile_completion_rate = user.computedProfileCompleteness
+        profile_completion_rate = user.profileCompleteness
         referral_count = user.referralCount
     }
 }

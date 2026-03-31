@@ -32,13 +32,18 @@ struct MessagesInboxView: View {
                 .padding(.bottom, 8)
 
                 if isLoading && segment != 1 && segment != 3 {
-                    ProgressView()
-                        .padding(.top, 32)
+                    VStack(spacing: 12) {
+                        ProgressView()
+                        Text("載入中…")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .padding(.top, 32)
                 } else if let errorText, segment == 0 || segment == 2 {
                     VStack(spacing: 12) {
                         Text(errorText)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(AppColor.error)
                             .multilineTextAlignment(.center)
                         Button("重試") {
                             Task { await loadAll() }
@@ -73,8 +78,12 @@ struct MessagesInboxView: View {
     @ViewBuilder
     private var dmSegment: some View {
         if messages.isEmpty {
-            ContentUnavailableView("沒有私訊", systemImage: "bubble.left.and.bubble.right", description: Text("與已連接的用戶開始對話"))
-                .padding(.top, 24)
+            ContentUnavailableView(
+                "暫時沒有訊息",
+                systemImage: "bubble.left.and.bubble.right",
+                description: Text("與已連接的用戶開始對話")
+            )
+            .padding(.top, 24)
         } else {
             List(messages) { item in
                 if let uid = auth.currentUser?.id {

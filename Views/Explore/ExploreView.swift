@@ -13,15 +13,20 @@ struct ExploreView: View {
                 )
 
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: CardChrome.sectionSpacing) {
                         if viewModel.isLoading {
-                            ProgressView()
-                                .padding(.top, 40)
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                Text("載入中…")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.textSecondary)
+                            }
+                            .padding(.top, 40)
                         } else if let err = viewModel.errorMessage {
                             VStack(spacing: 12) {
                                 Text(err)
                                     .font(.footnote)
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(AppColor.error)
                                     .multilineTextAlignment(.center)
                                 Button("重試") {
                                     Task { await viewModel.load() }
@@ -32,7 +37,7 @@ struct ExploreView: View {
                             .padding()
                         } else if let desk = viewModel.currentDesk {
                             VStack(spacing: 18) {
-                                DeskCardView(desk: desk) {
+                                DeskCardView(desk: desk, founder: viewModel.currentFounder) {
                                     Task { await viewModel.viewAgain() }
                                 }
                                 .id("\(viewModel.refreshGeneration.uuidString)-\(desk.id.uuidString)")
@@ -49,29 +54,25 @@ struct ExploreView: View {
                                             .foregroundStyle(AppColor.primary)
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .foregroundStyle(.tertiary)
+                                            .foregroundStyle(AppColor.textSecondary)
                                     }
-                                    .padding(.horizontal, 18)
-                                    .padding(.vertical, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
-                                            .fill(AppColor.secondaryGroupedSurface)
-                                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
-                                    )
+                                    .padding(.horizontal, CardChrome.padding)
+                                    .padding(.vertical, CardChrome.padding)
+                                    .deskerElevatedCard()
                                 }
                                 .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 20)
                         } else {
                             ContentUnavailableView(
-                                "暫無 Desk",
-                                systemImage: "briefcase",
-                                description: Text("稍後再試或下拉重新整理")
+                                "暫時沒有內容",
+                                systemImage: "line.3.horizontal.decrease.circle",
+                                description: Text("試試調整篩選條件")
                             )
                             .padding(.top, 40)
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.bottom, CardChrome.sectionSpacing)
                 }
                 .refreshable { await viewModel.load() }
             }

@@ -26,7 +26,11 @@ struct PremiumUpgradeSheet: View {
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .background(AppColor.secondaryGroupedSurface, in: RoundedRectangle(cornerRadius: CardChrome.cornerRadius))
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                        .fill(AppColor.cardBackground)
+                        .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                )
 
                 Button {
                     HapticFeedback.light()

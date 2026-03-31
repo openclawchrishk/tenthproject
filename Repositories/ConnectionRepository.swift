@@ -108,6 +108,23 @@ final class ConnectionRepository {
         try await createConnection(userId: inv.fromUserId, peerId: inv.toUserId)
     }
 
+    func declineConnectionInvite(inviteId: UUID, currentUserId: UUID) async throws {
+        let inv = try await fetchInvite(id: inviteId)
+        guard inv.toUserId == currentUserId else {
+            struct Err: LocalizedError { var errorDescription: String? { "無法拒絕此邀請" } }
+            throw Err()
+        }
+        guard inv.status == .pending else { return }
+        struct Patch: Encodable {
+            let status: String
+        }
+        try await client
+            .from("connection_invites")
+            .update(Patch(status: ConnectionInviteStatus.declined.rawValue))
+            .eq("id", value: inviteId)
+            .execute()
+    }
+
     func fetchInvite(id: UUID) async throws -> ConnectionInvite {
         try await client
             .from("connection_invites")

@@ -17,14 +17,25 @@ struct MyConnectionsView: View {
         VStack(spacing: 0) {
             AppHeaderView(title: "我的人脈", subtitle: "連接後可私訊")
             if isLoading {
-                ProgressView().padding(.top, 32)
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("載入中…")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .padding(.top, 32)
             } else if let errorText {
-                ContentUnavailableView("載入失敗", systemImage: "exclamationmark.triangle", description: Text(errorText))
-                    .toolbar {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button("重試") { Task { await load() } }
-                        }
-                    }
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "載入失敗",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(errorText).foregroundStyle(AppColor.error)
+                    )
+                    Button("重試") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColor.primary)
+                }
+                .padding(.top, 8)
             } else {
                 List {
                     Section("發送連接邀請（對方 UUID）") {
@@ -43,10 +54,10 @@ struct MyConnectionsView: View {
                     }
                     Section("待處理邀請") {
                         if pending.isEmpty {
-                            Text("沒有待處理的邀請").foregroundStyle(.secondary)
+                            Text("沒有待處理的邀請").foregroundStyle(AppColor.textSecondary)
                         } else {
                             ForEach(pending) { inv in
-                                HStack {
+                                HStack(alignment: .center) {
                                     VStack(alignment: .leading) {
                                         Text("來自 \(peerNames[inv.fromUserId] ?? "用戶")")
                                         Text(inv.id.uuidString)
@@ -54,6 +65,11 @@ struct MyConnectionsView: View {
                                             .foregroundStyle(.tertiary)
                                     }
                                     Spacer()
+                                    Button("拒絕") {
+                                        Task { await decline(inv) }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(AppColor.error)
                                     Button("接受") {
                                         Task { await accept(inv) }
                                     }
@@ -65,8 +81,11 @@ struct MyConnectionsView: View {
                     }
                     Section("已連接") {
                         if connections.isEmpty {
-                            Text("尚無連接，發送邀請或接受邀請以建立人脈。")
-                                .foregroundStyle(.secondary)
+                            Text("你還沒有建立人脈，試試在 Explore 找人")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 8)
                         } else {
                             ForEach(connections) { c in
                                 let other = c.otherUser(than: auth.currentUser?.id ?? c.userAId)
@@ -163,6 +182,18 @@ private extension MyConnectionsView {
             await load()
         } catch {
             banner = "接受失敗：\(error.localizedDescription)"
+            HapticFeedback.error()
+        }
+    }
+
+    func decline(_ inv: ConnectionInvite) async {
+        guard let uid = auth.currentUser?.id else { return }
+        do {
+            try await connectionsRepo.declineConnectionInvite(inviteId: inv.id, currentUserId: uid)
+            HapticFeedback.success()
+            await load()
+        } catch {
+            banner = "拒絕失敗：\(error.localizedDescription)"
             HapticFeedback.error()
         }
     }

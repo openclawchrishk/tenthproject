@@ -3,24 +3,30 @@ import SwiftUI
 /// Brand and surface colors. Uses hex values so the app works without an Asset Catalog.
 enum AppColor {
     static let primary = Color(hex: "007AFF")
-    static let secondary = Color(hex: "00C7BE")
+    /// PRD secondary accent (indigo).
+    static let secondary = Color(hex: "5856D6")
     static let accentOrange = Color(hex: "FF9500")
     static let accentPurple = Color(hex: "AF52DE")
+    /// Teal accent (charts, secondary CTAs).
+    static let teal = Color(hex: "00C7BE")
     static let background = Color(hex: "F2F2F7")
-    /// Grouped list / card surface (replaces `UIColor.secondarySystemGroupedBackground` for cross-platform builds).
+    /// Grouped list / inset rows (replaces `UIColor.secondarySystemGroupedBackground`).
     static let secondaryGroupedSurface = Color(hex: "E5E5EA")
-    static let cardBackground = Color(hex: "2C2C2E")
+    static let cardBackground = Color(hex: "FFFFFF")
     static let headerBackground = Color.white
     static let tabBarBackground = Color(hex: "1C1C1E")
     static let tabBarUnselected = Color(hex: "5AC8FA")
     static let tabBarSelected = Color(hex: "0A84FF")
     static let labelPrimary = Color.primary
     static let labelSecondary = Color.secondary
+    static let textPrimary = Color(hex: "000000")
     /// Unselected tab labels / secondary body text (aligned with iOS secondary label).
     static let textSecondary = Color(hex: "8E8E93")
+    static let success = Color(hex: "34C759")
+    static let error = Color(hex: "FF3B30")
 
     static let brandGradient = LinearGradient(
-        colors: [Color(hex: "007AFF"), Color(hex: "00C7BE")],
+        colors: [Color(hex: "007AFF"), Color(hex: "5856D6")],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -41,12 +47,26 @@ enum AppColor {
 
 enum CardChrome {
     static let cornerRadius: CGFloat = 16
+    /// PRD: section spacing between major blocks.
+    static let sectionSpacing: CGFloat = 24
+    /// Content padding inside elevated cards.
+    static let padding: CGFloat = 16
     static let shadowColor = Color.black.opacity(0.08)
-    static let shadowRadius: CGFloat = 10
-    static let shadowY: CGFloat = 4
+    static let shadowRadius: CGFloat = 8
+    static let shadowY: CGFloat = 2
 }
 
 extension View {
+    /// White card on grouped background with PRD shadow and corner radius.
+    func deskerElevatedCard() -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                    .fill(AppColor.cardBackground)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+            )
+    }
+
     /// `navigationBarTitleDisplayMode` is unavailable on macOS.
     @ViewBuilder
     func deskerInlineNavigationTitle() -> some View {

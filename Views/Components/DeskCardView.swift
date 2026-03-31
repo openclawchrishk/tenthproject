@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// Swipe-style card for Explore; **再看一次** bumps `refreshTrigger` so the parent reloads content.
+/// Swipe-style card for Explore: pitch, industry, founder, roles, member count.
 struct DeskCardView: View {
     let desk: Desk
+    let founder: UserProfile?
     let onViewAgain: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: CardChrome.sectionSpacing / 2) {
             HStack {
                 Image(systemName: "briefcase.fill")
                     .font(.title2)
@@ -14,39 +15,65 @@ struct DeskCardView: View {
                     .foregroundStyle(AppColor.primary, AppColor.secondary)
                 Text(desk.name)
                     .font(.title2.bold())
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColor.textPrimary)
                 Spacer()
                 StatusPill(status: desk.status)
             }
 
+            if let founder {
+                HStack(alignment: .center, spacing: 12) {
+                    FounderAvatar(urlString: founder.avatarUrl)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("創辦人")
+                            .font(.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                        HStack(spacing: 6) {
+                            Text(founder.displayName.isEmpty ? "—" : founder.displayName)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColor.textPrimary)
+                            if let v = founder.verificationBadgeStyle {
+                                VerificationBadgeView(style: v)
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+            }
+
             Text(desk.pitch)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let detail = desk.detailedDescription, !detail.isEmpty {
-                Text(detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(4)
+            if !desk.industryTags.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("產業", systemImage: "tag.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(AppColor.secondary)
+                    DeskCardTagFlow(tags: desk.industryTags)
+                }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Label("需求與期望", systemImage: "checklist")
-                    .font(.caption.bold())
-                    .foregroundStyle(AppColor.secondary)
-                Text(desk.expectations ?? desk.fundingNeeds ?? "—")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Label("技能 / 角色", systemImage: "person.3.fill")
+            VStack(alignment: .leading, spacing: 8) {
+                Label("招募角色", systemImage: "person.badge.plus")
                     .font(.caption.bold())
                     .foregroundStyle(AppColor.accentOrange)
-                Text(desk.skillsSummary)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
+                if desk.recruitingRoles.isEmpty {
+                    Text("—")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                } else {
+                    ForEach(desk.recruitingRoles) { role in
+                        HStack {
+                            Text(role.title)
+                                .font(.subheadline.weight(.medium))
+                            Spacer()
+                            Text("×\(role.count)")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(AppColor.textSecondary)
+                        }
+                    }
+                }
             }
 
             HStack {
@@ -57,7 +84,7 @@ struct DeskCardView: View {
                 if let created = desk.createdAt {
                     Text(Self.dateFormatter.string(from: created))
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
             }
 
@@ -77,12 +104,8 @@ struct DeskCardView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
-        )
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
     }
 
     private static let dateFormatter: DateFormatter = {
@@ -92,6 +115,60 @@ struct DeskCardView: View {
         f.locale = Locale(identifier: "zh_Hant_HK")
         return f
     }()
+}
+
+private struct FounderAvatar: View {
+    let urlString: String?
+
+    var body: some View {
+        Group {
+            if let s = urlString?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+               let url = URL(string: s) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        placeholder
+                    case .empty:
+                        ProgressView()
+                    @unknown default:
+                        placeholder
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+            } else {
+                placeholder
+            }
+        }
+    }
+
+    private var placeholder: some View {
+        Image(systemName: "person.crop.circle.fill")
+            .font(.system(size: 44))
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(AppColor.primary, AppColor.secondary)
+    }
+}
+
+private struct DeskCardTagFlow: View {
+    let tags: [String]
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), alignment: .leading)], alignment: .leading, spacing: 8) {
+            ForEach(tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(AppColor.secondary.opacity(0.12))
+                    .foregroundStyle(AppColor.secondary)
+                    .clipShape(Capsule())
+            }
+        }
+    }
 }
 
 private struct StatusPill: View {
@@ -118,7 +195,7 @@ private struct StatusPill: View {
         switch status {
         case .recruiting: return AppColor.secondary
         case .full: return AppColor.accentOrange
-        case .archived: return .gray
+        case .archived: return AppColor.textSecondary
         }
     }
 }

@@ -5,12 +5,15 @@ import SwiftUI
 final class ExploreViewModel: ObservableObject {
     @Published private(set) var desks: [Desk] = []
     @Published private(set) var currentDesk: Desk?
+    /// Resolved founder for `currentDesk` (Explore card).
+    @Published private(set) var currentFounder: UserProfile?
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     /// Changing this forces card content to refresh (再看一次).
     @Published private(set) var refreshGeneration = UUID()
 
     private let repository = DeskRepository()
+    private let users = UserRepository()
 
     func load() async {
         isLoading = true
@@ -20,10 +23,12 @@ final class ExploreViewModel: ObservableObject {
             let list = try await repository.fetchExploreDesks()
             desks = list
             pickCurrentDesk(excluding: nil)
+            await refreshFounderForCurrentDesk()
         } catch {
             errorMessage = error.localizedDescription
             desks = []
             currentDesk = nil
+            currentFounder = nil
         }
     }
 
@@ -39,6 +44,7 @@ final class ExploreViewModel: ObservableObject {
             desks = list
             if desks.isEmpty {
                 currentDesk = nil
+                currentFounder = nil
                 return
             }
             if desks.count > 1, let prev = previousId {
@@ -48,6 +54,7 @@ final class ExploreViewModel: ObservableObject {
                 // Single item: still re-assign so SwiftUI refreshes bound subviews.
                 currentDesk = desks.first
             }
+            await refreshFounderForCurrentDesk()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -56,6 +63,7 @@ final class ExploreViewModel: ObservableObject {
     private func pickCurrentDesk(excluding: UUID?) {
         guard !desks.isEmpty else {
             currentDesk = nil
+            currentFounder = nil
             return
         }
         if let ex = excluding, desks.count > 1 {
@@ -64,5 +72,13 @@ final class ExploreViewModel: ObservableObject {
         } else {
             currentDesk = desks.randomElement()
         }
+    }
+
+    private func refreshFounderForCurrentDesk() async {
+        guard let d = currentDesk else {
+            currentFounder = nil
+            return
+        }
+        currentFounder = try? await users.fetchUser(id: d.founderId)
     }
 }

@@ -30,19 +30,34 @@ struct DeskHubView: View {
     @ViewBuilder
     private var content: some View {
         if isLoading && myDesks.isEmpty && applications.isEmpty {
-            ProgressView()
-                .padding(.top, 48)
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("載入中…")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+            .padding(.top, 48)
         } else if let errorText {
-            Text(errorText)
-                .foregroundStyle(.red)
-                .padding()
+            VStack(spacing: 16) {
+                Text(errorText)
+                    .font(.footnote)
+                    .foregroundStyle(AppColor.error)
+                    .multilineTextAlignment(.center)
+                Button("重試") {
+                    Task { await reload() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.primary)
+            }
+            .padding()
         } else {
             List {
                 Section {
                     if myDesks.isEmpty {
-                        Text("你尚未建立任何 Desk，或資料仍在載入。")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        emptyRow(
+                            icon: "folder.badge.plus",
+                            message: "你還沒有建立 Desk，立即創建你的第一個項目"
+                        )
                     } else {
                         ForEach(myDesks) { desk in
                             NavigationLink {
@@ -59,9 +74,7 @@ struct DeskHubView: View {
 
                 Section {
                     if applications.isEmpty {
-                        Text("目前沒有待處理的申請。")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        emptyRow(icon: "tray", message: "還沒有收到申請")
                     } else {
                         ForEach(applications) { item in
                             applicationRow(item)
@@ -76,18 +89,33 @@ struct DeskHubView: View {
         }
     }
 
+    private func emptyRow(icon: String, message: String) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(AppColor.textSecondary)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .listRowBackground(Color.clear)
+    }
+
     private func deskFounderRow(_ desk: Desk) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(desk.name)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(AppColor.textPrimary)
                 Spacer()
                 deskStatusPill(desk.status)
             }
             Text(desk.pitch)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(2)
             HStack(spacing: 12) {
                 Label("\(desk.currentMemberCount)/\(desk.memberLimit) 人", systemImage: "person.2.fill")
@@ -96,7 +124,7 @@ struct DeskHubView: View {
                 if !desk.skillsSummary.isEmpty {
                     Text(desk.skillsSummary)
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColor.textSecondary)
                         .lineLimit(1)
                 }
             }
@@ -109,7 +137,7 @@ struct DeskHubView: View {
             switch status {
             case .recruiting: return ("招募中", AppColor.secondary)
             case .full: return ("已滿", AppColor.accentOrange)
-            case .archived: return ("已歸檔", .gray)
+            case .archived: return ("已歸檔", AppColor.textSecondary)
             }
         }()
         return Text(t)
@@ -147,7 +175,7 @@ struct DeskHubView: View {
                     .font(.subheadline)
                 Text(item.application.statement)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColor.textSecondary)
                 if item.application.status == .pending {
                     HStack(spacing: 12) {
                         Button {
@@ -165,7 +193,7 @@ struct DeskHubView: View {
                             Label("拒絕", systemImage: "xmark.circle.fill")
                         }
                         .buttonStyle(.bordered)
-                        .tint(.red)
+                        .tint(AppColor.error)
                         .disabled(processingId != nil)
                     }
                     .padding(.top, 4)
@@ -188,9 +216,9 @@ struct DeskHubView: View {
     private func statusColor(_ s: ApplicationStatus) -> Color {
         switch s {
         case .pending: return AppColor.accentOrange
-        case .accepted: return AppColor.secondary
-        case .declined: return .red
-        case .hold: return .gray
+        case .accepted: return AppColor.success
+        case .declined: return AppColor.error
+        case .hold: return AppColor.textSecondary
         }
     }
 

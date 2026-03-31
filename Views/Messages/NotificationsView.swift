@@ -12,16 +12,31 @@ struct NotificationsView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("載入通知…")
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("載入中…")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                .padding(.top, 24)
             } else if let errorText {
-                ContentUnavailableView("載入失敗", systemImage: "exclamationmark.triangle", description: Text(errorText))
-                    .toolbar {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button("重試") { Task { await load() } }
-                        }
-                    }
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "載入失敗",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(errorText).foregroundStyle(AppColor.error)
+                    )
+                    Button("重試") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColor.primary)
+                }
+                .padding(.top, 8)
             } else if items.isEmpty {
-                ContentUnavailableView("沒有通知", systemImage: "bell", description: Text("新邀請、申請與訊息會顯示於此"))
+                ContentUnavailableView(
+                    "暫時沒有通知",
+                    systemImage: "bell",
+                    description: Text("新邀請、申請與訊息會顯示於此")
+                )
             } else {
                 List {
                     ForEach(items, id: \.id) { n in

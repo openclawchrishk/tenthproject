@@ -95,7 +95,7 @@ struct ProfileView: View {
     @ViewBuilder
     private func profileCompletenessSection(_ user: UserProfile) -> some View {
         Section {
-            let p = user.computedProfileCompleteness
+            let p = user.profileCompleteness
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("資料完整度")
@@ -358,8 +358,8 @@ struct ProfileView: View {
     }
 
     private func bannerForeground(_ banner: String) -> Color {
-        if banner.contains("失敗") { return .red }
-        if banner.contains("已儲存") || banner.contains("已提交") || banner.contains("相簿") { return Color(red: 0.2, green: 0.65, blue: 0.35) }
+        if banner.contains("失敗") { return AppColor.error }
+        if banner.contains("已儲存") || banner.contains("已提交") || banner.contains("相簿") { return AppColor.success }
         return .secondary
     }
 }

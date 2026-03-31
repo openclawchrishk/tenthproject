@@ -36,9 +36,26 @@ struct DeskDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("載入中…")
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("載入中…")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
             } else if let loadError {
-                ContentUnavailableView("無法載入", systemImage: "exclamationmark.triangle", description: Text(loadError))
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "無法載入",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(loadError).foregroundStyle(AppColor.error)
+                    )
+                    Button("重試") {
+                        Task { await load() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppColor.primary)
+                }
+                .padding()
             } else if let desk {
                 detailScroll(desk)
             } else {
@@ -164,7 +181,11 @@ struct DeskDetailView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(AppColor.secondaryGroupedSurface, in: RoundedRectangle(cornerRadius: CardChrome.cornerRadius))
+                            .background(
+                                RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                                    .fill(AppColor.cardBackground)
+                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                            )
                     }
                     .buttonStyle(.plain)
                 }
@@ -268,7 +289,7 @@ struct DeskDetailView: View {
                     if let applyError {
                         Section {
                             Text(applyError)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(AppColor.error)
                                 .font(.footnote)
                         }
                     }
@@ -357,8 +378,9 @@ struct DeskDetailView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
@@ -464,8 +486,9 @@ struct DeskDetailView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
@@ -496,8 +519,9 @@ struct DeskDetailView: View {
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
@@ -523,8 +547,9 @@ struct DeskDetailView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
@@ -562,8 +587,9 @@ struct DeskDetailView: View {
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(AppColor.secondaryGroupedSurface)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
