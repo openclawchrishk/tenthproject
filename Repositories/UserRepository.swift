@@ -37,4 +37,15 @@ final class UserRepository {
             .execute()
     }
 
+    /// Sets verification to pending for manual review (PRD §9).
+    func submitVerificationApplication(userId: UUID) async throws {
+        struct Patch: Encodable {
+            let verification_status: String
+        }
+        try await client
+            .from("users")
+            .update(Patch(verification_status: VerificationStatus.pending.rawValue))
+            .eq("id", value: userId)
+            .execute()
+    }
 }

@@ -1,7 +1,6 @@
 import SwiftUI
-import UIKit
 
-/// 訊息與邀請：從 Supabase 載入並顯示。
+/// 訊息中心：私訊、通知、Desk 邀請、人脈。
 struct MessagesInboxView: View {
     @EnvironmentObject private var auth: AuthRepository
     @State private var segment = 0
@@ -20,69 +19,98 @@ struct MessagesInboxView: View {
             VStack(spacing: 0) {
                 AppHeaderView(
                     title: "訊息",
-                    subtitle: "對話與 Desk 邀請"
+                    subtitle: "私訊、通知與邀請"
                 )
                 Picker("", selection: $segment) {
-                    Text("訊息").tag(0)
-                    Text("邀請").tag(1)
+                    Text("私訊").tag(0)
+                    Text("通知").tag(1)
+                    Text("Desk 邀請").tag(2)
+                    Text("人脈").tag(3)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 .padding(.bottom, 8)
 
-                if isLoading {
+                if isLoading && segment != 1 && segment != 3 {
                     ProgressView()
                         .padding(.top, 32)
-                } else if let errorText {
-                    Text(errorText)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding()
-                } else if segment == 0 {
-                    messageList
+                } else if let errorText, segment == 0 || segment == 2 {
+                    VStack(spacing: 12) {
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                        Button("重試") {
+                            Task { await loadAll() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColor.primary)
+                    }
+                    .padding()
                 } else {
-                    inviteList
+                    switch segment {
+                    case 0:
+                        dmSegment
+                    case 1:
+                        NotificationsView()
+                    case 2:
+                        inviteList
+                    case 3:
+                        MyConnectionsView()
+                    default:
+                        EmptyView()
+                    }
                 }
                 Spacer(minLength: 0)
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .deskerHiddenNavigationBar()
         }
         .task { await loadAll() }
         .refreshable { await loadAll() }
     }
 
-    private var messageList: some View {
-        Group {
-            if messages.isEmpty {
-                ContentUnavailableView("沒有訊息", systemImage: "bubble.left.and.bubble.right", description: Text("開始與其他用戶對話後會顯示於此"))
-                    .padding(.top, 24)
-            } else {
-                List(messages) { item in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(AppColor.primary, AppColor.secondary)
-                            Text(item.peerDisplayName)
-                                .font(.headline)
-                            Spacer()
-                            if let d = item.message.createdAt {
-                                Text(Self.shortDate.string(from: d))
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        Text(item.message.body)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
+    @ViewBuilder
+    private var dmSegment: some View {
+        if messages.isEmpty {
+            ContentUnavailableView("沒有私訊", systemImage: "bubble.left.and.bubble.right", description: Text("與已連接的用戶開始對話"))
+                .padding(.top, 24)
+        } else {
+            List(messages) { item in
+                if let uid = auth.currentUser?.id {
+                    let peerId = item.conversation.otherUser(than: uid)
+                    NavigationLink {
+                        DMChatView(peerId: peerId, peerDisplayName: item.peerDisplayName)
+                    } label: {
+                        dmRow(item)
                     }
-                    .padding(.vertical, 4)
                 }
-                .listStyle(.insetGrouped)
             }
+            .deskerInsetGroupedListStyle()
         }
+    }
+
+    private func dmRow(_ item: MessageListItem) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "person.circle.fill")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(AppColor.primary, AppColor.secondary)
+                Text(item.peerDisplayName)
+                    .font(.headline)
+                Spacer()
+                if let d = item.message.createdAt {
+                    Text(Self.shortDate.string(from: d))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            Text(item.message.body)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+        }
+        .padding(.vertical, 4)
     }
 
     private var inviteList: some View {
@@ -111,7 +139,7 @@ struct MessagesInboxView: View {
                     }
                     .padding(.vertical, 4)
                 }
-                .listStyle(.insetGrouped)
+                .deskerInsetGroupedListStyle()
             }
         }
     }

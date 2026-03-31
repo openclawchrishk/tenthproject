@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Full project detail — founder, tags, team, funding, apply / invite.
 struct DeskDetailView: View {
@@ -20,6 +19,10 @@ struct DeskDetailView: View {
     @State private var applyStatement = ""
     @State private var applyError: String?
     @State private var applyInFlight = false
+    @State private var canAccessGroupChat = false
+    @State private var showDeskShare = false
+    @State private var showDeskReport = false
+    @State private var deskExportBanner: String?
 
     private let deskRepository = DeskRepository()
     private let inviteRepository = InviteRepository()
@@ -43,8 +46,48 @@ struct DeskDetailView: View {
             }
         }
         .navigationTitle("專案詳情")
-        .navigationBarTitleDisplayMode(.inline)
+        .deskerInlineNavigationTitle()
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showDeskShare = true
+                    HapticFeedback.light()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.primary, AppColor.secondary)
+                }
+                Button {
+                    showDeskReport = true
+                    HapticFeedback.light()
+                } label: {
+                    Image(systemName: "flag")
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.accentOrange, AppColor.primary)
+                }
+                Button {
+                    Task { await exportDeskStoryCard() }
+                } label: {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.accentPurple, AppColor.secondary)
+                }
+            }
+        }
         .task { await load() }
+        .sheet(isPresented: $showDeskShare) {
+            if let desk {
+                ShareSheetView(items: [PublicLinks.deskURL(deskId: desk.id)])
+            }
+        }
+        .sheet(isPresented: $showDeskReport) {
+            if let desk {
+                ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
+                    guard let uid = auth.currentUser?.id else { return }
+                    try? await ReportBlockRepository().submitReport(draft, reporterId: uid)
+                }
+            }
+        }
         .sheet(isPresented: $showApplySheet) {
             if let desk {
                 applySheet(desk)
@@ -57,6 +100,12 @@ struct DeskDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerBlock(desk)
+                if let deskExportBanner {
+                    Text(deskExportBanner)
+                        .font(.footnote)
+                        .foregroundStyle(deskExportBanner.contains("失敗") ? .red : .secondary)
+                        .padding(.horizontal)
+                }
                 if let founder {
                     founderBlock(founder)
                 }
@@ -107,6 +156,18 @@ struct DeskDetailView: View {
                     FlowTags(tags: desk.industryTags)
                 }
                 metaRow(desk)
+                if canAccessGroupChat {
+                    NavigationLink {
+                        DeskGroupChatView(desk: desk)
+                    } label: {
+                        Label("群組聊天", systemImage: "bubble.left.and.bubble.right.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppColor.secondaryGroupedSurface, in: RoundedRectangle(cornerRadius: CardChrome.cornerRadius))
+                    }
+                    .buttonStyle(.plain)
+                }
                 if isFounder {
                     inviteBlock(desk)
                 }
@@ -231,7 +292,7 @@ struct DeskDetailView: View {
                 }
             }
             .navigationTitle("申請加入")
-            .navigationBarTitleDisplayMode(.inline)
+            .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("關閉") { showApplySheet = false }
@@ -283,8 +344,13 @@ struct DeskDetailView: View {
                 Text("創辦人")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(founder.displayName.isEmpty ? "—" : founder.displayName)
-                    .font(.headline)
+                HStack(spacing: 8) {
+                    Text(founder.displayName.isEmpty ? "—" : founder.displayName)
+                        .font(.headline)
+                    if let v = founder.verificationBadgeStyle {
+                        VerificationBadgeView(style: v)
+                    }
+                }
             }
             Spacer()
         }
@@ -292,7 +358,7 @@ struct DeskDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(AppColor.secondaryGroupedSurface)
         )
     }
 
@@ -399,7 +465,7 @@ struct DeskDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(AppColor.secondaryGroupedSurface)
         )
     }
 
@@ -431,7 +497,7 @@ struct DeskDetailView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(AppColor.secondaryGroupedSurface)
         )
     }
 
@@ -458,7 +524,7 @@ struct DeskDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(AppColor.secondaryGroupedSurface)
         )
     }
 
@@ -473,7 +539,7 @@ struct DeskDetailView: View {
             TextField("Invited user UUID", text: $inviteeIdText)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .deskerTextFieldNoAutocaps()
             if let inviteMessage {
                 Text(inviteMessage)
                     .font(.footnote)
@@ -497,7 +563,7 @@ struct DeskDetailView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(AppColor.secondaryGroupedSurface)
         )
     }
 
@@ -535,8 +601,14 @@ struct DeskDetailView: View {
             async let founderFetch: UserProfile? = fetchFounder(id: d.founderId)
             if let uid = auth.currentUser?.id {
                 myApplication = try await deskRepository.fetchMyApplication(deskId: d.id, applicantId: uid)
+                canAccessGroupChat = (try? await deskRepository.canAccessDeskChat(
+                    deskId: d.id,
+                    userId: uid,
+                    founderId: d.founderId
+                )) ?? false
             } else {
                 myApplication = nil
+                canAccessGroupChat = false
             }
             founder = await founderFetch
         } catch {
@@ -546,6 +618,25 @@ struct DeskDetailView: View {
 
     private func fetchFounder(id: UUID) async -> UserProfile? {
         try? await userRepository.fetchUser(id: id)
+    }
+
+    private func exportDeskStoryCard() async {
+        #if os(iOS)
+        guard let desk, let founder else { return }
+        let name = founder.displayName.isEmpty ? "創辦人" : founder.displayName
+        guard let image = IGCardExportService.renderDeskRecruitmentCard(desk: desk, founderName: name) else {
+            deskExportBanner = "無法產生圖片"
+            return
+        }
+        do {
+            try await IGCardExportService.saveToPhotoLibrary(image)
+            deskExportBanner = "招募卡已儲存到相簿"
+            HapticFeedback.success()
+        } catch {
+            deskExportBanner = "儲存失敗：\(error.localizedDescription)"
+            HapticFeedback.error()
+        }
+        #endif
     }
 
     private static let dateFormatter: DateFormatter = {

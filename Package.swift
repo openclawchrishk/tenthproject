@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "DeskerHK",
-    platforms: [.iOS(.v17), .macOS(.v13)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "DeskerHK", targets: ["DeskerHK"]),
     ],
@@ -16,7 +16,7 @@ let package = Package(
             dependencies: [.product(name: "Supabase", package: "supabase-swift")],
             path: ".",
             exclude: ["Package.swift", "App", ".git"],
-            sources: ["Models", "Repositories", "Resources", "ViewModels", "Views"]
+            sources: ["Models", "Repositories", "Resources", "Services", "ViewModels", "Views"]
         ),
     ]
 )

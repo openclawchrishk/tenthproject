@@ -7,6 +7,8 @@ enum AppColor {
     static let accentOrange = Color(hex: "FF9500")
     static let accentPurple = Color(hex: "AF52DE")
     static let background = Color(hex: "F2F2F7")
+    /// Grouped list / card surface (replaces `UIColor.secondarySystemGroupedBackground` for cross-platform builds).
+    static let secondaryGroupedSurface = Color(hex: "E5E5EA")
     static let cardBackground = Color(hex: "2C2C2E")
     static let headerBackground = Color.white
     static let tabBarBackground = Color(hex: "1C1C1E")
@@ -35,6 +37,52 @@ enum AppColor {
     static let premiumBadge = Color.yellow
     static let investorBadge = Color.blue
     static let expertBadge = Color.green
+}
+
+enum CardChrome {
+    static let cornerRadius: CGFloat = 16
+    static let shadowColor = Color.black.opacity(0.08)
+    static let shadowRadius: CGFloat = 10
+    static let shadowY: CGFloat = 4
+}
+
+extension View {
+    /// `navigationBarTitleDisplayMode` is unavailable on macOS.
+    @ViewBuilder
+    func deskerInlineNavigationTitle() -> some View {
+        #if os(iOS)
+        self.navigationBarTitleDisplayMode(.inline)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
+    func deskerHiddenNavigationBar() -> some View {
+        #if os(iOS)
+        self.navigationBarHidden(true)
+        #else
+        self
+        #endif
+    }
+
+    @ViewBuilder
+    func deskerInsetGroupedListStyle() -> some View {
+        #if os(iOS)
+        self.listStyle(.insetGrouped)
+        #else
+        self.listStyle(.inset)
+        #endif
+    }
+
+    @ViewBuilder
+    func deskerTextFieldNoAutocaps() -> some View {
+        #if os(iOS)
+        self.textInputAutocapitalization(.never)
+        #else
+        self
+        #endif
+    }
 }
 
 extension Color {

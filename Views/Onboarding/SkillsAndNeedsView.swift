@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct SkillsAndNeedsView: View {
     @ObservedObject var viewModel: OnboardingViewModel
@@ -111,7 +110,7 @@ private struct TagSection: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 8)
                             .frame(maxWidth: .infinity)
-                            .background(on ? accent.opacity(0.2) : Color(UIColor.secondarySystemGroupedBackground))
+                            .background(on ? accent.opacity(0.2) : AppColor.secondaryGroupedSurface)
                             .foregroundStyle(on ? accent : .primary)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .overlay(

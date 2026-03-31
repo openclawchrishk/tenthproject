@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Founder's hub: **own desks** and **incoming applications** with approve / reject.
 struct DeskHubView: View {
@@ -22,7 +21,7 @@ struct DeskHubView: View {
                 content
             }
             .background(AppColor.background.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .deskerHiddenNavigationBar()
         }
         .task { await reload() }
         .refreshable { await reload() }
@@ -73,7 +72,7 @@ struct DeskHubView: View {
                         .foregroundStyle(AppColor.secondary)
                 }
             }
-            .listStyle(.insetGrouped)
+            .deskerInsetGroupedListStyle()
         }
     }
 

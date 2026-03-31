@@ -17,6 +17,7 @@ struct DeskRole: Codable, Identifiable, Equatable {
         case title
         case count
         case skillDescription = "skill_description"
+        case skillsDescription = "skills_description"
     }
 
     init(id: UUID = UUID(), title: String, count: Int, skillDescription: String? = nil) {
@@ -31,7 +32,11 @@ struct DeskRole: Codable, Identifiable, Equatable {
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
         count = try c.decodeIfPresent(Int.self, forKey: .count) ?? 0
-        skillDescription = try c.decodeIfPresent(String.self, forKey: .skillDescription)
+        if let s = try c.decodeIfPresent(String.self, forKey: .skillsDescription) {
+            skillDescription = s
+        } else {
+            skillDescription = try c.decodeIfPresent(String.self, forKey: .skillDescription)
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -39,7 +44,7 @@ struct DeskRole: Codable, Identifiable, Equatable {
         try c.encode(id, forKey: .id)
         try c.encode(title, forKey: .title)
         try c.encode(count, forKey: .count)
-        try c.encodeIfPresent(skillDescription, forKey: .skillDescription)
+        try c.encodeIfPresent(skillDescription, forKey: .skillsDescription)
     }
 }
 

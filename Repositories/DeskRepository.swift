@@ -106,6 +106,54 @@ final class DeskRepository {
         return rows.first
     }
 
+    func fetchDeskMembers(deskId: UUID) async throws -> [DeskMember] {
+        try await client
+            .from("desk_members")
+            .select()
+            .eq("desk_id", value: deskId)
+            .order("joined_at", ascending: true)
+            .execute()
+            .value
+    }
+
+    func isUserMemberOfDesk(deskId: UUID, userId: UUID) async throws -> Bool {
+        struct Row: Decodable { let id: UUID }
+        let rows: [Row] = try await client
+            .from("desk_members")
+            .select("id")
+            .eq("desk_id", value: deskId)
+            .eq("user_id", value: userId)
+            .limit(1)
+            .execute()
+            .value
+        return !rows.isEmpty
+    }
+
+    /// Founder or listed desk member can access group chat.
+    func canAccessDeskChat(deskId: UUID, userId: UUID, founderId: UUID) async throws -> Bool {
+        if userId == founderId { return true }
+        return try await isUserMemberOfDesk(deskId: deskId, userId: userId)
+    }
+
+    /// Founder removes another member (not themselves).
+    func removeDeskMember(deskId: UUID, memberUserId: UUID, founderId: UUID) async throws {
+        let desk: Desk = try await fetchDesk(id: deskId)
+        guard desk.founderId == founderId else {
+            struct Err: LocalizedError { var errorDescription: String? { "只有創辦人可以移除成員" } }
+            throw Err()
+        }
+        guard memberUserId != founderId else {
+            struct Err: LocalizedError { var errorDescription: String? { "無法移除創辦人" } }
+            throw Err()
+        }
+        try await client
+            .from("desk_members")
+            .delete()
+            .eq("desk_id", value: deskId)
+            .eq("user_id", value: memberUserId)
+            .execute()
+    }
+
     func submitApplication(deskId: UUID, applicantId: UUID, selectedRole: String, statement: String) async throws {
         struct Insert: Encodable {
             let id: UUID

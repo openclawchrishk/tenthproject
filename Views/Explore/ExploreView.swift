@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct ExploreView: View {
     @StateObject private var viewModel = ExploreViewModel()
@@ -19,10 +18,18 @@ struct ExploreView: View {
                             ProgressView()
                                 .padding(.top, 40)
                         } else if let err = viewModel.errorMessage {
-                            Text(err)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .padding()
+                            VStack(spacing: 12) {
+                                Text(err)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                                    .multilineTextAlignment(.center)
+                                Button("重試") {
+                                    Task { await viewModel.load() }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(AppColor.primary)
+                            }
+                            .padding()
                         } else if let desk = viewModel.currentDesk {
                             VStack(spacing: 18) {
                                 DeskCardView(desk: desk) {
@@ -47,9 +54,9 @@ struct ExploreView: View {
                                     .padding(.horizontal, 18)
                                     .padding(.vertical, 16)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(Color(UIColor.secondarySystemGroupedBackground))
-                                            .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                                        RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                                            .fill(AppColor.secondaryGroupedSurface)
+                                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -70,7 +77,7 @@ struct ExploreView: View {
             }
             .background(AppColor.background.ignoresSafeArea())
             .task { await viewModel.load() }
-            .navigationBarHidden(true)
+            .deskerHiddenNavigationBar()
         }
     }
 }

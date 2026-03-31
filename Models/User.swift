@@ -16,11 +16,15 @@ enum UserRole: String, Codable, CaseIterable {
     }
 }
 
-enum UserLevel: Int, Codable {
+enum UserLevel: Int, Codable, Comparable {
     case level1 = 1
     case level2 = 2
     case level3 = 3
     case level4 = 4
+
+    static func < (lhs: UserLevel, rhs: UserLevel) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
 
     var deskMemberLimit: Int {
         switch self {
@@ -30,17 +34,50 @@ enum UserLevel: Int, Codable {
         case .level4: return 12
         }
     }
+
+    var localizedTitle: String {
+        "Level \(rawValue)"
+    }
 }
 
+/// Official verification (PRD §9). Legacy DB values `approved` / `interview` decode gracefully.
 enum VerificationStatus: String, Codable {
+    case none = "none"
     case pending = "pending"
-    case approved = "approved"
+    case verifiedInvestor = "verified_investor"
+    case verifiedExpert = "verified_expert"
     case rejected = "rejected"
-    case interview = "interview"
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        let raw = try c.decode(String.self)
+        switch raw {
+        case "none": self = .none
+        case "pending": self = .pending
+        case "verified_investor": self = .verifiedInvestor
+        case "verified_expert": self = .verifiedExpert
+        case "rejected": self = .rejected
+        case "approved": self = .verifiedExpert
+        case "interview": self = .pending
+        default: self = .none
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
+    }
+}
+
+enum VerificationBadgeStyle {
+    case investor
+    case expert
 }
 
 struct UserProfile: Identifiable, Codable, Equatable {
     let id: UUID
+    /// Public handle for `desker.hk/u/{username}` (optional until set).
+    var username: String?
     var displayName: String
     var avatarUrl: String?
     var role: UserRole
@@ -58,18 +95,31 @@ struct UserProfile: Identifiable, Codable, Equatable {
     var linkedInUrl: String?
     var websiteUrl: String?
     var invitationCode: String
+    /// Cached profile completion 0...1 from server, if present.
     var profileCompletionRate: Double
+    /// Number of successful referrals (optional column).
+    var referralCount: Int
 
     var isPremium: Bool {
         level == .level3
     }
 
-    var isVerified: Bool {
-        verificationStatus == .approved
+    var verificationBadgeStyle: VerificationBadgeStyle? {
+        switch verificationStatus {
+        case .verifiedInvestor: return .investor
+        case .verifiedExpert: return .expert
+        default: return nil
+        }
+    }
+
+    /// Fraction 0...1 of optional profile fields filled (PRD §4.5).
+    var computedProfileCompleteness: Double {
+        ProfileCompleteness.fraction(for: self)
     }
 
     enum CodingKeys: String, CodingKey {
         case id
+        case username
         case displayName = "display_name"
         case avatarUrl = "avatar_url"
         case role
@@ -88,15 +138,17 @@ struct UserProfile: Identifiable, Codable, Equatable {
         case websiteUrl = "website_url"
         case invitationCode = "invitation_code"
         case profileCompletionRate = "profile_completion_rate"
+        case referralCount = "referral_count"
     }
 
     init(
         id: UUID,
+        username: String? = nil,
         displayName: String,
         avatarUrl: String? = nil,
         role: UserRole,
         level: UserLevel = .level1,
-        verificationStatus: VerificationStatus = .pending,
+        verificationStatus: VerificationStatus = .none,
         region: String = "HK",
         languages: [String] = ["廣東話"],
         commitmentLevel: String = "全職",
@@ -109,9 +161,11 @@ struct UserProfile: Identifiable, Codable, Equatable {
         linkedInUrl: String? = nil,
         websiteUrl: String? = nil,
         invitationCode: String = "",
-        profileCompletionRate: Double = 0
+        profileCompletionRate: Double = 0,
+        referralCount: Int = 0
     ) {
         self.id = id
+        self.username = username
         self.displayName = displayName
         self.avatarUrl = avatarUrl
         self.role = role
@@ -130,16 +184,18 @@ struct UserProfile: Identifiable, Codable, Equatable {
         self.websiteUrl = websiteUrl
         self.invitationCode = invitationCode
         self.profileCompletionRate = profileCompletionRate
+        self.referralCount = referralCount
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
+        username = try c.decodeIfPresent(String.self, forKey: .username)
         displayName = try c.decodeIfPresent(String.self, forKey: .displayName) ?? ""
         avatarUrl = try c.decodeIfPresent(String.self, forKey: .avatarUrl)
         role = try c.decodeIfPresent(UserRole.self, forKey: .role) ?? .aspiringFounder
         level = try c.decodeIfPresent(UserLevel.self, forKey: .level) ?? .level1
-        verificationStatus = try c.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus) ?? .pending
+        verificationStatus = try c.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus) ?? .none
         region = try c.decodeIfPresent(String.self, forKey: .region) ?? "HK"
         languages = try c.decodeIfPresent([String].self, forKey: .languages) ?? ["廣東話"]
         commitmentLevel = try c.decodeIfPresent(String.self, forKey: .commitmentLevel) ?? "全職"
@@ -153,12 +209,33 @@ struct UserProfile: Identifiable, Codable, Equatable {
         websiteUrl = try c.decodeIfPresent(String.self, forKey: .websiteUrl)
         invitationCode = try c.decodeIfPresent(String.self, forKey: .invitationCode) ?? ""
         profileCompletionRate = try c.decodeIfPresent(Double.self, forKey: .profileCompletionRate) ?? 0
+        referralCount = try c.decodeIfPresent(Int.self, forKey: .referralCount) ?? 0
+    }
+}
+
+enum ProfileCompleteness {
+    /// Weights optional profile fields equally (0...1).
+    static func fraction(for user: UserProfile) -> Double {
+        let checks: [Bool] = [
+            !(user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+            !(user.bio?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+            !(user.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+            !(user.linkedInUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+            !(user.websiteUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+            !user.interestTags.isEmpty,
+            !user.industryTags.isEmpty,
+            !user.skills.isEmpty,
+            !user.needs.isEmpty,
+        ]
+        let filled = checks.filter(\.self).count
+        return checks.isEmpty ? 0 : Double(filled) / Double(checks.count)
     }
 }
 
 /// Payload for upserting the `users` row (snake_case columns).
 struct UserUpsertPayload: Encodable {
     let id: UUID
+    var username: String?
     var display_name: String
     var avatar_url: String?
     var role: String
@@ -177,9 +254,11 @@ struct UserUpsertPayload: Encodable {
     var website_url: String?
     var invitation_code: String
     var profile_completion_rate: Double
+    var referral_count: Int
 
     init(from user: UserProfile) {
         id = user.id
+        username = user.username
         display_name = user.displayName
         avatar_url = user.avatarUrl
         role = user.role.rawValue
@@ -197,6 +276,7 @@ struct UserUpsertPayload: Encodable {
         linked_in_url = user.linkedInUrl
         website_url = user.websiteUrl
         invitation_code = user.invitationCode
-        profile_completion_rate = user.profileCompletionRate
+        profile_completion_rate = user.computedProfileCompleteness
+        referral_count = user.referralCount
     }
 }

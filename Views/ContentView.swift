@@ -108,6 +108,7 @@ struct MainTabView: View {
                     }
                 }
         }
+        #if os(iOS)
         // Tab bar colors: selected = AppColor.primary, unselected = AppColor.textSecondary via `TabBarAppearanceConfigurator` (avoid `.tint` on TabView).
         .toolbarBackground(AppColor.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
@@ -115,6 +116,7 @@ struct MainTabView: View {
         .onAppear {
             TabBarAppearanceConfigurator.apply()
         }
+        #endif
     }
 }
 

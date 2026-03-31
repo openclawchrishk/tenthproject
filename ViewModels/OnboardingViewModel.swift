@@ -4,7 +4,6 @@ import SwiftUI
 class OnboardingViewModel: ObservableObject {
     @Published var selectedRole: UserRole?
     @Published var displayName: String = ""
-    @Published var avatarImage: UIImage?
     @Published var region: String = "HK"
     @Published var selectedLanguages: Set<String> = ["廣東話"]
     @Published var commitmentLevel: String = "全職"
@@ -77,6 +76,9 @@ class OnboardingViewModel: ObservableObject {
         updated.industryTags = Array(industryTags).sorted()
         updated.skills = Array(skills).sorted()
         updated.needs = Array(needs).sorted()
+        if updated.invitationCode.isEmpty {
+            updated.invitationCode = String(uid.uuidString.prefix(8)).uppercased()
+        }
 
         try await userRepo.upsertUser(updated)
         try await auth.fetchUserProfile(userId: uid)

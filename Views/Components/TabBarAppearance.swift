@@ -1,9 +1,19 @@
 import SwiftUI
+
+#if os(iOS)
 import UIKit
+#endif
 
 /// Applies a dark tab bar with **colored** icons for both selected and unselected states (not system gray).
 enum TabBarAppearanceConfigurator {
     static func apply() {
+        #if os(iOS)
+        applyIOS()
+        #endif
+    }
+
+    #if os(iOS)
+    private static func applyIOS() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(AppColor.tabBarBackground)
@@ -34,4 +44,6 @@ enum TabBarAppearanceConfigurator {
         tabBar.tintColor = UIColor(AppColor.primary)
         tabBar.unselectedItemTintColor = UIColor(AppColor.textSecondary)
     }
+    #endif
 }
+

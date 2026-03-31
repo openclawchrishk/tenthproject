@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Swipe-style card for Explore; **再看一次** bumps `refreshTrigger` so the parent reloads content.
 struct DeskCardView: View {
@@ -80,9 +79,9 @@ struct DeskCardView: View {
         }
         .padding(22)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-                .shadow(color: Color.black.opacity(0.14), radius: 20, x: 0, y: 10)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                .fill(AppColor.secondaryGroupedSurface)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
         )
     }
 
