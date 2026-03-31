@@ -8,6 +8,7 @@ struct DeskHubView: View {
     @State private var isLoading = false
     @State private var errorText: String?
     @State private var processingId: UUID?
+    @State private var showCreateDesk = false
 
     private let deskRepository = DeskRepository()
 
@@ -22,6 +23,22 @@ struct DeskHubView: View {
             }
             .background(AppColor.background.ignoresSafeArea())
             .deskerHiddenNavigationBar()
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showCreateDesk = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.primary, AppColor.secondary)
+                }
+            }
+        }
+        .sheet(isPresented: $showCreateDesk) {
+            CreateDeskView()
+                .environmentObject(auth)
         }
         .task { await reload() }
         .refreshable { await reload() }

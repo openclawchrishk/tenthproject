@@ -173,4 +173,70 @@ final class DeskRepository {
         )
         try await client.from("desk_applications").insert(row).execute()
     }
+
+    /// Create a new Desk and its recruiting roles.
+    func createDesk(
+        founderId: UUID,
+        name: String,
+        pitch: String,
+        industries: [String],
+        region: String,
+        recruitingRoles: [DeskRole],
+        description: String?,
+        fundingNeeds: String?,
+        expectations: String?
+    ) async throws {
+        // Compute member_limit from founder's level + 1 for founder
+        let memberLimit = recruitingRoles.reduce(1) { $0 + $1.count }
+
+        struct DeskInsert: Encodable {
+            let id: UUID
+            let founder_id: UUID
+            let name: String
+            let pitch: String
+            let industry_tags: [String]
+            let region: String
+            let language_preference: [String]
+            let recruiting_roles: [DeskRole]
+            let status: String
+            let description: String?
+            let funding_needs: String?
+            let expectations: String?
+            let member_limit: Int
+        }
+
+        let deskId = UUID()
+        let deskRow = DeskInsert(
+            id: deskId,
+            founder_id: founderId,
+            name: name,
+            pitch: pitch,
+            industry_tags: industries,
+            region: region,
+            language_preference: [],
+            recruiting_roles: recruitingRoles,
+            status: DeskStatus.recruiting.rawValue,
+            description: description,
+            funding_needs: fundingNeeds,
+            expectations: expectations,
+            member_limit: memberLimit
+        )
+
+        try await client.from("desks").insert(deskRow).execute()
+
+        // Auto-add founder as first member
+        struct MemberInsert: Encodable {
+            let id: UUID
+            let desk_id: UUID
+            let user_id: UUID
+            let status: String
+        }
+        let memberRow = MemberInsert(
+            id: UUID(),
+            desk_id: deskId,
+            user_id: founderId,
+            status: "active"
+        )
+        try await client.from("desk_members").insert(memberRow).execute()
+    }
 }
