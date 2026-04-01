@@ -1,9 +1,5 @@
 import SwiftUI
 
-#if os(iOS)
-import UIKit
-#endif
-
 struct ExploreView: View {
     @StateObject private var viewModel = ExploreViewModel()
     @EnvironmentObject private var auth: AuthRepository

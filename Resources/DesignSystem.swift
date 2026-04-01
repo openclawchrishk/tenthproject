@@ -348,3 +348,115 @@ extension Color {
         )
     }
 }
+
+// MARK: - UX preferences (first visit tips, onboarding handoff)
+
+enum DeskerUXPreferences {
+    private static let pendingExploreAfterOnboardingKey = "deskerUX.pendingExploreAfterOnboarding"
+    private static let showExploreSwipeTipKey = "deskerUX.showExploreSwipeTip"
+    private static let tipExploreDismissedKey = "deskerUX.tipExploreDismissed"
+    private static let tipDeskDismissedKey = "deskerUX.tipDeskDismissed"
+    private static let tipMessagesDismissedKey = "deskerUX.tipMessagesDismissed"
+    private static let tipProfileDismissedKey = "deskerUX.tipProfileDismissed"
+    private static let favoriteFounderIdsKey = "deskerUX.favoriteFounderIds"
+    private static let deskDraftKey = "deskerUX.deskCreationDraft"
+
+    static var pendingExploreAfterOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingExploreAfterOnboardingKey) }
+        set { UserDefaults.standard.set(newValue, forKey: pendingExploreAfterOnboardingKey) }
+    }
+
+    static var showExploreSwipeTip: Bool {
+        get { UserDefaults.standard.bool(forKey: showExploreSwipeTipKey) }
+        set { UserDefaults.standard.set(newValue, forKey: showExploreSwipeTipKey) }
+    }
+
+    static var tipExploreDismissed: Bool {
+        get { UserDefaults.standard.bool(forKey: tipExploreDismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: tipExploreDismissedKey) }
+    }
+
+    static var tipDeskDismissed: Bool {
+        get { UserDefaults.standard.bool(forKey: tipDeskDismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: tipDeskDismissedKey) }
+    }
+
+    static var tipMessagesDismissed: Bool {
+        get { UserDefaults.standard.bool(forKey: tipMessagesDismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: tipMessagesDismissedKey) }
+    }
+
+    static var tipProfileDismissed: Bool {
+        get { UserDefaults.standard.bool(forKey: tipProfileDismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: tipProfileDismissedKey) }
+    }
+
+    static func isFavoriteFounder(_ id: UUID) -> Bool {
+        favoriteFounderIds.contains(id.uuidString)
+    }
+
+    static func toggleFavoriteFounder(_ id: UUID) {
+        var s = favoriteFounderIds
+        let key = id.uuidString
+        if s.contains(key) { s.remove(key) } else { s.insert(key) }
+        UserDefaults.standard.set(Array(s), forKey: favoriteFounderIdsKey)
+    }
+
+    private static var favoriteFounderIds: Set<String> {
+        get {
+            let a = UserDefaults.standard.stringArray(forKey: favoriteFounderIdsKey) ?? []
+            return Set(a)
+        }
+        set {
+            UserDefaults.standard.set(Array(newValue), forKey: favoriteFounderIdsKey)
+        }
+    }
+
+    static func saveDeskDraft(_ json: String?) {
+        if let json, !json.isEmpty {
+            UserDefaults.standard.set(json, forKey: deskDraftKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: deskDraftKey)
+        }
+    }
+
+    static func loadDeskDraft() -> String? {
+        UserDefaults.standard.string(forKey: deskDraftKey)
+    }
+}
+
+// MARK: - Skeleton placeholders
+
+struct DeskerSkeletonBar: View {
+    var height: CGFloat = 14
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(AppColor.secondaryGroupedSurface)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .deskerPulse(active: true)
+            .opacity(0.85)
+    }
+}
+
+struct ExploreCardSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                    .fill(AppColor.secondaryGroupedSurface)
+                    .frame(width: 60, height: 60)
+                    .deskerPulse(active: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    DeskerSkeletonBar(height: 18)
+                    DeskerSkeletonBar(height: 12)
+                    DeskerSkeletonBar(height: 12)
+                }
+            }
+            DeskerSkeletonBar(height: 44)
+        }
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
+    }
+}

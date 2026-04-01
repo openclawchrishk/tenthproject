@@ -45,11 +45,30 @@ struct AppNotification: Identifiable, Decodable, Equatable {
         return nil
     }
 
+    /// Parsed JSON object from `data` (string or key–value).
+    var dataObject: [String: Any]? {
+        guard let data, let d = data.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: d) else { return nil }
+        return obj as? [String: Any]
+    }
+
     /// Parsed from `data` for connection invite notifications (PRD §8).
     var connectionInviteId: UUID? {
-        guard let data, let d = data.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return nil }
-        let keys = ["invite_id", "connection_invite_id", "inviteId"]
+        uuidFromData(keys: ["invite_id", "connection_invite_id", "inviteId"])
+    }
+
+    /// Deep link: desk id for Desk-related notifications.
+    var deepLinkDeskId: UUID? {
+        uuidFromData(keys: ["desk_id", "deskId", "desk"])
+    }
+
+    /// Deep link: related user (e.g. DM peer, applicant).
+    var deepLinkUserId: UUID? {
+        uuidFromData(keys: ["user_id", "userId", "from_user_id", "fromUserId", "applicant_id", "applicantId", "peer_id", "peerId"])
+    }
+
+    private func uuidFromData(keys: [String]) -> UUID? {
+        guard let obj = dataObject else { return nil }
         for k in keys {
             if let s = obj[k] as? String, let id = UUID(uuidString: s) { return id }
         }

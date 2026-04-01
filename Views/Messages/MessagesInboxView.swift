@@ -3,6 +3,7 @@ import SwiftUI
 /// 訊息中心：私訊、通知、Desk 邀請、人脈。
 struct MessagesInboxView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var tabRouter: MainTabRouter
     @State private var segment = 0
     @State private var messages: [MessageListItem] = []
     @State private var invites: [Invite] = []
@@ -22,6 +23,12 @@ struct MessagesInboxView: View {
                     title: "訊息",
                     subtitle: "私訊、通知與邀請"
                 )
+
+                if !DeskerUXPreferences.tipMessagesDismissed {
+                    messagesFirstVisitTip
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 8)
+                }
 
                 inboxSegmentPicker
                     .padding(.horizontal, CardChrome.padding)
@@ -73,6 +80,37 @@ struct MessagesInboxView: View {
         }
         .task { await loadAll() }
         .refreshable { await loadAll() }
+        .onChange(of: tabRouter.messagesSegmentToSelect) { _, new in
+            if let new {
+                segment = new
+                tabRouter.messagesSegmentToSelect = nil
+            }
+        }
+    }
+
+    private var messagesFirstVisitTip: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "lightbulb.fill")
+                .foregroundStyle(AppColor.gold)
+            Text("私訊、系統通知與 Desk 邀請都會集中喺呢度；有新連接邀請時訊息分頁會顯示紅點。")
+                .font(.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineSpacing(3)
+                .frame(maxWidth: 560, alignment: .leading)
+            Button {
+                DeskerUXPreferences.tipMessagesDismissed = true
+                HapticFeedback.selection()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                .fill(AppColor.gold.opacity(0.12))
+        )
     }
 
     private var inboxSegmentPicker: some View {
@@ -94,18 +132,36 @@ struct MessagesInboxView: View {
     @ViewBuilder
     private var dmSegment: some View {
         if messages.isEmpty {
-            VStack(spacing: 12) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 48))
-                    .foregroundStyle(AppColor.textTertiary)
+            VStack(spacing: 18) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 52))
+                    .foregroundStyle(AppColor.secondary)
+                    .symbolRenderingMode(.hierarchical)
                 Text("暫時沒有訊息")
                     .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("連接創辦人或回覆邀請後，對話會顯示於此")
+                Text("去「探索」發掘創業者並發送連接邀請，建立對話後會顯示於此。")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .frame(maxWidth: 520)
+                Button {
+                    HapticFeedback.medium()
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                        tabRouter.selectedTab = 0
+                    }
+                } label: {
+                    Text("前往探索")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(AppColor.brandGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(DeskerButtonPressStyle())
             }
             .frame(maxWidth: .infinity)
             .padding(CardChrome.padding)

@@ -235,6 +235,45 @@ enum ProfileCompleteness {
         let filled = checks.filter(\.self).count
         return checks.isEmpty ? 0 : Double(filled) / Double(checks.count)
     }
+
+    /// (title, action hint) for fields still empty — drives profile completion UX.
+    static func missingItems(for user: UserProfile) -> [(String, String)] {
+        var out: [(String, String)] = []
+        if user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            out.append(("頭像", "上傳或設定頭像"))
+        }
+        if user.bio?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            out.append(("一句簡介", "填寫 bio，讓人一眼了解你"))
+        }
+        if user.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            out.append(("詳細介紹", "補充背景與經驗"))
+        }
+        if user.linkedInUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            out.append(("LinkedIn", "加入專業連結"))
+        }
+        if user.websiteUrl?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            out.append(("網站", "加入作品或公司網址"))
+        }
+        if user.interestTags.isEmpty {
+            out.append(("興趣標籤", "選擇興趣方向"))
+        }
+        if user.industryTags.isEmpty {
+            out.append(("產業標籤", "選擇產業"))
+        }
+        if user.skills.isEmpty {
+            out.append(("技能", "列出你擅長的領域"))
+        }
+        if user.needs.isEmpty {
+            out.append(("需求", "寫出你正在尋找的資源"))
+        }
+        return out
+    }
+}
+
+extension UserProfile: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }
 
 /// Payload for upserting the `users` row (snake_case columns).

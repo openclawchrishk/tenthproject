@@ -3,11 +3,13 @@ import SwiftUI
 struct NotificationsView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
+    @EnvironmentObject private var tabRouter: MainTabRouter
     @State private var items: [AppNotification] = []
     @State private var isLoading = true
     @State private var errorText: String?
     @State private var realtimeTask: Task<Void, Never>?
     @State private var markAllInFlight = false
+    @State private var deleteInFlightId: UUID?
     @State private var connectionInviteDetailId: UUID?
 
     private let repo = NotificationRepository()
@@ -67,6 +69,13 @@ struct NotificationsView: View {
                                         .onTapGesture {
                                             Task { await onNotificationTap(n) }
                                         }
+                                        .contextMenu {
+                                            Button(role: .destructive) {
+                                                Task { await deleteOne(n) }
+                                            } label: {
+                                                Label("清除此通知", systemImage: "trash")
+                                            }
+                                        }
                                 }
                             }
                         }
@@ -98,6 +107,7 @@ struct NotificationsView: View {
         .task {
             await load()
             startRealtime()
+            await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
         }
         .onDisappear {
             realtimeTask?.cancel()
@@ -124,11 +134,49 @@ struct NotificationsView: View {
 
     private func onNotificationTap(_ n: AppNotification) async {
         await markRead(n)
+        applyDeepLink(for: n)
         if n.type == AppNotificationType.connectionInvite {
             if let id = n.connectionInviteId {
                 connectionInviteDetailId = id
                 HapticFeedback.medium()
             }
+        }
+    }
+
+    private func applyDeepLink(for n: AppNotification) {
+        let t = n.type
+        if t == AppNotificationType.deskApplicationReceived || t == AppNotificationType.deskApplicationAccepted {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+                tabRouter.selectedTab = 1
+            }
+            return
+        }
+        if t == AppNotificationType.dmReceived {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+                tabRouter.selectedTab = 2
+                tabRouter.messagesSegmentToSelect = 0
+            }
+            return
+        }
+        if t == AppNotificationType.connectionInvite || t == AppNotificationType.connectionAccepted {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+                tabRouter.selectedTab = 2
+                tabRouter.messagesSegmentToSelect = 3
+            }
+        }
+    }
+
+    private func deleteOne(_ n: AppNotification) async {
+        deleteInFlightId = n.id
+        defer { deleteInFlightId = nil }
+        do {
+            try await repo.deleteNotification(id: n.id)
+            HapticFeedback.success()
+            await load()
+            await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
+        } catch {
+            toast.show(.error, error.localizedDescription)
+            HapticFeedback.error()
         }
     }
 
@@ -145,22 +193,19 @@ struct NotificationsView: View {
 
     private func notificationCard(_ n: AppNotification) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                    .fill(AppColor.primary.opacity(0.1))
-                    .frame(width: 44, height: 44)
-                Image(systemName: iconName(for: n.type))
-                    .font(.title3)
-                    .foregroundStyle(AppColor.primary)
-            }
+            NotificationAvatarChrome(iconName: iconName(for: n.type))
             VStack(alignment: .leading, spacing: 6) {
                 Text(n.title)
                     .font(.subheadline.bold())
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(3)
+                    .frame(maxWidth: 520, alignment: .leading)
                 Text(n.body)
                     .font(.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(5)
+                    .frame(maxWidth: 520, alignment: .leading)
                 if let d = n.createdAt {
                     Text(Self.shortDate.string(from: d))
                         .font(.caption2)
@@ -168,6 +213,11 @@ struct NotificationsView: View {
                 }
             }
             Spacer(minLength: 0)
+            if deleteInFlightId == n.id {
+                ProgressView()
+                    .scaleEffect(0.85)
+                    .tint(AppColor.primary)
+            }
         }
         .padding(CardChrome.padding)
         .background(
@@ -218,6 +268,7 @@ struct NotificationsView: View {
             try await repo.markAsRead(notificationId: n.id)
             HapticFeedback.light()
             await load()
+            await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
         } catch {
             HapticFeedback.error()
         }
@@ -231,6 +282,7 @@ struct NotificationsView: View {
             try await repo.markAllAsRead(userId: uid)
             HapticFeedback.success()
             await load()
+            await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
         } catch {
             HapticFeedback.error()
         }
@@ -252,6 +304,25 @@ struct NotificationsView: View {
     }()
 }
 
+// MARK: - Rich-style avatar (gradient + icon)
+
+private struct NotificationAvatarChrome: View {
+    let iconName: String
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(AppColor.brandGradient)
+                .frame(width: 48, height: 48)
+                .shadow(color: CardChrome.shadowColor, radius: 6, x: 0, y: 2)
+            Image(systemName: iconName)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Connection invite from notification (PRD §8)
 
 private struct ConnectionInviteNotificationDetailView: View {
@@ -264,6 +335,7 @@ private struct ConnectionInviteNotificationDetailView: View {
     @State private var fromProfile: UserProfile?
     @State private var loadError: String?
     @State private var actionBusy = false
+    @State private var optionalReplyDraft = ""
 
     private let connectionsRepo = ConnectionRepository()
     private let usersRepo = UserRepository()
@@ -279,12 +351,41 @@ private struct ConnectionInviteNotificationDetailView: View {
                             Label("有人想連接你", systemImage: "person.badge.plus")
                                 .font(.title2.bold())
                                 .foregroundStyle(AppColor.primary)
-                            HStack(spacing: 12) {
-                                Text(from.displayName.isEmpty ? "用戶" : from.displayName)
-                                    .font(.title3.weight(.semibold))
-                                if from.verificationBadgeStyle != nil {
-                                    Image(systemName: "star.fill")
-                                        .foregroundStyle(AppColor.gold)
+                            HStack(spacing: 14) {
+                                Group {
+                                    if let s = from.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+                                       let url = URL(string: s) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .success(let img):
+                                                img.resizable().scaledToFill()
+                                            default:
+                                                Image(systemName: "person.fill")
+                                                    .foregroundStyle(.white)
+                                            }
+                                        }
+                                        .frame(width: 56, height: 56)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(AppColor.gold.opacity(0.5), lineWidth: 2))
+                                    } else {
+                                        ZStack {
+                                            Circle()
+                                                .fill(AppColor.brandGradient)
+                                                .frame(width: 56, height: 56)
+                                            Text(String(from.displayName.prefix(1)).uppercased())
+                                                .font(.title2.weight(.bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(from.displayName.isEmpty ? "用戶" : from.displayName)
+                                        .font(.title3.weight(.semibold))
+                                    if from.verificationBadgeStyle != nil {
+                                        Label("已認證", systemImage: "star.fill")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(AppColor.gold)
+                                    }
                                 }
                             }
                             if let msg = inv.message?.trimmingCharacters(in: .whitespacesAndNewlines), !msg.isEmpty {
@@ -301,6 +402,18 @@ private struct ConnectionInviteNotificationDetailView: View {
                                 Text("對方沒有留下訊息")
                                     .font(.subheadline)
                                     .foregroundStyle(AppColor.textTertiary)
+                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("回覆（可選，示範 UI）")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppColor.textSecondary)
+                                TextField("例如：期待與你交流…", text: $optionalReplyDraft, axis: .vertical)
+                                    .lineLimit(2...4)
+                                    .padding(12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                            .fill(AppColor.surfaceElevated)
+                                    )
                             }
                             HStack(spacing: 12) {
                                 Button {
@@ -379,7 +492,7 @@ private struct ConnectionInviteNotificationDetailView: View {
         defer { actionBusy = false }
         do {
             try await connectionsRepo.acceptConnectionInvite(inviteId: inv.id, currentUserId: uid)
-            toast.show(.success, "已連接，可於私訊開始對話")
+            toast.show(.success, "你們已成為連接！可以開始私訊了")
             HapticFeedback.success()
             onFinished()
         } catch {

@@ -17,11 +17,16 @@ struct DeskHubView: View {
         NavigationStack {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 0) {
-                    AppHeaderView(
-                        title: "Desk",
-                        subtitle: "我創建的專案與申請管理"
-                    )
-                    content
+                AppHeaderView(
+                    title: "Desk",
+                    subtitle: "我創建的專案與申請管理"
+                )
+                if !DeskerUXPreferences.tipDeskDismissed {
+                    deskFirstVisitTip
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 8)
+                }
+                content
                 }
                 .background(AppColor.background.ignoresSafeArea())
                 .deskerHiddenNavigationBar()
@@ -50,6 +55,31 @@ struct DeskHubView: View {
         }
         .task { await reload() }
         .refreshable { await reload() }
+    }
+
+    private var deskFirstVisitTip: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "tray.full.fill")
+                .foregroundStyle(AppColor.secondary)
+            Text("有新申請時 Desk 分頁會顯示紅點；喺下方「收到的申請」可以一次過審批。")
+                .font(.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineSpacing(3)
+                .frame(maxWidth: 560, alignment: .leading)
+            Button {
+                DeskerUXPreferences.tipDeskDismissed = true
+                HapticFeedback.selection()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                .fill(AppColor.secondary.opacity(0.1))
+        )
     }
 
     @ViewBuilder
@@ -242,6 +272,21 @@ struct DeskHubView: View {
                     Text(item.application.statement)
                         .font(.body)
                         .foregroundStyle(AppColor.textSecondary)
+                    if !item.applicantSkills.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(item.applicantSkills.prefix(8), id: \.self) { sk in
+                                    Text(sk)
+                                        .font(.caption.weight(.medium))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(AppColor.teal.opacity(0.14))
+                                        .foregroundStyle(AppColor.primary)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

@@ -41,6 +41,11 @@ struct ProfileView: View {
                     title: "個人資料",
                     subtitle: auth.currentUser?.displayName ?? ""
                 )
+                if auth.currentUser != nil, !DeskerUXPreferences.tipProfileDismissed {
+                    profileFirstVisitTip
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 8)
+                }
                 if let user = auth.currentUser {
                     profileHero(user)
                         .padding(.horizontal, CardChrome.padding)
@@ -139,6 +144,31 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
+    private var profileFirstVisitTip: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "person.text.rectangle.fill")
+                .foregroundStyle(AppColor.primary)
+            Text("完善標籤與簡介可提升曝光；完成度越高，越易被其他創業者發現。")
+                .font(.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineSpacing(3)
+                .frame(maxWidth: 560, alignment: .leading)
+            Button {
+                DeskerUXPreferences.tipProfileDismissed = true
+                HapticFeedback.selection()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                .fill(AppColor.primary.opacity(0.08))
+        )
+    }
+
     private func profileHero(_ user: UserProfile) -> some View {
         VStack(spacing: 16) {
             ZStack {
@@ -301,29 +331,57 @@ struct ProfileView: View {
 
     @ViewBuilder
     private func profileCompletenessSection(_ user: UserProfile) -> some View {
-        Section {
-            let p = user.profileCompleteness
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("資料完整度")
-                        .font(.headline)
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer()
-                    Text("\(Int(round(p * 100)))%")
-                        .font(.subheadline.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(AppColor.primary)
+                Section {
+                    let p = user.profileCompleteness
+                    let missing = ProfileCompleteness.missingItems(for: user)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("資料完整度")
+                                .font(.headline)
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            Text("\(Int(round(p * 100)))%")
+                                .font(.subheadline.monospacedDigit().weight(.semibold))
+                                .foregroundStyle(AppColor.primary)
+                        }
+                        ProfileCompletenessBar(value: p)
+                        if p < 1 {
+                            Text("完成以下步驟提升你的人氣")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColor.secondary)
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(Array(missing.prefix(5).enumerated()), id: \.offset) { _, item in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Image(systemName: "circle.dotted")
+                                            .font(.caption)
+                                            .foregroundStyle(AppColor.gold)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("缺少：\(item.0)")
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(AppColor.textPrimary)
+                                            Text(item.1)
+                                                .font(.caption)
+                                                .foregroundStyle(AppColor.textSecondary)
+                                        }
+                                    }
+                                }
+                                if missing.count > 5 {
+                                    Text("還有 \(missing.count - 5) 項…")
+                                        .font(.caption)
+                                        .foregroundStyle(AppColor.textTertiary)
+                                }
+                            }
+                        }
+                        if p >= 1 {
+                            Label("Profile 完整", systemImage: "checkmark.seal.fill")
+                                .font(.caption.bold())
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(AppColor.gold, AppColor.primary)
+                        }
+                    }
+                    .padding(.vertical, 4)
                 }
-                ProfileCompletenessBar(value: p)
-                if p >= 1 {
-                    Label("Profile 完整", systemImage: "checkmark.seal.fill")
-                        .font(.caption.bold())
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(AppColor.gold, AppColor.primary)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .listRowBackground(AppColor.cardBackground)
+                .listRowBackground(AppColor.cardBackground)
     }
 
     @ViewBuilder

@@ -50,6 +50,19 @@ final class NotificationRepository {
             .execute()
     }
 
+    func deleteNotification(id: UUID) async throws {
+        try await client
+            .from("notifications")
+            .delete()
+            .eq("id", value: id)
+            .execute()
+    }
+
+    func unreadCount(userId: UUID) async throws -> Int {
+        let list = try await fetchNotifications(userId: userId)
+        return list.filter { !$0.read }.count
+    }
+
     func subscribeToNotifications(
         userId: UUID,
         onChange: @escaping @Sendable @MainActor () -> Void

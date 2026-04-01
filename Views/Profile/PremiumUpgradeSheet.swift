@@ -37,10 +37,13 @@ struct PremiumUpgradeSheet: View {
                     }
                     .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
 
+                    comparisonTable
+
                     VStack(alignment: .leading, spacing: 14) {
                         benefitRow("Desk 成員上限提升至 8 人", icon: "person.3.fill")
                         benefitRow("個人檔案 Premium 標章", icon: "star.circle.fill")
                         benefitRow("優先曝光與配對（即將推出）", icon: "sparkles")
+                        benefitRow("匯出 IG 限動個人卡（已提供）", icon: "photo.on.rectangle.angled")
                         benefitRow("正式上線時支援 Apple In-App Purchase", icon: "applelogo")
                     }
                     .padding(CardChrome.padding)
@@ -91,6 +94,65 @@ struct PremiumUpgradeSheet: View {
                     Button("關閉") { dismiss() }
                 }
             }
+        }
+    }
+
+    private var comparisonTable: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("方案比較")
+                .font(.headline)
+                .foregroundStyle(AppColor.textPrimary)
+                .padding(.bottom, 12)
+            HStack {
+                Text("")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Lv 1–2")
+                    .font(.caption.weight(.bold))
+                    .frame(width: 72, alignment: .center)
+                Text("Lv 3+")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.gold)
+                    .frame(width: 72, alignment: .center)
+            }
+            .padding(.vertical, 8)
+            Divider()
+            comparisonRow("基本個人檔案", basic: "✓", premium: "✓")
+            comparisonRow("私訊（DM）", basic: "有限額*", premium: "無限*")
+            comparisonRow("Premium 標章", basic: "—", premium: "✓")
+            comparisonRow("優先曝光", basic: "—", premium: "✓")
+            comparisonRow("IG 個人卡匯出", basic: "✓", premium: "✓")
+            Text("* 示範 UI，正式上線以產品政策為準。")
+                .font(.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+                .padding(.top, 10)
+        }
+        .padding(CardChrome.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+        )
+    }
+
+    private func comparisonRow(_ title: String, basic: String, premium: String) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(basic)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(width: 72, alignment: .center)
+                Text(premium)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+                    .frame(width: 72, alignment: .center)
+            }
+            .padding(.vertical, 10)
+            Divider()
         }
     }
 
