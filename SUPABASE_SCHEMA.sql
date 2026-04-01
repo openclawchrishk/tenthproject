@@ -5,6 +5,22 @@
 
 BEGIN;
 
+-- DROP existing tables first (if recreating)
+DROP TABLE IF EXISTS public.desk_messages CASCADE;
+DROP TABLE IF EXISTS public.direct_messages CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.desk_applications CASCADE;
+DROP TABLE IF EXISTS public.desk_members CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.blocked_users CASCADE;
+DROP TABLE IF EXISTS public.referrals CASCADE;
+DROP TABLE IF EXISTS public.connection_invites CASCADE;
+DROP TABLE IF EXISTS public.connections CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
+DROP TABLE IF EXISTS public.desk_roles CASCADE;
+DROP TABLE IF EXISTS public.desks CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
 -- ============================================================
 -- USERS (extends Supabase auth.users)
 -- ============================================================
@@ -114,8 +130,7 @@ CREATE TABLE IF NOT EXISTS public.connections (
     user_a_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     user_b_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (user_a_id, user_b_id),
-    CHECK (user_a_id < user_b_id)
+    UNIQUE (user_a_id, user_b_id)
 );
 
 -- ============================================================
@@ -141,8 +156,7 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     participant_b_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     last_message_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (participant_a_id, participant_b_id),
-    CHECK (participant_a_id < participant_b_id)
+    UNIQUE (participant_a_id, participant_b_id)
 );
 
 -- ============================================================
