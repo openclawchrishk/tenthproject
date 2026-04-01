@@ -68,6 +68,7 @@ struct MainTabView: View {
     @State private var inboxBadgeCount = 0
     @State private var deskTabBadgeCount = 0
     @State private var lastTabSwitchAt = Date.distantPast
+    @State private var showAppTutorial = false
 
     private let messagesRepo = MessageRepository()
     private let invitesRepo = InviteRepository()
@@ -135,6 +136,15 @@ struct MainTabView: View {
                 Task { await OfflineDirectMessageQueue.shared.flush(using: DMRepository()) }
             }
         }
+        .overlay {
+            if showAppTutorial {
+                AppTutorialOverlay {
+                    showAppTutorial = false
+                }
+                .transition(.opacity)
+                .zIndex(50)
+            }
+        }
         .onAppear {
             TabBarAppearanceConfigurator.apply()
             PushNotificationService.shared.configure(tabRouter: tabRouter, auth: auth)
@@ -143,6 +153,12 @@ struct MainTabView: View {
                 DeskerUXPreferences.pendingExploreAfterOnboarding = false
                 withAnimation(DeskerAnimation.tabCrossFade) {
                     tabRouter.selectedTab = 0
+                }
+            }
+            if DeskerUXPreferences.showAppTutorialAfterOnboarding, !DeskerUXPreferences.appTutorialDismissed {
+                DeskerUXPreferences.showAppTutorialAfterOnboarding = false
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.88)) {
+                    showAppTutorial = true
                 }
             }
         }

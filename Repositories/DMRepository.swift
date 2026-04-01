@@ -217,7 +217,8 @@ final class DMRepository {
         conversationId: UUID,
         onInsert: @escaping @Sendable @MainActor () -> Void
     ) -> Task<Void, Never> {
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self else { return }
             await client.realtimeV2.connect()
             let channel = client.realtimeV2.channel("dm-\(conversationId.uuidString)")
             let stream = channel.postgresChange(

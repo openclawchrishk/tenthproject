@@ -16,7 +16,7 @@ final class AuthRepository: ObservableObject {
     init() {
         authListenerTask = Task { @MainActor [weak self] in
             guard let self else { return }
-            for await (_, session) in await SupabaseManager.shared.client.auth.authStateChanges {
+            for await (_, session) in SupabaseManager.shared.client.auth.authStateChanges {
                 self.session = session
                 if let session {
                     do {
@@ -149,5 +149,6 @@ final class AuthRepository: ObservableObject {
         }
         currentUser = nil
         session = nil
+        Task { await ImageCache.shared.removeAll() }
     }
 }

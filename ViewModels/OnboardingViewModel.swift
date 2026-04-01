@@ -31,6 +31,10 @@ class OnboardingViewModel: ObservableObject {
         "技術合夥人", "資金", "導師", "市場渠道", "招聘", "辦公空間",
     ]
 
+    static let interestOptions = [
+        "早期投資", "產品合作", "導師交流", "招聘", "社群活動", "出海", "政府資助", "大灣區機會",
+    ]
+
     enum OnboardingStep: Hashable {
         case roleSelection
         case basicInfo

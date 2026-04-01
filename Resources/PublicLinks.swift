@@ -5,7 +5,7 @@ enum PublicLinks {
 
     private static func requireURL(_ string: String) -> URL {
         guard let u = URL(string: string) else {
-            preconditionFailure("Invalid URL: \(string)")
+            return URL(string: baseURLString) ?? URL(fileURLWithPath: "/")
         }
         return u
     }

@@ -35,6 +35,7 @@ struct DeskDetailView: View {
     @State private var showDeskExportShare = false
     @State private var deskExportShareItems: [Any] = []
     @State private var aboutExpanded = false
+    @State private var deskNotFound = false
 
     private let deskRepository = DeskRepository()
     private let inviteRepository = InviteRepository()
@@ -48,7 +49,28 @@ struct DeskDetailView: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             Group {
-                if let loadError, !isLoading {
+                if deskNotFound, !isLoading {
+                    VStack(spacing: 18) {
+                        ContentUnavailableView(
+                            "找不到專案",
+                            systemImage: "folder.badge.questionmark",
+                            description: Text("此 Desk 可能已移除或連結無效").foregroundStyle(AppColor.textSecondary)
+                        )
+                        Button {
+                            HapticFeedback.light()
+                            dismiss()
+                        } label: {
+                            Text("返回")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColor.primary)
+                        .padding(.horizontal, CardChrome.padding)
+                    }
+                    .padding()
+                } else if let loadError, !isLoading {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 44))
@@ -817,6 +839,7 @@ struct DeskDetailView: View {
     private func load() async {
         isLoading = true
         loadError = nil
+        deskNotFound = false
         defer { isLoading = false }
         do {
             let d = try await deskRepository.fetchDesk(id: deskId)
@@ -836,7 +859,15 @@ struct DeskDetailView: View {
             founder = await founderFetch
         } catch {
             deskDetailLog.error("load desk failed: \(error.localizedDescription, privacy: .public)")
-            loadError = error.localizedDescription
+            if let repo = error as? RepositoryError, case .notFound = repo {
+                desk = nil
+                founder = nil
+                deskNotFound = true
+                loadError = nil
+            } else {
+                deskNotFound = false
+                loadError = APIErrorMessages.userFacingMessage(for: error)
+            }
         }
     }
 

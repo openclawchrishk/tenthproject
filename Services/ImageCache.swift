@@ -9,6 +9,15 @@ import ImageIO
 actor ImageCache {
     static let shared = ImageCache()
 
+    private nonisolated static let urlSession: URLSession = {
+        let c = URLSessionConfiguration.ephemeral
+        c.timeoutIntervalForRequest = 45
+        c.timeoutIntervalForResource = 120
+        c.waitsForConnectivity = true
+        c.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: c)
+    }()
+
     /// Raw bytes — works across targets; avoids duplicate downloads.
     private let dataCache = NSCache<NSString, NSData>()
 
@@ -16,6 +25,14 @@ actor ImageCache {
     /// Decoded images (user-requested `NSCache<NSString, UIImage>` pattern).
     private let imageCache = NSCache<NSString, UIImage>()
     #endif
+
+    /// Clears decoded and raw byte caches (e.g. after sign-out).
+    func removeAll() {
+        dataCache.removeAllObjects()
+        #if canImport(UIKit)
+        imageCache.removeAllObjects()
+        #endif
+    }
 
     private init() {
         dataCache.countLimit = 300
@@ -26,19 +43,57 @@ actor ImageCache {
         #endif
     }
 
-    /// Loads image bytes, using cache when possible. Respects `Task` cancellation.
+    /// Loads image bytes, using cache when possible. Respects `Task` cancellation; retries once on transient URL errors.
     func imageData(for url: URL) async throws -> Data {
         let key = url.absoluteString as NSString
         if let cached = dataCache.object(forKey: key) as Data? {
             return cached
         }
-        let (data, response) = try await URLSession.shared.data(from: url)
+        do {
+            let data = try await loadImageDataOnce(from: url)
+            dataCache.setObject(data as NSData, forKey: key, cost: data.count)
+            return data
+        } catch {
+            if Self.shouldRetryImageLoad(error) {
+                try await Task.sleep(nanoseconds: 400_000_000)
+                try Task.checkCancellation()
+                let data = try await loadImageDataOnce(from: url)
+                dataCache.setObject(data as NSData, forKey: key, cost: data.count)
+                return data
+            }
+            throw error
+        }
+    }
+
+    private func loadImageDataOnce(from url: URL) async throws -> Data {
+        let (data, response) = try await Self.urlSession.data(from: url)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw URLError(.badServerResponse)
         }
-        dataCache.setObject(data as NSData, forKey: key, cost: data.count)
         return data
+    }
+
+    private nonisolated static func shouldRetryImageLoad(_ error: Error) -> Bool {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            switch ns.code {
+            case NSURLErrorTimedOut, NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost,
+                 NSURLErrorDNSLookupFailed, NSURLErrorNotConnectedToInternet:
+                return true
+            default:
+                break
+            }
+        }
+        if let u = error as? URLError {
+            switch u.code {
+            case .timedOut, .networkConnectionLost, .cannotConnectToHost, .dnsLookupFailed, .notConnectedToInternet:
+                return true
+            default:
+                break
+            }
+        }
+        return false
     }
 
     #if canImport(UIKit)

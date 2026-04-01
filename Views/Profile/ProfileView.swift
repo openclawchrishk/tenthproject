@@ -27,7 +27,15 @@ struct ProfileView: View {
     @State private var showPremium = false
     @State private var referralCount = 0
     @State private var deskProjectCount = 0
+    @State private var activeDeskCount = 0
+    @State private var archivedDeskCount = 0
     @State private var connectionCount = 0
+    @State private var bioDraft = ""
+    @State private var detailedBioDraft = ""
+    @State private var linkedInDraft = ""
+    @State private var websiteDraft = ""
+    @State private var interestTags: Set<String> = []
+    @State private var scrollToSection: String?
 
     private let userRepo = UserRepository()
     private let referralRepo = ReferralRepository()
@@ -50,25 +58,37 @@ struct ProfileView: View {
                     profileHero(user)
                         .padding(.horizontal, CardChrome.padding)
                         .padding(.bottom, 12)
-                    Form {
-                        profileCompletenessSection(user)
-                        levelAndBadgesSection(user)
-                        inviteAndReferralSection(user)
-                        verificationAndPremiumSection(user)
-                        exportSection(user)
-                        accountSection(user)
-                        tagsSection(user)
-                        if let banner {
-                            Section {
-                                Text(banner)
-                                    .font(.footnote)
-                                    .foregroundStyle(bannerForeground(banner))
+                    ScrollViewReader { proxy in
+                        Form {
+                            profileCompletenessSection(user)
+                            levelAndBadgesSection(user)
+                            inviteAndReferralSection(user)
+                            verificationAndPremiumSection(user)
+                            exportSection(user)
+                            accountSection(user)
+                            bioAndLinksSection()
+                            tagsSection(user)
+                            if let banner {
+                                Section {
+                                    Text(banner)
+                                        .font(.footnote)
+                                        .foregroundStyle(bannerForeground(banner))
+                                }
+                                .listRowBackground(AppColor.cardBackground)
                             }
-                            .listRowBackground(AppColor.cardBackground)
+                        }
+                        .tint(AppColor.primary)
+                        .scrollContentBackground(.hidden)
+                        .onChange(of: scrollToSection) { _, id in
+                            guard let id else { return }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    proxy.scrollTo(id, anchor: .center)
+                                }
+                                scrollToSection = nil
+                            }
                         }
                     }
-                    .tint(AppColor.primary)
-                    .scrollContentBackground(.hidden)
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         profileSaveBar
                     }
@@ -205,7 +225,7 @@ struct ProfileView: View {
                         VerificationBadgeView(style: v)
                     }
                 }
-                levelBadgeRow(user)
+                completenessTierBadgeRow(for: user)
                 Text(user.role.localizedName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(RoleBadgePalette.color(for: user.role))
@@ -213,11 +233,11 @@ struct ProfileView: View {
             .padding(.top, 8)
 
             HStack(spacing: 0) {
-                statCell(title: "專案", value: "\(deskProjectCount)")
-                Divider().frame(height: 36)
-                statCell(title: "連接", value: "\(connectionCount)")
-                Divider().frame(height: 36)
-                statCell(title: "完整度", value: "\(Int(round(user.profileCompleteness * 100)))%")
+                deskStatColumn
+                Divider().frame(height: 52)
+                connectionStatColumn
+                Divider().frame(height: 52)
+                completenessStatColumn(user: user)
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 8)
@@ -229,36 +249,117 @@ struct ProfileView: View {
         }
     }
 
-    private func levelBadgeRow(_ user: UserProfile) -> some View {
-        Group {
-            if user.level >= .level3 {
-                Text(user.level.localizedTitle)
+    /// Visual tier from profile completeness (Lv1 無章 / Lv2 銀 / Lv3 金).
+    private func completenessTierBadgeRow(for user: UserProfile) -> some View {
+        let tier = ProfileCompletenessTier.from(completeness: user.profileCompleteness)
+        return HStack(spacing: 6) {
+            switch tier {
+            case .starter:
+                Text(tier.localizedTitle)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppColor.secondaryGroupedSurface)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .clipShape(Capsule())
+            case .rising:
+                Image(systemName: "medal.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color(white: 0.72))
+                    .shadow(color: .white.opacity(0.35), radius: 0, y: 0)
+                Text(tier.localizedTitle)
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(white: 0.88), Color(white: 0.72)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .foregroundStyle(AppColor.textPrimary)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.45), lineWidth: 1))
+            case .champion:
+                Image(systemName: "medal.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.gold)
+                Text(tier.localizedTitle)
                     .font(.caption.weight(.bold))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
                         LinearGradient(
-                            colors: [AppColor.gold.opacity(0.95), AppColor.gold.opacity(0.7)],
+                            colors: [AppColor.gold.opacity(0.95), AppColor.gold.opacity(0.72)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .foregroundStyle(AppColor.textPrimary)
                     .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                    )
-            } else {
-                Text(user.level.localizedTitle)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(AppColor.secondaryGroupedSurface)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.4), lineWidth: 1))
             }
         }
+    }
+
+    private var deskStatColumn: some View {
+        VStack(spacing: 4) {
+            Text("\(deskProjectCount)")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+            Text("已建立 \(deskProjectCount) 個Desk")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+            if deskProjectCount > 0 {
+                Text("活躍 \(activeDeskCount) · 封存 \(archivedDeskCount)")
+                    .font(.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var connectionStatColumn: some View {
+        let next = ConnectionMilestone.next(after: connectionCount)
+        return VStack(spacing: 4) {
+            Text("\(connectionCount)")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+            Text("已連接 \(connectionCount) 人")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+            if let next {
+                let left = max(0, next - connectionCount)
+                Text("下一里程碑 \(next) 人（尚差 \(left)）")
+                    .font(.caption2)
+                    .foregroundStyle(AppColor.textTertiary)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text("已達最高里程碑")
+                    .font(.caption2)
+                    .foregroundStyle(AppColor.teal)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func completenessStatColumn(user: UserProfile) -> some View {
+        let pct = Int(round(user.profileCompleteness * 100))
+        return VStack(spacing: 4) {
+            Text("\(pct)%")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppColor.primary)
+            Text("完整度")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("\(pct)% 完成")
+                .font(.caption2)
+                .foregroundStyle(AppColor.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func avatarStack(_ user: UserProfile) -> some View {
@@ -294,18 +395,6 @@ struct ProfileView: View {
         }
     }
 
-    private func statCell(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(AppColor.textPrimary)
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppColor.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     private func placeholderAvatar(for user: UserProfile) -> some View {
         let name = user.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let initials = profileInitials(from: name)
@@ -330,63 +419,98 @@ struct ProfileView: View {
 
     @ViewBuilder
     private func profileCompletenessSection(_ user: UserProfile) -> some View {
-                Section {
-                    let p = user.profileCompleteness
-                    let missing = ProfileCompleteness.missingItems(for: user)
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("資料完整度")
-                                .font(.headline)
-                                .foregroundStyle(AppColor.textPrimary)
-                            Spacer()
-                            Text("\(Int(round(p * 100)))%")
-                                .font(.subheadline.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(AppColor.primary)
-                        }
-                        ProfileCompletenessBar(value: p)
-                        if p < 1 {
-                            Text("完成以下步驟提升你的人氣")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppColor.secondary)
-                            VStack(alignment: .leading, spacing: 8) {
-                                ForEach(Array(missing.prefix(5).enumerated()), id: \.offset) { _, item in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Image(systemName: "circle.dotted")
+        Section {
+            let p = user.profileCompleteness
+            let missing = ProfileCompleteness.missingItems(for: user)
+            let pct = Int(round(p * 100))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("資料完整度")
+                        .font(.headline)
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    Text("\(pct)% 完成")
+                        .font(.subheadline.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(AppColor.primary)
+                }
+                ProfileCompletenessBar(value: p)
+                if p < 1 {
+                    Label("完成後獲得金牌創業者標誌與更高曝光", systemImage: "medal.fill")
+                        .font(.caption.weight(.semibold))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.gold, AppColor.textSecondary)
+                }
+                if p < 1 {
+                    Text("尚欠項目（點一下前往編輯）")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColor.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(missing.prefix(8).enumerated()), id: \.offset) { _, item in
+                            Button {
+                                HapticFeedback.light()
+                                scrollToSection = profileScrollSectionId(forMissingFieldTitle: item.0)
+                            } label: {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: ProfileCompleteness.iconName(forMissingTitle: item.0))
+                                        .font(.body)
+                                        .foregroundStyle(AppColor.primary)
+                                        .frame(width: 24, alignment: .center)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.0)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(AppColor.textPrimary)
+                                        Text(item.1)
                                             .font(.caption)
-                                            .foregroundStyle(AppColor.gold)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("缺少：\(item.0)")
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundStyle(AppColor.textPrimary)
-                                            Text(item.1)
-                                                .font(.caption)
-                                                .foregroundStyle(AppColor.textSecondary)
-                                        }
+                                            .foregroundStyle(AppColor.textSecondary)
+                                            .multilineTextAlignment(.leading)
                                     }
-                                }
-                                if missing.count > 5 {
-                                    Text("還有 \(missing.count - 5) 項…")
-                                        .font(.caption)
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
                                         .foregroundStyle(AppColor.textTertiary)
                                 }
+                                .padding(.vertical, 4)
                             }
+                            .buttonStyle(.plain)
                         }
-                        if p >= 1 {
-                            Label("Profile 完整", systemImage: "checkmark.seal.fill")
-                                .font(.caption.bold())
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(AppColor.gold, AppColor.primary)
+                        if missing.count > 8 {
+                            Text("還有 \(missing.count - 8) 項…")
+                                .font(.caption)
+                                .foregroundStyle(AppColor.textTertiary)
                         }
                     }
-                    .padding(.vertical, 4)
                 }
-                .listRowBackground(AppColor.cardBackground)
+                if p >= 1 {
+                    Label("Profile 完整", systemImage: "checkmark.seal.fill")
+                        .font(.caption.bold())
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AppColor.gold, AppColor.primary)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .listRowBackground(AppColor.cardBackground)
+        .id("section_completeness")
+    }
+
+    private func profileScrollSectionId(forMissingFieldTitle title: String) -> String {
+        switch title {
+        case "頭像":
+            return "section_completeness"
+        case "一句簡介", "詳細介紹", "LinkedIn", "網站", "興趣標籤":
+            return "section_bio"
+        case "產業標籤", "技能", "需求":
+            return "section_tags"
+        default:
+            return "section_completeness"
+        }
     }
 
     @ViewBuilder
     private func levelAndBadgesSection(_ user: UserProfile) -> some View {
         Section("等級與標章") {
-            LabeledContent("Level") {
+            let tier = ProfileCompletenessTier.from(completeness: user.profileCompleteness)
+            LabeledContent("帳戶 Level（功能額度）") {
                 HStack(spacing: 8) {
                     Text(user.level.localizedTitle)
                         .font(.headline)
@@ -412,6 +536,10 @@ struct ProfileView: View {
                     }
                 }
             }
+            LabeledContent("檔案完整度等級") {
+                Text("\(tier.localizedTitle)（\(Int(round(user.profileCompleteness * 100)))%）")
+                    .foregroundStyle(AppColor.textPrimary)
+            }
             LabeledContent("成員上限（Desk）") {
                 Text("\(user.level.deskMemberLimit) 人")
                     .foregroundStyle(AppColor.textPrimary)
@@ -425,25 +553,33 @@ struct ProfileView: View {
             }
         }
         .listRowBackground(AppColor.cardBackground)
+        .id("section_level")
     }
 
     @ViewBuilder
     private func inviteAndReferralSection(_ user: UserProfile) -> some View {
         Section("邀請與推薦") {
-            LabeledContent("邀請碼") {
+            LabeledContent("推薦碼（個人檔案）") {
                 Text(user.invitationCode.isEmpty ? "—" : user.invitationCode)
                     .font(.body.monospaced())
                     .foregroundStyle(AppColor.textPrimary)
             }
-            LabeledContent("成功推薦") {
+            LabeledContent("成功推薦人數") {
                 Text("\(referralCount) 人")
                     .foregroundStyle(AppColor.textPrimary)
+            }
+            LabeledContent("累積獎勵（示意）") {
+                Text("Premium 試用天數、能見度加成 — 正式上線後依推薦數發放")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             Button {
                 showShareInvite = true
                 HapticFeedback.light()
+                DeskerAnalytics.track(.userShareProfile, parameters: ["context": "invite_friend"])
             } label: {
-                Label("分享邀請連結", systemImage: "square.and.arrow.up")
+                Label("邀請朋友", systemImage: "square.and.arrow.up")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(AppColor.primary, AppColor.secondary)
             }
@@ -560,6 +696,44 @@ struct ProfileView: View {
             .foregroundStyle(AppColor.textSecondary)
         }
         .listRowBackground(AppColor.cardBackground)
+        .id("section_tags")
+    }
+
+    @ViewBuilder
+    private func bioAndLinksSection() -> some View {
+        Section {
+            TextField("一句簡介", text: $bioDraft, axis: .vertical)
+                .lineLimit(2...5)
+                .foregroundStyle(AppColor.textPrimary)
+            TextField("詳細介紹", text: $detailedBioDraft, axis: .vertical)
+                .lineLimit(3...8)
+                .foregroundStyle(AppColor.textPrimary)
+            TextField("LinkedIn URL", text: $linkedInDraft)
+                .foregroundStyle(AppColor.textPrimary)
+#if os(iOS)
+                .textContentType(.URL)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+#endif
+            TextField("網站 URL", text: $websiteDraft)
+                .foregroundStyle(AppColor.textPrimary)
+#if os(iOS)
+                .textContentType(.URL)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+#endif
+            TagSection(
+                title: "興趣標籤",
+                subtitle: "點選以編輯，完成後按儲存",
+                options: OnboardingViewModel.interestOptions,
+                selection: $interestTags,
+                accent: AppColor.teal
+            )
+        } header: {
+            Text("簡介與連結")
+        }
+        .listRowBackground(AppColor.cardBackground)
+        .id("section_bio")
     }
 
     private var profileSaveBar: some View {
@@ -612,20 +786,35 @@ struct ProfileView: View {
     private func loadProfileStats() async {
         guard let uid = auth.currentUser?.id else {
             deskProjectCount = 0
+            activeDeskCount = 0
+            archivedDeskCount = 0
             connectionCount = 0
             return
         }
         do {
             let desks = try await deskRepo.fetchDesksForFounder(founderId: uid)
             deskProjectCount = desks.count
+            activeDeskCount = desks.filter { $0.status != .archived }.count
+            archivedDeskCount = desks.filter { $0.status == .archived }.count
         } catch {
             deskProjectCount = 0
+            activeDeskCount = 0
+            archivedDeskCount = 0
         }
         do {
             let conns = try await connectionRepo.fetchConnections(userId: uid)
             connectionCount = conns.count
         } catch {
             connectionCount = 0
+        }
+        if let u = auth.currentUser {
+            DeskerAnalytics.updateUserSnapshot(
+                userId: u.id,
+                level: u.level.rawValue,
+                completenessPercent: Int(round(u.profileCompleteness * 100)),
+                connectionCount: connectionCount,
+                deskCount: deskProjectCount
+            )
         }
     }
 
@@ -645,6 +834,7 @@ struct ProfileView: View {
             banner = "已儲存到相簿，可分享"
             igExportShareItems = [image, profileURL(for: user)]
             showIGExportShare = true
+            DeskerAnalytics.track(.userExportIGCard)
             HapticFeedback.success()
         } catch {
             banner = "儲存失敗：\(error.localizedDescription)，仍可分享"
@@ -758,6 +948,11 @@ struct ProfileView: View {
         skills = Set(u.skills)
         needs = Set(u.needs)
         usernameDraft = u.username ?? ""
+        bioDraft = u.bio ?? ""
+        detailedBioDraft = u.detailedBio ?? ""
+        linkedInDraft = u.linkedInUrl ?? ""
+        websiteDraft = u.websiteUrl ?? ""
+        interestTags = Set(u.interestTags)
     }
 
     private func save() async {
@@ -775,8 +970,23 @@ struct ProfileView: View {
             profile.industryTags = Array(industryTags)
             profile.skills = Array(skills)
             profile.needs = Array(needs)
+            profile.interestTags = Array(interestTags).sorted()
+            profile.bio = Self.nilIfEmpty(bioDraft)
+            profile.detailedBio = Self.nilIfEmpty(detailedBioDraft)
+            profile.linkedInUrl = Self.nilIfEmpty(linkedInDraft)
+            profile.websiteUrl = Self.nilIfEmpty(websiteDraft)
             profile.username = u.isEmpty ? nil : u
             usernameDraft = u.isEmpty ? "" : u
+            if let w = profile.websiteUrl, !ProfileFieldValidation.isValidOptionalHTTPURLString(w) {
+                banner = "網站請使用 http 或 https 完整網址"
+                HapticFeedback.error()
+                return
+            }
+            if let li = profile.linkedInUrl, !ProfileFieldValidation.isValidOptionalHTTPURLString(li) {
+                banner = "LinkedIn 請使用 http 或 https 完整網址"
+                HapticFeedback.error()
+                return
+            }
             try await userRepo.upsertUser(profile)
             await auth.refreshProfile()
             await loadReferrals()
@@ -787,6 +997,11 @@ struct ProfileView: View {
             banner = "儲存失敗：\(APIErrorMessages.userFacingMessage(for: error))"
             HapticFeedback.error()
         }
+    }
+
+    private static func nilIfEmpty(_ raw: String) -> String? {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
     }
 
     private func bannerForeground(_ banner: String) -> Color {

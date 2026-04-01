@@ -93,7 +93,8 @@ final class NotificationRepository {
         userId: UUID,
         onChange: @escaping @Sendable @MainActor () -> Void
     ) -> Task<Void, Never> {
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self else { return }
             await client.realtimeV2.connect()
             let channel = client.realtimeV2.channel("notif-\(userId.uuidString)")
             let inserts = channel.postgresChange(

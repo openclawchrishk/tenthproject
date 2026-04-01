@@ -115,6 +115,18 @@ enum RepositoryErrorMapping {
             repositoryLogger.error("\(context): \(String(describing: r))")
             return r
         }
+        if let pg = error as? PostgrestError {
+            let code = pg.code ?? ""
+            let msg = pg.message.lowercased()
+            if code == "PGRST116" || msg.contains("0 rows") || msg.contains("no rows") {
+                repositoryLogger.error("\(context): not found (PostgREST)")
+                return .notFound
+            }
+        }
+        if let http = error as? HTTPError, http.response.statusCode == 404 {
+            repositoryLogger.error("\(context): not found (HTTP 404)")
+            return .notFound
+        }
         repositoryLogger.error("\(context): \(error.localizedDescription)")
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain {

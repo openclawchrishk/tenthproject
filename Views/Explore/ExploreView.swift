@@ -389,36 +389,59 @@ struct ExploreView: View {
     }
 
     private var exploreEmpty: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "person.3.sequence")
+        let noDesksAtAll = viewModel.desks.isEmpty
+        return VStack(spacing: 18) {
+            Image(systemName: noDesksAtAll ? "person.3.sequence" : "briefcase")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColor.secondary)
                 .symbolRenderingMode(.hierarchical)
-            Text("暫時沒有創業者，稍後再回來")
+            Text(noDesksAtAll ? "暫時沒有創業者" : "暫時沒有Desk")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("先完善個人資料，讓社群更了解你；或調整篩選稍後再試。")
+            Text(noDesksAtAll
+                 ? "先完善個人資料，讓社群更了解你；或稍後再試。"
+                 : "調整上方篩選或搜尋，或稍後再試。")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .frame(maxWidth: 520)
-            Button {
-                HapticFeedback.medium()
-                withAnimation(DeskerAnimation.tabCrossFade) {
-                    tabRouter.selectedTab = 3
+            Group {
+                if noDesksAtAll {
+                    Button {
+                        HapticFeedback.medium()
+                        withAnimation(DeskerAnimation.tabCrossFade) {
+                            tabRouter.selectedTab = 3
+                        }
+                    } label: {
+                        Text("前往「我的」完善資料")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(AppColor.brandGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    }
+                    .buttonStyle(DeskerButtonPressStyle())
+                } else {
+                    Button {
+                        HapticFeedback.medium()
+                        viewModel.selectedFilterChip = "全部"
+                        viewModel.searchText = ""
+                        viewModel.applyFiltersReselectingIfNeeded()
+                    } label: {
+                        Text("重設篩選")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(AppColor.brandGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    }
+                    .buttonStyle(DeskerButtonPressStyle())
                 }
-            } label: {
-                Text("前往「我的」完善資料")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(AppColor.brandGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             }
-            .buttonStyle(DeskerButtonPressStyle())
             .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)

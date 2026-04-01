@@ -218,7 +218,75 @@ struct UserProfile: Identifiable, Codable, Equatable {
     }
 }
 
+/// Gamification tier from profile completeness (0–49% / 50–79% / 80–100%), independent of account `UserLevel`.
+enum ProfileCompletenessTier: Int, Comparable {
+    case starter = 1
+    case rising = 2
+    case champion = 3
+
+    static func < (lhs: ProfileCompletenessTier, rhs: ProfileCompletenessTier) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    static func from(completeness: Double) -> ProfileCompletenessTier {
+        let p = completeness * 100
+        if p < 50 { return .starter }
+        if p < 80 { return .rising }
+        return .champion
+    }
+
+    /// Short label under avatar (completeness journey).
+    var localizedTitle: String {
+        switch self {
+        case .starter: return "資料新手"
+        case .rising: return "進階創業者"
+        case .champion: return "金牌創業者"
+        }
+    }
+}
+
+enum ConnectionMilestone {
+    static let thresholds = [10, 25, 50, 100]
+
+    /// Next target strictly after `count`, or nil if at/above last milestone.
+    static func next(after count: Int) -> Int? {
+        thresholds.first { $0 > count }
+    }
+
+    /// Progress 0...1 toward the next milestone; 1.0 when at or past last threshold.
+    static func progressFraction(connectionCount: Int) -> Double {
+        guard let next = next(after: connectionCount) else { return 1 }
+        let prev = thresholds.last { $0 <= connectionCount } ?? 0
+        let span = max(1, next - prev)
+        return min(1, Double(connectionCount - prev) / Double(span))
+    }
+
+    static func milestoneMessageIfReached(newCount: Int, previousCount: Int) -> String? {
+        guard newCount > previousCount else { return nil }
+        for t in thresholds where newCount >= t && previousCount < t {
+            return "恭喜！你已連接 \(t) 位創業者"
+        }
+        return nil
+    }
+}
+
 enum ProfileCompleteness {
+    /// SF Symbol name for a missing-field title (Chinese keys from `missingItems`).
+    static func iconName(forMissingTitle title: String) -> String {
+        switch title {
+        case "頭像": return "person.crop.circle"
+        case "一句簡介": return "text.quote"
+        case "詳細介紹": return "doc.text"
+        case "LinkedIn": return "link"
+        case "網站": return "globe"
+        case "興趣標籤": return "tag"
+        case "產業標籤": return "building.2"
+        case "技能": return "wrench.and.screwdriver"
+        case "需求": return "hand.point.left.fill"
+        default: return "circle.dotted"
+        }
+    }
+
     /// Weights optional profile fields equally (0...1).
     static func fraction(for user: UserProfile) -> Double {
         let checks: [Bool] = [

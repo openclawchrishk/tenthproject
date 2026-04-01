@@ -47,9 +47,10 @@ final class ToastCenter: ObservableObject {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
             current = ToastPayload(id: id, kind: kind, message: message)
         }
-        dismissTask = Task {
+        dismissTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run {
+            await MainActor.run { [weak self] in
+                guard let self else { return }
                 if current?.id == id {
                     withAnimation(.easeOut(duration: 0.35)) {
                         current = nil

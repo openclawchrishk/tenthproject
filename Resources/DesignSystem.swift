@@ -485,6 +485,19 @@ enum DeskerUXPreferences {
     private static let tipProfileDismissedKey = "deskerUX.tipProfileDismissed"
     private static let favoriteFounderIdsKey = "deskerUX.favoriteFounderIds"
     private static let deskDraftKey = "deskerUX.deskCreationDraft"
+    private static let showAppTutorialAfterOnboardingKey = "deskerUX.showAppTutorialAfterOnboarding"
+    private static let appTutorialDismissedKey = "deskerUX.appTutorialDismissed"
+
+    /// Set from onboarding completion; Main tab consumes once to present the feature tour.
+    static var showAppTutorialAfterOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: showAppTutorialAfterOnboardingKey) }
+        set { UserDefaults.standard.set(newValue, forKey: showAppTutorialAfterOnboardingKey) }
+    }
+
+    static var appTutorialDismissed: Bool {
+        get { UserDefaults.standard.bool(forKey: appTutorialDismissedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: appTutorialDismissedKey) }
+    }
 
     static var pendingExploreAfterOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: pendingExploreAfterOnboardingKey) }

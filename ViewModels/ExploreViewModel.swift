@@ -154,7 +154,9 @@ final class ExploreViewModel: ObservableObject {
             return
         }
         currentDesk = pool.randomElement()
-        Task { await refreshFounderForCurrentDesk() }
+        Task { [weak self] in
+            await self?.refreshFounderForCurrentDesk()
+        }
     }
 
     /// Reloads from the server and shows another card when possible so **再看一次** always refreshes content.

@@ -2,6 +2,7 @@ import SwiftUI
 
 #if os(iOS)
 import AudioToolbox
+import UserNotifications
 #endif
 
 struct OnboardingContainerView: View {
@@ -85,6 +86,7 @@ struct CompletionView: View {
     @State private var shimmerX: CGFloat = -1
     @State private var didCelebrate = false
     @State private var checkPop: CGFloat = 0.4
+    @State private var showShareCompletion = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -130,10 +132,25 @@ struct CompletionView: View {
             Spacer()
 
             Button {
+                showShareCompletion = true
+                HapticFeedback.light()
+            } label: {
+                Label("分享完成喜悅", systemImage: "square.and.arrow.up")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+            }
+            .padding(.bottom, 4)
+
+            Button {
                 DeskerUXPreferences.pendingExploreAfterOnboarding = true
                 DeskerUXPreferences.showExploreSwipeTip = true
+                DeskerUXPreferences.showAppTutorialAfterOnboarding = true
                 Task {
                     await auth.refreshProfile()
+                    DeskerAnalytics.track(.userCompleteOnboarding)
+                    #if os(iOS)
+                    await scheduleWelcomeLocalNotification()
+                    #endif
                 }
             } label: {
                 Text("開始探索")

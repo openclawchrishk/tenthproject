@@ -23,11 +23,11 @@ final class SupabaseManager {
             supabaseUrl = url
             supabaseAnonKey = key
         } else {
-            // Chris Lau's Supabase project
-            guard let fallback = URL(string: "https://dxihaspyxzocrnxyhbhow.supabase.co") else {
-                preconditionFailure("Invalid fallback Supabase URL")
-            }
-            supabaseUrl = fallback
+            // Chris Lau's Supabase project — static URL; fallback chain avoids force-unwrap / precondition crashes.
+            let fallbackString = "https://dxihaspyxzocrnxyhbhow.supabase.co"
+            supabaseUrl = URL(string: fallbackString)
+                ?? URL(string: "https://localhost")
+                ?? URL(fileURLWithPath: "/")
             supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWhhc3B5eHpvY3JueHloYm93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODUwNjQsImV4cCI6MjA5MDI2MTA2NH0.NzJj0qKNjKigPZ-Gp_rxQPG0_3h6QUwcLAXok4yhwsw"
         }
         client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey)
