@@ -392,10 +392,14 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', tru
 INSERT INTO storage.buckets (id, name, public) VALUES ('verification_docs', 'verification_docs', false) ON CONFLICT DO NOTHING;
 
 -- Avatars bucket policies
+DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
 CREATE POLICY "Anyone can view avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 CREATE POLICY "Users can upload own avatar" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- Verification docs bucket policies
+DROP POLICY IF EXISTS "Users can view own verification docs" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload verification docs" ON storage.objects;
 CREATE POLICY "Users can view own verification docs" ON storage.objects FOR SELECT USING (bucket_id = 'verification_docs' AND auth.uid()::text = (storage.foldername(name))[1]);
 CREATE POLICY "Users can upload verification docs" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'verification_docs' AND auth.uid()::text = (storage.foldername(name))[1]);
 
