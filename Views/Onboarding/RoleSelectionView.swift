@@ -135,10 +135,10 @@ struct RoleCard: View {
 extension UserRole {
     var description: String {
         switch self {
-        case .founder: return "正在建立或經營創業項目"
-        case .aspiringFounder: return "有創業意向，尋找合夥人或項目"
-        case .investor: return "天使投資者或 VC 代表"
-        case .mentor: return "有行業經驗，提供指導"
+        case .founder: return "已經或正在建立團隊與產品，想搵人、搵資源。"
+        case .aspiringFounder: return "準備起步，想識合夥人、導師或好項目。"
+        case .investor: return "關注早期項目，願意投入資金與網絡。"
+        case .mentor: return "喺行業打滾過，樂意分享經驗同引路。"
         }
     }
 }

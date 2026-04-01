@@ -216,7 +216,7 @@ struct CompletionView: View {
         guard granted else { return }
         let content = UNMutableNotificationContent()
         content.title = "歡迎加入 Desker HK！"
-        content.body = "開始探索你的下一個Desk"
+        content.body = "遇見你嘅下一個Desk"
         content.sound = .default
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.8, repeats: false)
         let req = UNNotificationRequest(identifier: "desker.welcome.after_onboarding", content: content, trigger: trigger)

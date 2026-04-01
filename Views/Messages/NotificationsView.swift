@@ -489,7 +489,7 @@ private struct ConnectionInviteNotificationDetailView: View {
                                     .foregroundStyle(AppColor.textTertiary)
                             }
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("回覆（可選，示範 UI）")
+                                Text("回覆（可選）")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(AppColor.textSecondary)
                                 TextField("例如：期待與你交流…", text: $optionalReplyDraft, axis: .vertical)
@@ -553,7 +553,7 @@ private struct ConnectionInviteNotificationDetailView: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { onFinished() }
+                    Button("取消") { onFinished() }
                 }
             }
         }

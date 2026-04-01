@@ -62,7 +62,7 @@ struct CreateDeskView: View {
                 }
             }
             .deskerShake(trigger: formShakeTick)
-            .navigationTitle("創建 Desk")
+            .navigationTitle("建立 Desk")
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -480,7 +480,7 @@ private struct FirstDeskCelebrationView: View {
                     .foregroundStyle(AppColor.success, AppColor.gold)
                     .scaleEffect(iconBounce)
                     .shadow(color: Color.black.opacity(0.12), radius: 12, y: 4)
-                Text("你的第一個Desk！")
+                Text("你嘅第一個Desk！")
                     .font(.title.bold())
                     .foregroundStyle(AppColor.textPrimary)
                     .multilineTextAlignment(.center)

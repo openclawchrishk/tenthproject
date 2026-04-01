@@ -32,6 +32,8 @@ final class ExploreViewModel: ObservableObject {
     @Published var searchText = ""
     /// `nil` or `"全部"` means no industry/status filter; otherwise industry tag or `"招募中"`.
     @Published var selectedFilterChip: String = "全部"
+    /// Founder display names for search (「搜尋創業者或Desk」).
+    @Published private(set) var founderDisplayNameByFounderId: [UUID: String] = [:]
 
     private let repository = DeskRepository()
     private let users = UserRepository()
@@ -57,9 +59,11 @@ final class ExploreViewModel: ObservableObject {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !q.isEmpty {
             list = list.filter { desk in
-                desk.name.localizedCaseInsensitiveContains(q)
+                let founderName = founderDisplayNameByFounderId[desk.founderId] ?? ""
+                return desk.name.localizedCaseInsensitiveContains(q)
                     || desk.pitch.localizedCaseInsensitiveContains(q)
                     || desk.industryTags.contains { $0.localizedCaseInsensitiveContains(q) }
+                    || founderName.localizedCaseInsensitiveContains(q)
             }
         }
         return list
@@ -76,6 +80,7 @@ final class ExploreViewModel: ObservableObject {
             guard req == loadRequestID else { return }
             desks = list
             CriticalDataCache.saveExploreDesks(list)
+            await prefetchFounderDisplayNames(for: list)
             pickCurrentDesk(excluding: nil)
             await refreshFounderForCurrentDesk()
         } catch {
@@ -83,6 +88,7 @@ final class ExploreViewModel: ObservableObject {
             guard req == loadRequestID else { return }
             if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
                 desks = cached
+                await prefetchFounderDisplayNames(for: cached)
                 pickCurrentDesk(excluding: nil)
                 await refreshFounderForCurrentDesk()
                 errorMessage = "無網絡或伺服器暫時不可用 — 顯示上次快取的列表"
@@ -91,6 +97,7 @@ final class ExploreViewModel: ObservableObject {
                 if desks.isEmpty {
                     currentDesk = nil
                     currentFounder = nil
+                    founderDisplayNameByFounderId = [:]
                 }
             }
         }
@@ -173,6 +180,7 @@ final class ExploreViewModel: ObservableObject {
             guard req == loadRequestID else { return }
             desks = list
             CriticalDataCache.saveExploreDesks(list)
+            await prefetchFounderDisplayNames(for: list)
             let pool = filteredDesks
             if pool.isEmpty {
                 currentDesk = nil
@@ -192,6 +200,7 @@ final class ExploreViewModel: ObservableObject {
             guard req == loadRequestID else { return }
             if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
                 desks = cached
+                await prefetchFounderDisplayNames(for: cached)
                 let pool = filteredDesks
                 if !pool.isEmpty {
                     currentDesk = pool.randomElement()
@@ -224,6 +233,28 @@ final class ExploreViewModel: ObservableObject {
             }
         }
         return error.localizedDescription
+    }
+
+    private func prefetchFounderDisplayNames(for desks: [Desk]) async {
+        let ids = Set(desks.map(\.founderId))
+        guard !ids.isEmpty else {
+            founderDisplayNameByFounderId = [:]
+            return
+        }
+        var map: [UUID: String] = [:]
+        await withTaskGroup(of: (UUID, String?).self) { group in
+            for id in ids {
+                group.addTask { [users] in
+                    guard let profile = try? await users.fetchUser(id: id) else { return (id, nil) }
+                    let n = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return (id, n.isEmpty ? nil : n)
+                }
+            }
+            for await (id, name) in group {
+                if let name { map[id] = name }
+            }
+        }
+        founderDisplayNameByFounderId = map
     }
 
     private func pickCurrentDesk(excluding: UUID?) {

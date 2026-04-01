@@ -37,7 +37,7 @@ struct SkillsAndNeedsView: View {
                         .font(.title.bold())
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("選擇你嘅產業、技能同需求")
+                    Text("標籤愈清晰，愈容易遇到啱傾嘅人 — 唔使一次填晒，之後可以再改。")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                         .multilineTextAlignment(.center)

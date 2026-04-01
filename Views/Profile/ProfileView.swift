@@ -481,7 +481,7 @@ struct ProfileView: View {
                     }
                 }
                 if p >= 1 {
-                    Label("Profile 完整", systemImage: "checkmark.seal.fill")
+                    Label("檔案已完整", systemImage: "checkmark.seal.fill")
                         .font(.caption.bold())
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.gold, AppColor.primary)

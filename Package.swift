@@ -15,7 +15,11 @@ let package = Package(
             name: "DeskerHK",
             dependencies: [.product(name: "Supabase", package: "supabase-swift")],
             path: ".",
-            exclude: ["Package.swift", "App", ".git", "Resources/Assets.xcassets"],
+            exclude: [
+                "Package.swift", "App", ".git", "Resources/Assets.xcassets",
+                "README.md", "project.yml",
+                "SUPPLEMENTAL_SCHEMA.sql", "SUPABASE_SCHEMA.sql", "FRESH_START.sql",
+            ],
             sources: ["Models", "Repositories", "Resources", "Services", "ViewModels", "Views"]
         ),
     ]

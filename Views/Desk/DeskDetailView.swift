@@ -532,7 +532,7 @@ struct DeskDetailView: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { showApplySheet = false }
+                    Button("取消") { showApplySheet = false }
                 }
             }
         }
@@ -768,7 +768,7 @@ struct DeskDetailView: View {
             Text("輸入對方的用戶 ID（UUID）。若已邀請過，系統會更新該筆邀請而不會報錯。")
                 .font(.caption)
                 .foregroundStyle(AppColor.textSecondary)
-            TextField("Invited user UUID", text: $inviteeIdText)
+            TextField("受邀用戶 ID（UUID）", text: $inviteeIdText)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 .deskerTextFieldNoAutocaps()

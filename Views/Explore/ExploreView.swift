@@ -297,7 +297,7 @@ struct ExploreView: View {
                 Text("探索小貼士")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(AppColor.textPrimary)
-                Text("向左滑睇更多創業者，向右滑睇Desk")
+                Text("向左滑發送快速連接，向右滑加入收藏")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -346,7 +346,7 @@ struct ExploreView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.footnote)
                     .foregroundStyle(AppColor.textSecondary)
-                TextField("搜尋專案名稱或 Pitch", text: $viewModel.searchText)
+                TextField("搜尋創業者或Desk", text: $viewModel.searchText)
                     .font(.body)
                     .foregroundStyle(AppColor.textPrimary)
                     .deskerTextFieldNoAutocaps()
@@ -469,7 +469,7 @@ struct ExploreView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
-            .navigationTitle("發送連接邀請")
+            .navigationTitle("連接邀請")
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -478,7 +478,7 @@ struct ExploreView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("送出") {
+                    Button("傳送") {
                         Task { await submitConnectionInvite() }
                     }
                     .disabled(inviteInFlight)
@@ -502,7 +502,7 @@ struct ExploreView: View {
         guard let founder = viewModel.currentFounder else { return }
         let founderId = founder.id
         if founderId == uid {
-            toast.show(.info, "這是你本人")
+            toast.show(.info, "呢個係你本人")
             return
         }
         inviteInFlight = true
@@ -625,7 +625,7 @@ private struct ExplorePublicProfileSheet: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { dismiss() }
+                    Button("取消") { dismiss() }
                 }
             }
         }

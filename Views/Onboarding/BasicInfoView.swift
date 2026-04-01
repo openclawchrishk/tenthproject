@@ -45,7 +45,7 @@ struct BasicInfoView: View {
                         .font(.title.bold())
                         .foregroundStyle(AppColor.textPrimary)
 
-                    Text("呢啲資訊會顯示喺你嘅個人檔案")
+                    Text("之後隨時喺「我的」修改；真實資料有助配對同信任。")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }

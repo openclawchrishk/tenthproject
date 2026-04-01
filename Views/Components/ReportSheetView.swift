@@ -39,7 +39,7 @@ struct ReportSheetView: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { dismiss() }
+                    Button("取消") { dismiss() }
                 }
             }
         }

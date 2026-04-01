@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Apple IAP placeholder (PRD §3.2) — UI only, no StoreKit transactions.
+/// Premium upgrade sheet (PRD §3.2) — UI preview; StoreKit integration pending.
 struct PremiumUpgradeSheet: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -64,10 +64,10 @@ struct PremiumUpgradeSheet: View {
                                 .font(.title2.bold())
                                 .foregroundStyle(AppColor.textPrimary)
                         }
-                        Text("限時早鳥 · 示範價格 · 正式上線前不會收費")
+                        Text("限時早鳥優惠 · 正式上線前不會收費")
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppColor.gold)
-                        Text("對比標價突顯 Premium 價值（價格錨定示意）")
+                        Text("對比標價突顯 Premium 價值")
                             .font(.caption2)
                             .foregroundStyle(AppColor.textTertiary)
                     }
@@ -75,7 +75,7 @@ struct PremiumUpgradeSheet: View {
                     Button {
                         HapticFeedback.light()
                     } label: {
-                        Text("使用 Apple 內購升級（示範）")
+                        Text("使用 Apple 內購升級")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -100,7 +100,7 @@ struct PremiumUpgradeSheet: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { dismiss() }
+                    Button("取消") { dismiss() }
                 }
             }
         }
@@ -131,7 +131,7 @@ struct PremiumUpgradeSheet: View {
             comparisonRow("Premium 標章", basic: "—", premium: "✓")
             comparisonRow("優先曝光", basic: "—", premium: "✓")
             comparisonRow("IG 個人卡匯出", basic: "✓", premium: "✓")
-            Text("* 示範 UI，正式上線以產品政策為準。")
+            Text("* 正式上線後以產品政策為準。")
                 .font(.caption2)
                 .foregroundStyle(AppColor.textTertiary)
                 .padding(.top, 10)

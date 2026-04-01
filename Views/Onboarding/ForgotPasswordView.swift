@@ -36,7 +36,7 @@ struct ForgotPasswordView: View {
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.title2)
                                         .foregroundStyle(AppColor.success)
-                                    Text("重置連結已發送！請檢查你的郵箱")
+                                    Text("重置連結已發送！請檢查電郵")
                                         .font(.body.weight(.medium))
                                         .foregroundStyle(AppColor.textPrimary)
                                 }
@@ -54,7 +54,7 @@ struct ForgotPasswordView: View {
                                 .deskerButtonShadow()
                             }
                         } else {
-                            Text("請輸入你的電郵地址，我哋會發送重置連結")
+                            Text("請輸入電郵地址，我哋會發送重置連結")
                                 .font(.subheadline)
                                 .foregroundStyle(AppColor.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -67,7 +67,7 @@ struct ForgotPasswordView: View {
                                 Image(systemName: "envelope.fill")
                                     .foregroundStyle(AppColor.textSecondary)
                                     .frame(width: 22)
-                                TextField("name@example.com", text: $vm.email)
+                                TextField("電郵地址", text: $vm.email)
                                     .modifier(ForgotPasswordEmailFieldPlatform())
                                     .autocorrectionDisabled()
                                     .deskerTextFieldNoAutocaps()

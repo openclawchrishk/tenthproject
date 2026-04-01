@@ -148,7 +148,7 @@ struct EmailRegisterView: View {
                 Image(systemName: "envelope.fill")
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 22)
-                TextField("name@example.com", text: $vm.email)
+                TextField("電郵地址", text: $vm.email)
                     .focused($focusedField, equals: .email)
                     .modifier(RegisterEmailTextFieldPlatform())
                     .deskerTextFieldNoAutocaps()

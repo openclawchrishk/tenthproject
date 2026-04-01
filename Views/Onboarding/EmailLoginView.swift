@@ -101,7 +101,7 @@ struct EmailLoginView: View {
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("關閉") { dismiss() }
+                    Button("取消") { dismiss() }
                         .foregroundStyle(.white)
                 }
             }
@@ -152,7 +152,7 @@ struct EmailLoginView: View {
                 Image(systemName: "envelope.fill")
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(width: 22)
-                TextField("name@example.com", text: $vm.email)
+                TextField("電郵地址", text: $vm.email)
                     .focused($focusedField, equals: .email)
                     .modifier(EmailTextFieldPlatform())
                     .deskerTextFieldNoAutocaps()
