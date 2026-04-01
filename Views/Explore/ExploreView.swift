@@ -3,10 +3,11 @@ import SwiftUI
 struct ExploreView: View {
     @StateObject private var viewModel = ExploreViewModel()
     @EnvironmentObject private var auth: AuthRepository
-    @State private var connectBanner: String?
-    @State private var connectInFlight = false
+    @EnvironmentObject private var toast: ToastCenter
+    @State private var inviteInFlight = false
 
     private let connectionsRepo = ConnectionRepository()
+    private let inviteRepo = InviteRepository()
 
     var body: some View {
         NavigationStack {
@@ -23,20 +24,24 @@ struct ExploreView: View {
                         if viewModel.isLoading {
                             VStack(spacing: 16) {
                                 ProgressView()
-                                    .tint(AppColor.primary)
-                                Text("載入中…")
+                                    .tint(AppColor.secondary)
+                                Text("載入中...")
                                     .font(.subheadline)
                                     .foregroundStyle(AppColor.textSecondary)
                             }
                             .padding(.top, 48)
                         } else if let err = viewModel.errorMessage {
                             VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(AppColor.error)
                                 Text(err)
                                     .font(.subheadline)
                                     .foregroundStyle(AppColor.error)
                                     .multilineTextAlignment(.center)
                                 Button("重試") {
-                                    Task { await viewModel.load() }
+                                    HapticFeedback.medium()
+                                    Task { await reloadExploreAndInviteState() }
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(AppColor.primary)
@@ -46,13 +51,21 @@ struct ExploreView: View {
                             VStack(spacing: 20) {
                                 ExploreFounderCard(
                                     founder: founder,
-                                    connectInFlight: connectInFlight,
-                                    connectBanner: connectBanner,
-                                    onConnect: { Task { await sendConnectionInvite(to: founder.id) } }
+                                    inviteCTAState: viewModel.inviteCTAState,
+                                    inviteInFlight: inviteInFlight,
+                                    onSendInvite: { Task { await sendDeskInvite() } }
                                 )
 
                                 DeskCardView(desk: desk, founder: founder) {
-                                    Task { await viewModel.viewAgain() }
+                                    HapticFeedback.medium()
+                                    Task {
+                                        await viewModel.viewAgain()
+                                        await viewModel.refreshInviteCTAState(
+                                            currentUserId: auth.currentUser?.id,
+                                            inviteRepo: inviteRepo,
+                                            connectionsRepo: connectionsRepo
+                                        )
+                                    }
                                 }
                                 .id("\(viewModel.refreshGeneration.uuidString)-\(desk.id.uuidString)")
 
@@ -66,6 +79,7 @@ struct ExploreView: View {
                                         Text("查看完整專案詳情")
                                             .font(.headline.weight(.semibold))
                                             .foregroundStyle(AppColor.primary)
+                                            .lineLimit(1)
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .foregroundStyle(AppColor.textSecondary)
@@ -73,7 +87,7 @@ struct ExploreView: View {
                                     .padding(CardChrome.padding)
                                     .deskerElevatedCard()
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(DeskerCardPressStyle())
                             }
                             .padding(.horizontal, CardChrome.padding)
                         } else {
@@ -83,18 +97,49 @@ struct ExploreView: View {
                     }
                     .padding(.bottom, CardChrome.sectionSpacing)
                 }
-                .refreshable { await viewModel.load() }
+                .refreshable { await reloadExploreAndInviteState() }
             }
             .background(AppColor.background.ignoresSafeArea())
-            .task { await viewModel.load() }
+            .task {
+                await reloadExploreAndInviteState()
+            }
             .onChange(of: viewModel.searchText) { _, _ in
                 viewModel.applyFiltersReselectingIfNeeded()
             }
             .onChange(of: viewModel.selectedFilterChip) { _, _ in
                 viewModel.applyFiltersReselectingIfNeeded()
             }
+            .onChange(of: viewModel.currentFounder?.id) { _, _ in
+                Task {
+                    await viewModel.refreshInviteCTAState(
+                        currentUserId: auth.currentUser?.id,
+                        inviteRepo: inviteRepo,
+                        connectionsRepo: connectionsRepo
+                    )
+                }
+            }
+            .onChange(of: auth.currentUser?.id) { _, _ in
+                Task {
+                    await viewModel.loadMyDesks(founderId: auth.currentUser?.id)
+                    await viewModel.refreshInviteCTAState(
+                        currentUserId: auth.currentUser?.id,
+                        inviteRepo: inviteRepo,
+                        connectionsRepo: connectionsRepo
+                    )
+                }
+            }
             .deskerHiddenNavigationBar()
         }
+    }
+
+    private func reloadExploreAndInviteState() async {
+        await viewModel.load()
+        await viewModel.loadMyDesks(founderId: auth.currentUser?.id)
+        await viewModel.refreshInviteCTAState(
+            currentUserId: auth.currentUser?.id,
+            inviteRepo: inviteRepo,
+            connectionsRepo: connectionsRepo
+        )
     }
 
     private var searchAndFilters: some View {
@@ -122,7 +167,7 @@ struct ExploreView: View {
                     ForEach(ExploreViewModel.filterChipOptions, id: \.self) { chip in
                         let on = viewModel.selectedFilterChip == chip
                         Button {
-                            HapticFeedback.light()
+                            HapticFeedback.selection()
                             viewModel.selectedFilterChip = chip
                             viewModel.applyFiltersReselectingIfNeeded()
                         } label: {
@@ -148,37 +193,79 @@ struct ExploreView: View {
     }
 
     private var exploreEmpty: some View {
-        ContentUnavailableView(
-            "暫時沒有內容",
-            systemImage: "line.3.horizontal.decrease.circle",
-            description: Text("試試調整搜尋或篩選條件")
-        )
-        .padding(.top, 40)
+        VStack(spacing: 16) {
+            Image(systemName: "person.2.slash")
+                .font(.system(size: 52))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("暫時沒有其他創業者")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Text("稍後再回來看看")
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 48)
     }
 
-    private func sendConnectionInvite(to founderId: UUID) async {
-        connectBanner = nil
+    private func sendDeskInvite() async {
+        HapticFeedback.medium()
         guard let uid = auth.currentUser?.id else {
-            connectBanner = "請先登入"
+            toast.show(.error, "請先登入")
+            HapticFeedback.error()
             return
         }
+        guard let founder = viewModel.currentFounder else { return }
+        let founderId = founder.id
         if founderId == uid {
-            connectBanner = "這是你本人"
+            toast.show(.info, "這是你本人")
             return
         }
-        connectInFlight = true
-        defer { connectInFlight = false }
+        guard let myDesk = viewModel.myDesks.first else {
+            toast.show(.info, "請先建立 Desk")
+            HapticFeedback.error()
+            return
+        }
+        inviteInFlight = true
+        defer { inviteInFlight = false }
         do {
             if try await connectionsRepo.areConnected(uid, founderId) {
-                connectBanner = "你們已連接"
+                toast.show(.info, "你們已連接")
                 HapticFeedback.success()
+                await viewModel.refreshInviteCTAState(
+                    currentUserId: auth.currentUser?.id,
+                    inviteRepo: inviteRepo,
+                    connectionsRepo: connectionsRepo
+                )
                 return
             }
-            try await connectionsRepo.sendConnectionInvite(from: uid, to: founderId)
-            connectBanner = "連接邀請已送出"
+            if let existing = try await inviteRepo.fetchInvite(deskId: myDesk.id, inviteeId: founderId),
+               existing.status == .pending {
+                toast.show(.info, "已發送過邀請")
+                HapticFeedback.success()
+                await viewModel.refreshInviteCTAState(
+                    currentUserId: auth.currentUser?.id,
+                    inviteRepo: inviteRepo,
+                    connectionsRepo: connectionsRepo
+                )
+                return
+            }
+            try await inviteRepo.sendInvite(
+                deskId: myDesk.id,
+                inviterId: uid,
+                inviteeId: founderId
+            )
+            toast.show(.success, "邀請已發送")
             HapticFeedback.success()
+            await viewModel.refreshInviteCTAState(
+                currentUserId: auth.currentUser?.id,
+                inviteRepo: inviteRepo,
+                connectionsRepo: connectionsRepo
+            )
         } catch {
-            connectBanner = error.localizedDescription
+            toast.show(.error, error.localizedDescription)
             HapticFeedback.error()
         }
     }
@@ -188,14 +275,39 @@ struct ExploreView: View {
 
 private struct ExploreFounderCard: View {
     let founder: UserProfile
-    let connectInFlight: Bool
-    let connectBanner: String?
-    let onConnect: () -> Void
+    let inviteCTAState: ExploreInviteCTAState
+    let inviteInFlight: Bool
+    let onSendInvite: () -> Void
 
     private var skillChips: [String] {
         let s = Array(founder.skills.prefix(4))
         if s.isEmpty { return Array(founder.industryTags.prefix(3)) }
         return s
+    }
+
+    private var displayName: String {
+        let n = founder.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return n.isEmpty ? "創辦人" : n
+    }
+
+    private var ctaTitle: String {
+        switch inviteCTAState {
+        case .loading: return "發送邀請"
+        case .needsLogin: return "發送邀請"
+        case .selfProfile: return "你的專案"
+        case .noDesk: return "發送邀請"
+        case .connected: return "已連接"
+        case .pendingDeskInvite: return "已發送過邀請"
+        case .pendingConnectionInvite: return "連接邀請待回覆"
+        case .ready: return "發送邀請"
+        }
+    }
+
+    private var ctaEnabled: Bool {
+        switch inviteCTAState {
+        case .ready, .noDesk, .needsLogin: return true
+        default: return false
+        }
     }
 
     var body: some View {
@@ -204,9 +316,11 @@ private struct ExploreFounderCard: View {
                 founderAvatar
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
-                        Text(founder.displayName.isEmpty ? "創辦人" : founder.displayName)
+                        Text(displayName)
                             .font(.title3.bold())
                             .foregroundStyle(AppColor.textPrimary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                         if founder.verificationBadgeStyle != nil {
                             Image(systemName: "star.fill")
                                 .font(.caption.weight(.bold))
@@ -215,18 +329,7 @@ private struct ExploreFounderCard: View {
                         }
                     }
                     roleBadge
-                    if let bio = founder.bio?.trimmingCharacters(in: .whitespacesAndNewlines), !bio.isEmpty {
-                        Text(bio)
-                            .font(.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } else if let detailed = founder.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines), !detailed.isEmpty {
-                        Text(detailed)
-                            .font(.subheadline)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineLimit(3)
-                    }
+                    bioBlock
                 }
             }
 
@@ -246,13 +349,13 @@ private struct ExploreFounderCard: View {
                 }
             }
 
-            Button(action: onConnect) {
+            Button(action: onSendInvite) {
                 HStack {
-                    if connectInFlight {
+                    if inviteInFlight {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("連接")
+                        Text(ctaTitle)
                             .font(.headline.weight(.semibold))
                     }
                 }
@@ -262,19 +365,53 @@ private struct ExploreFounderCard: View {
                 .foregroundStyle(.white)
                 .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(DeskerCardPressStyle())
             .deskerButtonShadow()
-            .disabled(connectInFlight)
+            .disabled(inviteInFlight || !ctaEnabled || inviteCTAState == .loading || inviteCTAState == .selfProfile)
+            .opacity(inviteCTAState == .selfProfile ? 0.55 : 1)
 
-            if let connectBanner {
-                Text(connectBanner)
+            if let foot = statusFootnote {
+                Text(foot)
                     .font(.footnote)
-                    .foregroundStyle(connectBanner.contains("失敗") || connectBanner.contains("錯誤") ? AppColor.error : AppColor.textSecondary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(CardChrome.padding)
         .deskerElevatedCard()
+    }
+
+    @ViewBuilder
+    private var bioBlock: some View {
+        let bio = founder.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let detailed = founder.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !bio.isEmpty {
+            Text(bio)
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if !detailed.isEmpty {
+            Text(detailed)
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(3)
+        } else {
+            Text("未填寫")
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textTertiary)
+        }
+    }
+
+    private var statusFootnote: String? {
+        switch inviteCTAState {
+        case .connected: return "你們已連接"
+        case .pendingDeskInvite: return "Desk 邀請待對方回覆"
+        case .pendingConnectionInvite: return "連接邀請待對方回覆"
+        case .noDesk: return "建立 Desk 後可邀請對方加入你的項目"
+        case .needsLogin: return "登入後可發送邀請"
+        default: return nil
+        }
     }
 
     private var founderAvatar: some View {
@@ -288,28 +425,41 @@ private struct ExploreFounderCard: View {
                             .resizable()
                             .scaledToFill()
                     case .failure:
-                        placeholderAvatar
+                        initialsAvatar
                     case .empty:
                         ProgressView()
-                            .tint(AppColor.primary)
+                            .tint(AppColor.secondary)
                     @unknown default:
-                        placeholderAvatar
+                        initialsAvatar
                     }
                 }
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             } else {
-                placeholderAvatar
+                initialsAvatar
             }
         }
     }
 
-    private var placeholderAvatar: some View {
-        Image(systemName: "person.crop.rectangle.fill")
-            .font(.system(size: 56))
-            .symbolRenderingMode(.palette)
-            .foregroundStyle(AppColor.primary, AppColor.secondary.opacity(0.85))
-            .frame(width: 72, height: 72)
+    private var initialsAvatar: some View {
+        let initials = initialsFromName(displayName)
+        return ZStack {
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                .fill(AppColor.primary)
+                .frame(width: 72, height: 72)
+            Text(initials)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func initialsFromName(_ name: String) -> String {
+        let parts = name.split(separator: " ").filter { !$0.isEmpty }
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1)) + String(parts[1].prefix(1))
+        }
+        let s = String(name.prefix(2))
+        return s.isEmpty ? "?" : s.uppercased()
     }
 
     private var roleBadge: some View {

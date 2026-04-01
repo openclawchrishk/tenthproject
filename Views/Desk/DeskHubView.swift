@@ -3,6 +3,7 @@ import SwiftUI
 /// Founder's hub: **own desks** and **incoming applications** with approve / reject.
 struct DeskHubView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
     @State private var myDesks: [Desk] = []
     @State private var applications: [DeskApplicationItem] = []
     @State private var isLoading = false
@@ -37,9 +38,12 @@ struct DeskHubView: View {
                 }
             }
         }
-        .sheet(isPresented: $showCreateDesk) {
+        .sheet(isPresented: $showCreateDesk, onDismiss: {
+            Task { await reload() }
+        }) {
             CreateDeskView()
                 .environmentObject(auth)
+                .environmentObject(toast)
         }
         .task { await reload() }
         .refreshable { await reload() }
@@ -50,8 +54,8 @@ struct DeskHubView: View {
         if isLoading && myDesks.isEmpty && applications.isEmpty {
             VStack(spacing: 16) {
                 ProgressView()
-                    .tint(AppColor.primary)
-                Text("載入中…")
+                    .tint(AppColor.secondary)
+                Text("載入中...")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
             }
@@ -75,10 +79,7 @@ struct DeskHubView: View {
                     sectionTitle("我創建的專案", icon: "folder.fill", tint: AppColor.primary)
 
                     if myDesks.isEmpty {
-                        emptyCard(
-                            icon: "folder.badge.plus",
-                            message: "你還沒有建立 Desk，立即創建你的第一個項目"
-                        )
+                        deskProjectsEmpty
                     } else {
                         ForEach(myDesks) { desk in
                             NavigationLink {
@@ -93,7 +94,7 @@ struct DeskHubView: View {
                     sectionTitle("收到的申請", icon: "tray.full.fill", tint: AppColor.secondary)
 
                     if applications.isEmpty {
-                        emptyCard(icon: "tray", message: "還沒有收到申請")
+                        applicationsEmpty
                     } else {
                         ForEach(applications) { item in
                             applicationCard(item)
@@ -113,12 +114,41 @@ struct DeskHubView: View {
             .padding(.top, 8)
     }
 
-    private func emptyCard(icon: String, message: String) -> some View {
+    private var deskProjectsEmpty: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "briefcase")
+                .font(.system(size: 40))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("你仲未建立Desk")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Button {
+                HapticFeedback.medium()
+                showCreateDesk = true
+            } label: {
+                Text("建立第一個Desk")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(AppColor.brandGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(DeskerCardPressStyle())
+            .deskerButtonShadow()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
+    }
+
+    private var applicationsEmpty: some View {
         VStack(spacing: 14) {
-            Image(systemName: icon)
+            Image(systemName: "tray")
                 .font(.system(size: 36))
                 .foregroundStyle(AppColor.textSecondary)
-            Text(message)
+            Text("仲未有申請")
                 .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -134,6 +164,8 @@ struct DeskHubView: View {
                 Text(desk.name)
                     .font(.title3.bold())
                     .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Spacer()
                 deskStatusPill(desk.status)
             }

@@ -58,6 +58,20 @@ final class ConnectionRepository {
 
     // MARK: - Invites
 
+    /// Pending outgoing connection invite from `from` to `to`, if any.
+    func outgoingPendingConnectionInvite(from: UUID, to: UUID) async throws -> ConnectionInvite? {
+        let rows: [ConnectionInvite] = try await client
+            .from("connection_invites")
+            .select()
+            .eq("from_user_id", value: from)
+            .eq("to_user_id", value: to)
+            .eq("status", value: ConnectionInviteStatus.pending.rawValue)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
     func sendConnectionInvite(from: UUID, to: UUID) async throws {
         struct Insert: Encodable {
             let id: UUID

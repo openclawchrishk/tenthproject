@@ -11,6 +11,20 @@ enum HapticFeedback {
         #endif
     }
 
+    /// Primary buttons and important taps.
+    static func medium() {
+        #if os(iOS)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        #endif
+    }
+
+    /// Toggles, chips, and light selection feedback.
+    static func selection() {
+        #if os(iOS)
+        UISelectionFeedbackGenerator().selectionChanged()
+        #endif
+    }
+
     static func success() {
         #if os(iOS)
         UINotificationFeedbackGenerator().notificationOccurred(.success)

@@ -30,8 +30,8 @@ struct MessagesInboxView: View {
                 if isLoading && (segment == 0 || segment == 2) {
                     VStack(spacing: 16) {
                         ProgressView()
-                            .tint(AppColor.primary)
-                        Text("載入中…")
+                            .tint(AppColor.secondary)
+                        Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -86,19 +86,16 @@ struct MessagesInboxView: View {
     @ViewBuilder
     private var dmSegment: some View {
         if messages.isEmpty {
-            VStack(spacing: 20) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 56))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(AppColor.primary.opacity(0.85), AppColor.secondary.opacity(0.75))
+            VStack(spacing: 16) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 52))
+                    .foregroundStyle(AppColor.textSecondary)
                 Text("暫時沒有訊息")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(AppColor.textPrimary)
-                Text("與已連接的用戶開始對話")
-                    .font(.body)
-                    .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
+            .frame(maxWidth: .infinity)
             .padding(CardChrome.padding)
             .padding(.top, 32)
         } else {

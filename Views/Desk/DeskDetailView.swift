@@ -5,6 +5,7 @@ struct DeskDetailView: View {
     let deskId: UUID
 
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
     @State private var desk: Desk?
     @State private var founder: UserProfile?
     @State private var myApplication: DeskApplication?
@@ -38,8 +39,8 @@ struct DeskDetailView: View {
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
-                        .tint(AppColor.primary)
-                    Text("載入中…")
+                        .tint(AppColor.secondary)
+                    Text("載入中...")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -69,7 +70,7 @@ struct DeskDetailView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     showDeskShare = true
-                    HapticFeedback.light()
+                    HapticFeedback.medium()
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                         .symbolRenderingMode(.palette)
@@ -77,13 +78,14 @@ struct DeskDetailView: View {
                 }
                 Button {
                     showDeskReport = true
-                    HapticFeedback.light()
+                    HapticFeedback.medium()
                 } label: {
                     Image(systemName: "flag")
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.accentOrange, AppColor.primary)
                 }
                 Button {
+                    HapticFeedback.medium()
                     Task { await exportDeskStoryCard() }
                 } label: {
                     Image(systemName: "photo.on.rectangle.angled")
@@ -331,7 +333,7 @@ struct DeskDetailView: View {
                     Button {
                         prepareApplySheet(desk)
                         showApplySheet = true
-                        HapticFeedback.light()
+                        HapticFeedback.medium()
                     } label: {
                         Label("申請加入", systemImage: "paperplane.fill")
                             .font(.headline.weight(.bold))
@@ -400,13 +402,14 @@ struct DeskDetailView: View {
                     }
                     Section {
                         Button {
+                            HapticFeedback.medium()
                             Task { await submitApply(desk) }
                         } label: {
                             if applyInFlight {
                                 HStack {
                                     Spacer()
                                     ProgressView()
-                                        .tint(AppColor.primary)
+                                        .tint(AppColor.secondary)
                                     Spacer()
                                 }
                             } else {
@@ -459,8 +462,11 @@ struct DeskDetailView: View {
             )
             myApplication = try await deskRepository.fetchMyApplication(deskId: desk.id, applicantId: uid)
             showApplySheet = false
+            toast.show(.success, "申請已送出")
+            HapticFeedback.success()
         } catch {
             applyError = error.localizedDescription
+            HapticFeedback.error()
         }
     }
 
@@ -667,6 +673,7 @@ struct DeskDetailView: View {
                     .foregroundStyle(inviteMessage.contains("失敗") ? .red : .secondary)
             }
             Button {
+                HapticFeedback.medium()
                 Task { await sendInvite(desk: desk) }
             } label: {
                 if inviteInFlight {
@@ -695,20 +702,33 @@ struct DeskDetailView: View {
               let invitee = UUID(uuidString: inviteeIdText.trimmingCharacters(in: .whitespacesAndNewlines))
         else {
             inviteMessage = "請輸入有效的 UUID"
+            toast.show(.error, "請輸入有效的 UUID")
+            HapticFeedback.error()
             return
         }
         inviteInFlight = true
         defer { inviteInFlight = false }
         do {
+            if let existing = try await inviteRepository.fetchInvite(deskId: desk.id, inviteeId: invitee),
+               existing.status == .pending {
+                inviteMessage = "已發送過邀請"
+                toast.show(.info, "已發送過邀請")
+                HapticFeedback.success()
+                return
+            }
             try await inviteRepository.sendInvite(
                 deskId: desk.id,
                 inviterId: inviter,
                 inviteeId: invitee
             )
-            inviteMessage = "邀請已送出（或已更新現有邀請）。"
+            inviteMessage = "邀請已發送"
             inviteeIdText = ""
+            toast.show(.success, "邀請已發送")
+            HapticFeedback.success()
         } catch {
             inviteMessage = "發送失敗：\(error.localizedDescription)"
+            toast.show(.error, error.localizedDescription)
+            HapticFeedback.error()
         }
     }
 

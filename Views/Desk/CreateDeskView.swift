@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CreateDeskView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
@@ -114,12 +115,16 @@ struct CreateDeskView: View {
                     Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("發佈") { Task { await submit() } }
-                        .disabled(!isValid || isSubmitting)
-                        .fontWeight(.semibold)
+                    Button("發佈") {
+                        HapticFeedback.medium()
+                        Task { await submit() }
+                    }
+                    .disabled(!isValid || isSubmitting)
+                    .fontWeight(.semibold)
                 }
             }
             .disabled(isSubmitting)
+            .deskerSheetSpringContent()
             .overlay {
                 if isSubmitting {
                     Color.black.opacity(0.3)
@@ -127,8 +132,8 @@ struct CreateDeskView: View {
                         .overlay {
                             VStack(spacing: 12) {
                                 ProgressView()
-                                    .tint(AppColor.primary)
-                                Text("發佈中…")
+                                    .tint(AppColor.secondary)
+                                Text("發佈中...")
                                     .font(.subheadline)
                                     .foregroundStyle(.white)
                             }
@@ -210,6 +215,8 @@ struct CreateDeskView: View {
                 expectations: expectations.isEmpty ? nil : expectations
             )
 
+            toast.show(.success, "Desk 已建立")
+            HapticFeedback.success()
             dismiss()
         } catch {
             errorText = error.localizedDescription

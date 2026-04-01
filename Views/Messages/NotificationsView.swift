@@ -25,8 +25,8 @@ struct NotificationsView: View {
             if isLoading {
                 VStack(spacing: 16) {
                     ProgressView()
-                        .tint(AppColor.primary)
-                    Text("載入中…")
+                        .tint(AppColor.secondary)
+                    Text("載入中...")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
@@ -46,7 +46,7 @@ struct NotificationsView: View {
             } else if items.isEmpty {
                 ContentUnavailableView(
                     "暫時沒有通知",
-                    systemImage: "bell",
+                    systemImage: "bell.slash",
                     description: Text("新邀請、申請與訊息會顯示於此")
                 )
             } else {

@@ -108,6 +108,19 @@ final class InviteRepository {
         }
     }
 
+    /// Existing invite for this desk + invitee (any status), if present.
+    func fetchInvite(deskId: UUID, inviteeId: UUID) async throws -> Invite? {
+        let rows: [Invite] = try await client
+            .from("invites")
+            .select()
+            .eq("desk_id", value: deskId)
+            .eq("invitee_id", value: inviteeId)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
     func fetchInvitesForUser(userId: UUID) async throws -> [Invite] {
         let asInvitee: [Invite] = try await client
             .from("invites")

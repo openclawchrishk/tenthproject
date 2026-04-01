@@ -1,12 +1,27 @@
 import Foundation
 import SwiftUI
 
+/// CTA state for sending a Desk invite to the current card founder.
+enum ExploreInviteCTAState: Equatable {
+    case loading
+    case needsLogin
+    case selfProfile
+    case noDesk
+    case connected
+    case pendingDeskInvite
+    case pendingConnectionInvite
+    case ready
+}
+
 @MainActor
 final class ExploreViewModel: ObservableObject {
     @Published private(set) var desks: [Desk] = []
     @Published private(set) var currentDesk: Desk?
     /// Resolved founder for `currentDesk` (Explore card).
     @Published private(set) var currentFounder: UserProfile?
+    /// Desks owned by the current user — used to send Desk invites from Explore.
+    @Published private(set) var myDesks: [Desk] = []
+    @Published private(set) var inviteCTAState: ExploreInviteCTAState = .loading
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
     /// Changing this forces card content to refresh (再看一次).
@@ -57,6 +72,60 @@ final class ExploreViewModel: ObservableObject {
             desks = []
             currentDesk = nil
             currentFounder = nil
+        }
+    }
+
+    /// Loads desks created by the current user (for 「發送邀請」 → `invites` table).
+    func loadMyDesks(founderId: UUID?) async {
+        guard let founderId else {
+            myDesks = []
+            return
+        }
+        do {
+            myDesks = try await repository.fetchDesksForFounder(founderId: founderId)
+        } catch {
+            myDesks = []
+        }
+    }
+
+    func refreshInviteCTAState(
+        currentUserId: UUID?,
+        inviteRepo: InviteRepository,
+        connectionsRepo: ConnectionRepository
+    ) async {
+        guard let uid = currentUserId else {
+            inviteCTAState = .needsLogin
+            return
+        }
+        guard let founder = currentFounder else {
+            inviteCTAState = .loading
+            return
+        }
+        let founderId = founder.id
+        if founderId == uid {
+            inviteCTAState = .selfProfile
+            return
+        }
+        guard let myDesk = myDesks.first else {
+            inviteCTAState = .noDesk
+            return
+        }
+        do {
+            if try await connectionsRepo.areConnected(uid, founderId) {
+                inviteCTAState = .connected
+                return
+            }
+            if let inv = try await inviteRepo.fetchInvite(deskId: myDesk.id, inviteeId: founderId), inv.status == .pending {
+                inviteCTAState = .pendingDeskInvite
+                return
+            }
+            if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: founderId) != nil {
+                inviteCTAState = .pendingConnectionInvite
+                return
+            }
+            inviteCTAState = .ready
+        } catch {
+            inviteCTAState = .ready
         }
     }
 

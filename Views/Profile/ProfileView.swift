@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
     @State private var industryTags: Set<String> = []
     @State private var skills: Set<String> = []
     @State private var needs: Set<String> = []
@@ -53,8 +54,8 @@ struct ProfileView: View {
                                 Color.black.opacity(0.06).ignoresSafeArea()
                                 VStack(spacing: 10) {
                                     ProgressView()
-                                        .tint(AppColor.primary)
-                                    Text("儲存中…")
+                                        .tint(AppColor.secondary)
+                                    Text("儲存中...")
                                         .font(.subheadline)
                                         .foregroundStyle(AppColor.textSecondary)
                                 }
@@ -80,7 +81,7 @@ struct ProfileView: View {
             syncFromProfile()
             await loadReferrals()
         }
-        .onChange(of: auth.currentUser?.id) { _ in
+        .onChange(of: auth.currentUser?.id) { _, _ in
             syncFromProfile()
         }
         .sheet(isPresented: $showPremium) {
@@ -113,12 +114,12 @@ struct ProfileView: View {
                                 .resizable()
                                 .scaledToFill()
                         case .failure:
-                            placeholderAvatar
+                            placeholderAvatar(for: user)
                         case .empty:
                             ProgressView()
-                                .tint(AppColor.primary)
+                                .tint(AppColor.secondary)
                         @unknown default:
-                            placeholderAvatar
+                            placeholderAvatar(for: user)
                         }
                     }
                     .frame(width: 112, height: 112)
@@ -128,7 +129,7 @@ struct ProfileView: View {
                             .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
                     )
                 } else {
-                    placeholderAvatar
+                    placeholderAvatar(for: user)
                         .overlay(
                             Circle()
                                 .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
@@ -141,6 +142,8 @@ struct ProfileView: View {
                     Text(user.displayName.isEmpty ? "—" : user.displayName)
                         .font(.title2.bold())
                         .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     if user.verificationBadgeStyle != nil {
                         Image(systemName: "star.fill")
                             .font(.caption.weight(.bold))
@@ -184,12 +187,26 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var placeholderAvatar: some View {
-        Image(systemName: "person.crop.circle.fill")
-            .font(.system(size: 80))
-            .symbolRenderingMode(.palette)
-            .foregroundStyle(AppColor.primary, AppColor.secondary)
-            .frame(width: 112, height: 112)
+    private func placeholderAvatar(for user: UserProfile) -> some View {
+        let name = user.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let initials = profileInitials(from: name)
+        return ZStack {
+            Circle()
+                .fill(AppColor.primary)
+                .frame(width: 112, height: 112)
+            Text(initials)
+                .font(.system(size: 40, weight: .bold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func profileInitials(from name: String) -> String {
+        let parts = name.split(separator: " ").filter { !$0.isEmpty }
+        if parts.count >= 2 {
+            return String(parts[0].prefix(1)) + String(parts[1].prefix(1))
+        }
+        let s = String(name.prefix(2))
+        return s.isEmpty ? "?" : s.uppercased()
     }
 
     @ViewBuilder
@@ -392,6 +409,7 @@ struct ProfileView: View {
     private var saveSection: some View {
         Section {
             Button {
+                HapticFeedback.medium()
                 Task { await save() }
             } label: {
                 if isSaving {
@@ -482,6 +500,7 @@ struct ProfileView: View {
             await auth.refreshProfile()
             await loadReferrals()
             banner = "已儲存"
+            toast.show(.success, "已儲存")
             HapticFeedback.success()
         } catch {
             banner = "儲存失敗：\(error.localizedDescription)"

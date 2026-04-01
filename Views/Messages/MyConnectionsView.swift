@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MyConnectionsView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var tabRouter: MainTabRouter
     @State private var connections: [Connection] = []
     @State private var pending: [ConnectionInvite] = []
     @State private var isLoading = true
@@ -30,8 +31,8 @@ struct MyConnectionsView: View {
                 if isLoading {
                     VStack(spacing: 16) {
                         ProgressView()
-                            .tint(AppColor.primary)
-                        Text("載入中…")
+                            .tint(AppColor.secondary)
+                        Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
@@ -50,6 +51,11 @@ struct MyConnectionsView: View {
                     }
                     .padding(.top, 8)
                 } else {
+                    if connections.isEmpty && pending.isEmpty {
+                        connectionsEmptyHero
+                            .padding(.horizontal, CardChrome.padding)
+                    }
+
                     if !connections.isEmpty {
                         connectionAvatarGrid
                     }
@@ -66,6 +72,36 @@ struct MyConnectionsView: View {
         .background(AppColor.background.ignoresSafeArea())
         .task { await load() }
         .refreshable { await load() }
+    }
+
+    private var connectionsEmptyHero: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "person.2")
+                .font(.system(size: 48))
+                .foregroundStyle(AppColor.textSecondary)
+            Text("你仲未有連接的人")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Button {
+                HapticFeedback.medium()
+                tabRouter.selectedTab = 0
+            } label: {
+                Text("去Explore探索創業者")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(AppColor.brandGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(DeskerCardPressStyle())
+            .deskerButtonShadow()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
+        .padding(.bottom, 8)
     }
 
     private var connectionAvatarGrid: some View {
@@ -91,6 +127,7 @@ struct MyConnectionsView: View {
                                     .font(.caption.weight(.medium))
                                     .foregroundStyle(AppColor.textPrimary)
                                     .lineLimit(1)
+                                    .truncationMode(.tail)
                             }
                         }
                         .buttonStyle(.plain)
@@ -152,6 +189,7 @@ struct MyConnectionsView: View {
                 .background(AppColor.surfaceElevated)
                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             Button {
+                HapticFeedback.medium()
                 Task { await sendInvite() }
             } label: {
                 Text("送出邀請")
@@ -229,7 +267,7 @@ struct MyConnectionsView: View {
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(AppColor.primary)
             if connections.isEmpty {
-                Text("你還沒有建立人脈，試試在探索發送連接邀請")
+                Text("連接後會顯示於此")
                     .font(.body)
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

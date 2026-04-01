@@ -204,6 +204,37 @@ struct DeskerChipPressStyle: ButtonStyle {
     }
 }
 
+/// Card-style controls: subtle scale on press (0.98).
+struct DeskerCardPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
+    }
+}
+
+extension View {
+    /// Springy slide-up feel for sheet content (call on root inside `sheet`).
+    func deskerSheetSpringContent() -> some View {
+        modifier(DeskerSheetSpringModifier())
+    }
+}
+
+private struct DeskerSheetSpringModifier: ViewModifier {
+    @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: appeared ? 0 : 28)
+            .opacity(appeared ? 1 : 0)
+            .onAppear {
+                withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
