@@ -8,12 +8,12 @@ struct AppHeaderView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundStyle(Color(hex: "111827"))
+                .foregroundStyle(AppColor.textPrimary)
                 .tracking(-0.3)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(hex: "6B7280"))
+                    .foregroundStyle(AppColor.textSecondary)
                     .lineLimit(2)
             }
         }
@@ -22,19 +22,12 @@ struct AppHeaderView: View {
         .padding(.top, 12)
         .padding(.bottom, 14)
         .background {
-            LinearGradient(
-                colors: [
-                    Color.white,
-                    Color(hex: "F9FAFB"),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            AppColor.headerGradient
         }
         .overlay(alignment: .bottom) {
             LinearGradient(
                 colors: [
-                    Color.black.opacity(0.07),
+                    Color.black.opacity(0.06),
                     Color.clear,
                 ],
                 startPoint: .bottom,
@@ -42,6 +35,6 @@ struct AppHeaderView: View {
             )
             .frame(height: 1)
         }
-        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(0.06), radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
     }
 }

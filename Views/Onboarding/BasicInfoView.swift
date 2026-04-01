@@ -60,7 +60,7 @@ struct BasicInfoView: View {
                             .frame(width: 24)
 
                         TextField("你嘅稱呼", text: $viewModel.displayName)
-                            .textInputAutocapitalization(.never)
+                            .deskerTextFieldNoAutocaps()
                     }
                     .padding(14)
                     .background(AppColor.cardBackground)

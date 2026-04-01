@@ -25,15 +25,17 @@ struct OnboardingContainerView: View {
             // Content
             TabView(selection: $viewModel.currentStep) {
                 RoleSelectionView(viewModel: viewModel)
-                    .tag(OnboardingStep.roleSelection)
+                    .tag(OnboardingViewModel.OnboardingStep.roleSelection)
 
                 BasicInfoView(viewModel: viewModel)
-                    .tag(OnboardingStep.basicInfo)
+                    .tag(OnboardingViewModel.OnboardingStep.basicInfo)
 
                 SkillsAndNeedsView(viewModel: viewModel)
-                    .tag(OnboardingStep.skillsAndNeeds)
+                    .tag(OnboardingViewModel.OnboardingStep.skillsAndNeeds)
             }
+            #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
             .animation(.easeInOut, value: viewModel.currentStep)
         }
         .background(AppColor.background)

@@ -30,46 +30,22 @@ struct MainTabView: View {
         TabView {
             ExploreView()
                 .tabItem {
-                    Label {
-                        Text("探索")
-                    } icon: {
-                        Image(systemName: "person.2.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(AppColor.primary, AppColor.secondary)
-                    }
+                    Label("探索", systemImage: "person.2.fill")
                 }
 
             DeskHubView()
                 .tabItem {
-                    Label {
-                        Text("Desk")
-                    } icon: {
-                        Image(systemName: "briefcase.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(AppColor.primary, AppColor.secondary)
-                    }
+                    Label("Desk", systemImage: "briefcase.fill")
                 }
 
             MessagesInboxView()
                 .tabItem {
-                    Label {
-                        Text("訊息")
-                    } icon: {
-                        Image(systemName: "bubble.left.and.bubble.right.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(AppColor.primary, AppColor.secondary)
-                    }
+                    Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
                 }
 
             ProfileView()
                 .tabItem {
-                    Label {
-                        Text("我的")
-                    } icon: {
-                        Image(systemName: "person.crop.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(AppColor.primary, AppColor.secondary)
-                    }
+                    Label("我的", systemImage: "person.crop.circle.fill")
                 }
         }
         #if os(iOS)

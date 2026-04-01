@@ -1,32 +1,63 @@
 import SwiftUI
 
+// MARK: - App colors (premium indigo / gold)
+
 /// Brand and surface colors. Uses hex values so the app works without an Asset Catalog.
 enum AppColor {
-    static let primary = Color(hex: "007AFF")
-    /// PRD secondary accent (indigo).
+    /// Deep indigo — main brand.
+    static let primary = Color(hex: "2D346D")
+    /// Purple — CTAs, links.
     static let secondary = Color(hex: "5856D6")
-    static let accentOrange = Color(hex: "FF9500")
-    static let accentPurple = Color(hex: "AF52DE")
-    /// Teal accent (charts, secondary CTAs).
-    static let teal = Color(hex: "00C7BE")
-    static let background = Color(hex: "F2F2F7")
-    /// Grouped list / inset rows (replaces `UIColor.secondarySystemGroupedBackground`).
-    static let secondaryGroupedSurface = Color(hex: "E5E5EA")
-    static let cardBackground = Color(hex: "FFFFFF")
-    static let headerBackground = Color.white
-    static let tabBarBackground = Color(hex: "1C1C1E")
-    static let tabBarUnselected = Color(hex: "5AC8FA")
-    static let tabBarSelected = Color(hex: "0A84FF")
-    static let labelPrimary = Color.primary
-    static let labelSecondary = Color.secondary
-    static let textPrimary = Color(hex: "000000")
-    /// Unselected tab labels / secondary body text (aligned with iOS secondary label).
-    static let textSecondary = Color(hex: "8E8E93")
-    static let success = Color(hex: "34C759")
-    static let error = Color(hex: "FF3B30")
+    /// Warm gold — premium accents, badges, highlights.
+    static let gold = Color(hex: "E8C07A")
+    /// Soft teal — secondary accents.
+    static let teal = Color(hex: "7ECBC0")
+
+    static let background = Color(hex: "F5F5F7")
+    static let cardBackground = Color.white
+    static let surfaceElevated = Color(hex: "FAFAFA")
+    /// Grouped list chips / bubbles (alias for elevated surface).
+    static let secondaryGroupedSurface = surfaceElevated
+
+    static let textPrimary = Color(hex: "1A1A2E")
+    static let textSecondary = Color(hex: "6B7280")
+    static let textTertiary = Color(hex: "9CA3AF")
+
+    static let error = Color(hex: "DC2626")
+    static let success = Color(hex: "059669")
+    static let warning = Color(hex: "D97706")
+
+    /// Dark indigo tab bar surface.
+    static let tabBarBackground = Color(hex: "1C1C2E")
+    /// Tab bar — selected icon/label (white on dark bar).
+    static let tabBarSelected = Color.white
+    /// Tab bar — unselected (#6B7280).
+    static let tabBarUnselected = Color(hex: "6B7280")
+
+    /// Primary brand label color (use instead of `Color.primary`).
+    static let labelPrimary = textPrimary
+    static let labelSecondary = textSecondary
+
+    /// Legacy semantic names — map to the new palette for existing call sites.
+    static let accentOrange = gold
+    static let accentPurple = secondary
+    static let premiumBadge = gold
+    static let investorBadge = secondary
+    static let expertBadge = teal
 
     static let brandGradient = LinearGradient(
-        colors: [Color(hex: "007AFF"), Color(hex: "5856D6")],
+        colors: [Color(hex: "2D346D"), Color(hex: "5856D6")],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    /// Full-screen welcome / auth backgrounds (deep indigo).
+    static let welcomeGradient = LinearGradient(
+        colors: [
+            Color(hex: "1C1C2E"),
+            Color(hex: "2D346D"),
+            Color(hex: "5856D6"),
+        ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -34,37 +65,81 @@ enum AppColor {
     static let headerGradient = LinearGradient(
         colors: [
             Color.white,
-            Color(hex: "F7F9FC"),
+            AppColor.surfaceElevated,
         ],
         startPoint: .top,
         endPoint: .bottom
     )
 
-    static let premiumBadge = Color.yellow
-    static let investorBadge = Color.blue
-    static let expertBadge = Color.green
+    /// Gold shimmer for premium CTAs.
+    static let goldAccentGradient = LinearGradient(
+        colors: [Color(hex: "E8C07A"), Color(hex: "D4A84B")],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
 }
 
+// MARK: - Card chrome & shadows
+
 enum CardChrome {
-    static let cornerRadius: CGFloat = 16
-    /// PRD: section spacing between major blocks.
+    static let cornerRadiusLarge: CGFloat = 20
+    static let cornerRadiusMedium: CGFloat = 12
+    static let cornerRadiusChip: CGFloat = 8
+
+    /// Backward-compatible default for inline surfaces (medium).
+    static let cornerRadius: CGFloat = cornerRadiusMedium
+
     static let sectionSpacing: CGFloat = 24
-    /// Content padding inside elevated cards.
     static let padding: CGFloat = 16
-    static let shadowColor = Color.black.opacity(0.08)
-    static let shadowRadius: CGFloat = 8
-    static let shadowY: CGFloat = 2
+
+    static let shadowColor = Color.black.opacity(0.1)
+
+    /// Elevated cards (main surfaces).
+    static let shadowRadiusElevated: CGFloat = 16
+    static let shadowYElevated: CGFloat = 6
+
+    /// Buttons & compact controls.
+    static let shadowRadiusButton: CGFloat = 8
+    static let shadowYButton: CGFloat = 3
+
+    /// Legacy single shadow — maps to elevated (for any remaining references).
+    static let shadowRadius: CGFloat = shadowRadiusElevated
+    static let shadowY: CGFloat = shadowYElevated
 }
 
 extension View {
-    /// White card on grouped background with PRD shadow and corner radius.
+    /// White card on cream background with elevated shadow and large corner radius.
     func deskerElevatedCard() -> some View {
         self
             .background(
-                RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                    .shadow(
+                        color: CardChrome.shadowColor,
+                        radius: CardChrome.shadowRadiusElevated,
+                        x: 0,
+                        y: CardChrome.shadowYElevated
+                    )
             )
+    }
+
+    /// Compact elevated surface (medium radius, same shadow system).
+    func deskerMediumCard() -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                    .fill(AppColor.cardBackground)
+                    .shadow(
+                        color: CardChrome.shadowColor,
+                        radius: CardChrome.shadowRadiusElevated,
+                        x: 0,
+                        y: CardChrome.shadowYElevated
+                    )
+            )
+    }
+
+    func deskerButtonShadow() -> some View {
+        shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
     }
 
     /// `navigationBarTitleDisplayMode` is unavailable on macOS.

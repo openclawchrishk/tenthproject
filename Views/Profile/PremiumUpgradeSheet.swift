@@ -10,12 +10,12 @@ struct PremiumUpgradeSheet: View {
                 Image(systemName: "crown.fill")
                     .font(.system(size: 56))
                     .symbolRenderingMode(.palette)
-                    .foregroundStyle(.yellow, AppColor.primary)
+                    .foregroundStyle(AppColor.gold, AppColor.primary)
                 Text("升級至 Level 3")
                     .font(.title.bold())
                 Text("解鎖 Premium 標章、更多 Desk 成員額度與進階功能。正式上線時將透過 Apple In-App Purchase 付款。")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 VStack(alignment: .leading, spacing: 10) {
@@ -27,9 +27,14 @@ struct PremiumUpgradeSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(
-                    RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                         .fill(AppColor.cardBackground)
-                        .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                        .shadow(
+                            color: CardChrome.shadowColor,
+                            radius: CardChrome.shadowRadiusElevated,
+                            x: 0,
+                            y: CardChrome.shadowYElevated
+                        )
                 )
 
                 Button {
@@ -47,6 +52,8 @@ struct PremiumUpgradeSheet: View {
                 Spacer()
             }
             .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Premium")
             .deskerInlineNavigationTitle()
             .toolbar {
