@@ -95,6 +95,42 @@ final class DeskRepository {
             .execute()
     }
 
+    /// Approves a pending application and adds the applicant to `desk_members` (idempotent if already a member).
+    func approveApplication(applicationId: UUID, actingFounderId: UUID) async throws {
+        let app: DeskApplication = try await client
+            .from("desk_applications")
+            .select()
+            .eq("id", value: applicationId)
+            .single()
+            .execute()
+            .value
+
+        let desk = try await fetchDesk(id: app.deskId)
+        guard desk.founderId == actingFounderId else {
+            struct Err: LocalizedError { var errorDescription: String? { "只有創辦人可以批准申請" } }
+            throw Err()
+        }
+        guard app.status == .pending else { return }
+
+        try await updateApplicationStatus(applicationId: applicationId, status: .accepted)
+
+        if try await !isUserMemberOfDesk(deskId: app.deskId, userId: app.applicantId) {
+            struct MemberInsert: Encodable {
+                let id: UUID
+                let desk_id: UUID
+                let user_id: UUID
+                let status: String
+            }
+            let row = MemberInsert(
+                id: UUID(),
+                desk_id: app.deskId,
+                user_id: app.applicantId,
+                status: "active"
+            )
+            try await client.from("desk_members").insert(row).execute()
+        }
+    }
+
     /// Latest application from this user for the desk, if any.
     func fetchMyApplication(deskId: UUID, applicantId: UUID) async throws -> DeskApplication? {
         let rows: [DeskApplication] = try await client

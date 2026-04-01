@@ -6,6 +6,10 @@ final class ConnectionRepository {
     private let client = SupabaseManager.shared.client
 
     func fetchConnections(for userId: UUID) async throws -> [Connection] {
+        try await fetchConnections(userId: userId)
+    }
+
+    func fetchConnections(userId: UUID) async throws -> [Connection] {
         let uid = userId.uuidString
         let filter = "user_a_id.eq.\(uid),user_b_id.eq.\(uid)"
         return try await client

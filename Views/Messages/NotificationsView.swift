@@ -178,7 +178,7 @@ struct NotificationsView: View {
         errorText = nil
         defer { isLoading = false }
         do {
-            items = try await repo.fetchNotifications(for: uid)
+            items = try await repo.fetchNotifications(userId: uid)
         } catch {
             errorText = error.localizedDescription
         }
@@ -187,7 +187,7 @@ struct NotificationsView: View {
     private func markRead(_ n: AppNotification) async {
         guard !n.read else { return }
         do {
-            try await repo.markRead(notificationId: n.id)
+            try await repo.markAsRead(notificationId: n.id)
             HapticFeedback.light()
             await load()
         } catch {
@@ -200,7 +200,7 @@ struct NotificationsView: View {
         markAllInFlight = true
         defer { markAllInFlight = false }
         do {
-            try await repo.markAllRead(for: uid)
+            try await repo.markAllAsRead(userId: uid)
             HapticFeedback.success()
             await load()
         } catch {

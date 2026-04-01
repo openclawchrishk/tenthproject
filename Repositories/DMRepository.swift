@@ -6,6 +6,10 @@ final class DMRepository {
     private let client = SupabaseManager.shared.client
     private let connections = ConnectionRepository()
 
+    func fetchConversations(userId: UUID) async throws -> [Conversation] {
+        try await fetchConversations(for: userId)
+    }
+
     func fetchConversations(for userId: UUID) async throws -> [Conversation] {
         let uid = userId.uuidString
         let orFilter = "participant_a_id.eq.\(uid),participant_b_id.eq.\(uid)"
@@ -43,6 +47,10 @@ final class DMRepository {
     }
 
     func fetchDirectMessages(conversationId: UUID) async throws -> [DirectMessage] {
+        try await fetchMessages(conversationId: conversationId)
+    }
+
+    func fetchMessages(conversationId: UUID) async throws -> [DirectMessage] {
         try await client
             .from("direct_messages")
             .select()
@@ -87,6 +95,10 @@ final class DMRepository {
     }
 
     func sendDirectMessage(conversationId: UUID, senderId: UUID, content: String) async throws {
+        try await sendMessage(conversationId: conversationId, senderId: senderId, content: content)
+    }
+
+    func sendMessage(conversationId: UUID, senderId: UUID, content: String) async throws {
         struct Insert: Encodable {
             let id: UUID
             let conversation_id: UUID

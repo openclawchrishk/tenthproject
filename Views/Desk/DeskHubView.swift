@@ -337,14 +337,26 @@ struct DeskHubView: View {
     }
 
     private func setStatus(_ item: DeskApplicationItem, to status: ApplicationStatus) async {
+        guard let founderId = auth.currentUser?.id else {
+            errorText = "請先登入"
+            toast.show(.error, "請先登入")
+            return
+        }
         processingId = item.application.id
         defer { processingId = nil }
         do {
-            try await deskRepository.updateApplicationStatus(applicationId: item.application.id, status: status)
+            if status == .accepted {
+                try await deskRepository.approveApplication(applicationId: item.application.id, actingFounderId: founderId)
+                toast.show(.success, "已批准，成員已加入")
+            } else {
+                try await deskRepository.updateApplicationStatus(applicationId: item.application.id, status: status)
+                toast.show(.info, status == .declined ? "已拒絕申請" : "申請狀態已更新")
+            }
             HapticFeedback.success()
             await reload()
         } catch {
             errorText = error.localizedDescription
+            toast.show(.error, error.localizedDescription)
             HapticFeedback.error()
         }
     }

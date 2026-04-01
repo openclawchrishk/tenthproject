@@ -28,6 +28,17 @@ final class UserRepository {
         return response
     }
 
+    /// Paginated list of profiles (e.g. discovery / admin). Ordered by display name.
+    func fetchUsers(limit: Int = 200) async throws -> [UserProfile] {
+        try await client
+            .from("users")
+            .select()
+            .order("display_name", ascending: true)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
     /// Upserts the full profile row — use for onboarding completion and profile edits.
     func upsertUser(_ user: UserProfile) async throws {
         let payload = UserUpsertPayload(from: user)

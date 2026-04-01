@@ -146,7 +146,7 @@ struct DMChatView: View {
         do {
             let conv = try await dmRepo.getOrCreateConversation(currentUserId: uid, peerId: peerId)
             conversation = conv
-            messages = try await dmRepo.fetchDirectMessages(conversationId: conv.id)
+            messages = try await dmRepo.fetchMessages(conversationId: conv.id)
             startRealtime(conv.id)
         } catch {
             errorText = error.localizedDescription
@@ -156,7 +156,7 @@ struct DMChatView: View {
     private func loadMessages() async {
         guard let c = conversation else { return }
         do {
-            messages = try await dmRepo.fetchDirectMessages(conversationId: c.id)
+            messages = try await dmRepo.fetchMessages(conversationId: c.id)
         } catch {
             errorText = error.localizedDescription
         }
@@ -168,7 +168,7 @@ struct DMChatView: View {
         guard !text.isEmpty else { return }
         inputText = ""
         do {
-            try await dmRepo.sendDirectMessage(conversationId: c.id, senderId: uid, content: text)
+            try await dmRepo.sendMessage(conversationId: c.id, senderId: uid, content: text)
             HapticFeedback.light()
             await loadMessages()
         } catch {

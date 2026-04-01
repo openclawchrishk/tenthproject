@@ -167,7 +167,7 @@ struct DeskGroupChatView: View {
             canAccess = try await deskRepo.canAccessDeskChat(deskId: desk.id, userId: uid, founderId: desk.founderId)
             guard canAccess else { return }
             async let m = deskRepo.fetchDeskMembers(deskId: desk.id)
-            async let msgs = chatRepo.fetchDeskMessages(deskId: desk.id)
+            async let msgs = chatRepo.fetchMessages(deskId: desk.id)
             members = try await m
             messages = try await msgs
             await loadSenderNames()
@@ -201,9 +201,9 @@ struct DeskGroupChatView: View {
         guard !t.isEmpty else { return }
         inputText = ""
         do {
-            try await chatRepo.sendDeskMessage(deskId: desk.id, senderId: uid, content: t)
+            try await chatRepo.sendMessage(deskId: desk.id, senderId: uid, content: t)
             HapticFeedback.success()
-            messages = try await chatRepo.fetchDeskMessages(deskId: desk.id)
+            messages = try await chatRepo.fetchMessages(deskId: desk.id)
             await loadSenderNames()
         } catch {
             errorText = error.localizedDescription
@@ -228,7 +228,7 @@ struct DeskGroupChatView: View {
         realtimeTask?.cancel()
         realtimeTask = chatRepo.subscribeToDeskMessages(deskId: desk.id) {
             Task { @MainActor in
-                messages = (try? await chatRepo.fetchDeskMessages(deskId: desk.id)) ?? []
+                messages = (try? await chatRepo.fetchMessages(deskId: desk.id)) ?? []
                 await loadSenderNames()
             }
         }

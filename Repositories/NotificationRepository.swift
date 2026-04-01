@@ -6,6 +6,10 @@ final class NotificationRepository {
     private let client = SupabaseManager.shared.client
 
     func fetchNotifications(for userId: UUID) async throws -> [AppNotification] {
+        try await fetchNotifications(userId: userId)
+    }
+
+    func fetchNotifications(userId: UUID) async throws -> [AppNotification] {
         try await client
             .from("notifications")
             .select()
@@ -16,6 +20,10 @@ final class NotificationRepository {
     }
 
     func markRead(notificationId: UUID) async throws {
+        try await markAsRead(notificationId: notificationId)
+    }
+
+    func markAsRead(notificationId: UUID) async throws {
         struct Patch: Encodable {
             let read: Bool
         }
@@ -27,6 +35,10 @@ final class NotificationRepository {
     }
 
     func markAllRead(for userId: UUID) async throws {
+        try await markAllAsRead(userId: userId)
+    }
+
+    func markAllAsRead(userId: UUID) async throws {
         struct Patch: Encodable {
             let read: Bool
         }

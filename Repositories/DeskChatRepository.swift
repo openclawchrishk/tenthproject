@@ -6,6 +6,10 @@ final class DeskChatRepository {
     private let client = SupabaseManager.shared.client
 
     func fetchDeskMessages(deskId: UUID) async throws -> [DeskMessage] {
+        try await fetchMessages(deskId: deskId)
+    }
+
+    func fetchMessages(deskId: UUID) async throws -> [DeskMessage] {
         try await client
             .from("desk_messages")
             .select()
@@ -16,6 +20,10 @@ final class DeskChatRepository {
     }
 
     func sendDeskMessage(deskId: UUID, senderId: UUID, content: String) async throws {
+        try await sendMessage(deskId: deskId, senderId: senderId, content: content)
+    }
+
+    func sendMessage(deskId: UUID, senderId: UUID, content: String) async throws {
         struct Insert: Encodable {
             let id: UUID
             let desk_id: UUID

@@ -200,7 +200,7 @@ struct DeskDetailView: View {
                         .foregroundStyle(.white.opacity(0.85))
                 }
                 Text(desk.name)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
                 Text(desk.pitch)
@@ -528,7 +528,7 @@ struct DeskDetailView: View {
                 .overlay(Circle().stroke(AppColor.gold.opacity(0.55), lineWidth: 2))
             } else {
                 Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 64))
+                    .font(.largeTitle)
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(AppColor.primary, AppColor.secondary)
                     .overlay(Circle().stroke(AppColor.gold.opacity(0.45), lineWidth: 2))
@@ -662,7 +662,7 @@ struct DeskDetailView: View {
                 .foregroundStyle(AppColor.primary)
             Text("輸入對方的用戶 ID（UUID）。若已邀請過，系統會更新該筆邀請而不會報錯。")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColor.textSecondary)
             TextField("Invited user UUID", text: $inviteeIdText)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()

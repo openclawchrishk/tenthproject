@@ -217,6 +217,7 @@ struct CreateDeskView: View {
 
             toast.show(.success, "Desk 已建立")
             HapticFeedback.success()
+            isSubmitting = false
             dismiss()
         } catch {
             errorText = error.localizedDescription

@@ -182,6 +182,7 @@ struct MessagesInboxView: View {
                                 HStack {
                                     Text(deskNames[inv.deskId] ?? "Desk")
                                         .font(.headline.weight(.semibold))
+                                        .foregroundStyle(AppColor.textPrimary)
                                     Spacer()
                                     Text(statusLabel(inv.status))
                                         .font(.caption.weight(.bold))
