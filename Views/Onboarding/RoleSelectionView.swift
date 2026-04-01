@@ -52,6 +52,7 @@ struct RoleSelectionView: View {
                     .background(AppColor.brandGradient)
                     .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
+                .buttonStyle(DeskerButtonPressStyle())
                 .disabled(viewModel.selectedRole == nil)
                 .opacity(viewModel.selectedRole == nil ? 0.5 : 1)
                 .deskerButtonShadow()

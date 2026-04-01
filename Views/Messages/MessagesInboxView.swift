@@ -38,6 +38,9 @@ struct MessagesInboxView: View {
                     .padding(.top, 40)
                 } else if let errorText, segment == 0 || segment == 2 {
                     VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(AppColor.error)
                         Text(errorText)
                             .font(.subheadline)
                             .foregroundStyle(AppColor.error)
@@ -74,25 +77,34 @@ struct MessagesInboxView: View {
 
     private var inboxSegmentPicker: some View {
         Picker("", selection: $segment) {
-            Label("私訊", systemImage: "bubble.left.and.bubble.right.fill").tag(0)
-            Label("通知", systemImage: "bell.fill").tag(1)
-            Label("Desk邀請", systemImage: "envelope.open.fill").tag(2)
-            Label("人脈", systemImage: "person.2.fill").tag(3)
+            Text("私訊 (\(messages.count))").tag(0)
+            Text("通知").tag(1)
+            Text("Desk (\(pendingInviteCount))").tag(2)
+            Text("人脈").tag(3)
         }
         .pickerStyle(.segmented)
         .tint(AppColor.primary)
     }
 
+    private var pendingInviteCount: Int {
+        guard let uid = auth.currentUser?.id else { return 0 }
+        return invites.filter { $0.status == .pending && $0.inviteeId == uid }.count
+    }
+
     @ViewBuilder
     private var dmSegment: some View {
         if messages.isEmpty {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 52))
-                    .foregroundStyle(AppColor.textSecondary)
+                    .font(.system(size: 48))
+                    .foregroundStyle(AppColor.textTertiary)
                 Text("暫時沒有訊息")
-                    .font(.title3.weight(.semibold))
+                    .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("連接創辦人或回覆邀請後，對話會顯示於此")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
@@ -134,7 +146,7 @@ struct MessagesInboxView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.peerDisplayName)
-                        .font(.headline)
+                        .font(unread ? .headline.weight(.bold) : .headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     if let d = item.message.createdAt {

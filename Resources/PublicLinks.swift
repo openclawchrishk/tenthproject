@@ -3,6 +3,9 @@ import Foundation
 enum PublicLinks {
     static let baseURLString = "https://desker.hk"
 
+    static let termsURL = URL(string: "\(baseURLString)/terms")!
+    static let privacyURL = URL(string: "\(baseURLString)/privacy")!
+
     static func deskURL(deskId: UUID) -> URL {
         URL(string: "\(baseURLString)/desk/\(deskId.uuidString.lowercased())")!
     }

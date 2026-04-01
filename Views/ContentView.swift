@@ -33,6 +33,10 @@ struct MainTabView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
     @EnvironmentObject private var tabRouter: MainTabRouter
+    @State private var inboxBadgeCount = 0
+
+    private let messagesRepo = MessageRepository()
+    private let invitesRepo = InviteRepository()
 
     var body: some View {
         Group {
@@ -67,22 +71,44 @@ struct MainTabView: View {
         }
         .onAppear {
             TabBarAppearanceConfigurator.apply()
+            Task { await refreshInboxBadge() }
+        }
+        .onChange(of: auth.currentUser?.id) { _, _ in
+            Task { await refreshInboxBadge() }
+        }
+        .onChange(of: tabRouter.selectedTab) { _, new in
+            if new == 2 { Task { await refreshInboxBadge() } }
         }
     }
 
     private var iosCustomTabBar: some View {
         HStack(spacing: 0) {
-            iosTabButton(0, "探索", "person.2.fill")
-            iosTabButton(1, "Desk", "briefcase.fill")
-            iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill")
-            iosTabButton(3, "我的", "person.fill")
+            iosTabButton(0, "探索", "person.2.fill", badge: nil)
+            iosTabButton(1, "Desk", "briefcase.fill", badge: nil)
+            iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill", badge: inboxBadgeCount > 0 ? inboxBadgeCount : nil)
+            iosTabButton(3, "我的", "person.fill", badge: nil)
         }
         .padding(.top, 10)
         .padding(.bottom, 6)
         .background(AppColor.tabBarBackground.ignoresSafeArea(edges: .bottom))
     }
 
-    private func iosTabButton(_ index: Int, _ title: String, _ systemImage: String) -> some View {
+    private func refreshInboxBadge() async {
+        guard let uid = auth.currentUser?.id else {
+            await MainActor.run { inboxBadgeCount = 0 }
+            return
+        }
+        var n = 0
+        if let msgs = try? await messagesRepo.fetchRecentMessagesPreview(for: uid) {
+            n += msgs.filter { $0.message.senderId != uid }.count
+        }
+        if let inv = try? await invitesRepo.fetchInvitesForUser(userId: uid) {
+            n += inv.filter { $0.status == .pending && $0.inviteeId == uid }.count
+        }
+        await MainActor.run { inboxBadgeCount = min(99, n) }
+    }
+
+    private func iosTabButton(_ index: Int, _ title: String, _ systemImage: String, badge: Int?) -> some View {
         let on = tabRouter.selectedTab == index
         return Button {
             HapticFeedback.selection()
@@ -90,12 +116,24 @@ struct MainTabView: View {
                 tabRouter.selectedTab = index
             }
         } label: {
-            VStack(spacing: 4) {
-                Image(systemName: systemImage)
-                Text(title)
-                    .font(.caption2.weight(on ? .semibold : .medium))
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 4) {
+                    Image(systemName: systemImage)
+                        .scaleEffect(on ? 1.1 : 1.0)
+                    Text(title)
+                        .font(.caption2.weight(on ? .semibold : .medium))
+                }
+                .foregroundStyle(on ? AppColor.tabBarSelected : AppColor.tabBarUnselected)
+                if let badge, badge > 0, index == 2 {
+                    Text(badge > 9 ? "9+" : "\(badge)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(AppColor.error))
+                        .offset(x: 10, y: -6)
+                }
             }
-            .foregroundStyle(on ? AppColor.tabBarSelected : AppColor.tabBarUnselected)
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)

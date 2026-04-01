@@ -114,6 +114,7 @@ struct SkillsAndNeedsView: View {
                     .cornerRadius(12)
                     .opacity(isSaving ? 0.65 : 1)
                 }
+                .buttonStyle(DeskerButtonPressStyle())
                 .disabled(isSaving)
                 .padding(.bottom, 32)
             }

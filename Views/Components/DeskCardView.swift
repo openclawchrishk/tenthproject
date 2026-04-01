@@ -148,11 +148,7 @@ struct DeskCardView: View {
     private var deskHero: some View {
         ZStack(alignment: .bottomLeading) {
             LinearGradient(
-                colors: [
-                    AppColor.primary,
-                    Color(hex: "5B4B9A"),
-                    AppColor.secondary,
-                ],
+                colors: heroGradientColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -183,15 +179,15 @@ struct DeskCardView: View {
                     Spacer()
                 }
 
-                Text(desk.name.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 20))
-                    .font(.headline)
+                Text(desk.name.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 28))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(.white)
                     .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
 
-                Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 100))
+                Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 90))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
-                    .lineLimit(3)
+                    .lineLimit(1)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if !desk.industryTags.isEmpty {
@@ -235,6 +231,17 @@ struct DeskCardView: View {
                 style: .continuous
             )
         )
+    }
+
+    private var heroGradientColors: [Color] {
+        let palettes: [[Color]] = [
+            [AppColor.primary, Color(hex: "5B4B9A"), AppColor.secondary],
+            [Color(hex: "312E81"), Color(hex: "6D28D9"), Color(hex: "7C3AED")],
+            [Color(hex: "134E4A"), Color(hex: "0F766E"), AppColor.teal],
+            [Color(hex: "1E3A5F"), Color(hex: "3730A3"), AppColor.secondary],
+        ]
+        let i = abs(desk.id.hashValue) % palettes.count
+        return palettes[i]
     }
 
     private var recruitmentDots: some View {

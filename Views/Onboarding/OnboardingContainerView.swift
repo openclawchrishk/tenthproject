@@ -6,23 +6,15 @@ struct OnboardingContainerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress indicator
-            HStack(spacing: 8) {
-                ForEach(0..<3) { index in
-                    Capsule()
-                        .fill(index <= currentStepIndex ? AppColor.primary : AppColor.textSecondary.opacity(0.3))
-                        .frame(height: 4)
-                }
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 16)
+            onboardingProgressDots
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
 
             Text("第 \(currentStepIndex + 1) 步，共 3 步")
                 .font(.caption)
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 8)
 
-            // Content
             TabView(selection: $viewModel.currentStep) {
                 RoleSelectionView(viewModel: viewModel)
                     .tag(OnboardingViewModel.OnboardingStep.roleSelection)
@@ -36,9 +28,25 @@ struct OnboardingContainerView: View {
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
-            .animation(.easeInOut, value: viewModel.currentStep)
+            .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
         }
         .background(AppColor.background)
+    }
+
+    private var onboardingProgressDots: some View {
+        HStack(spacing: 10) {
+            ForEach(0..<3, id: \.self) { index in
+                let current = min(currentStepIndex, 2)
+                let isCurrent = index == current
+                Circle()
+                    .fill(isCurrent ? AppColor.primary : Color.clear)
+                    .frame(width: 8, height: 8)
+                    .overlay(
+                        Circle()
+                            .stroke(AppColor.primary.opacity(isCurrent ? 0 : 0.4), lineWidth: 2)
+                    )
+            }
+        }
     }
 
     private var currentStepIndex: Int {
@@ -56,6 +64,7 @@ struct CompletionView: View {
     @State private var iconPulse = false
     @State private var shimmerX: CGFloat = -1
     @State private var didCelebrate = false
+    @State private var checkPop: CGFloat = 0.4
 
     var body: some View {
         VStack(spacing: 32) {
@@ -72,11 +81,12 @@ struct CompletionView: View {
                         .scaleEffect(iconPulse ? 1.06 : 1.0)
                         .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: iconPulse)
 
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 52))
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 64))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.success, AppColor.primary)
                         .shadow(color: Color.black.opacity(0.08), radius: 8, y: 3)
+                        .scaleEffect(checkPop)
                 }
 
                 Text("歡迎加入 Desker HK！")
@@ -126,7 +136,7 @@ struct CompletionView: View {
                     }
                     .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(DeskerButtonPressStyle())
             .padding(.horizontal, 28)
             .padding(.bottom, 40)
         }
@@ -136,6 +146,9 @@ struct CompletionView: View {
             iconPulse = true
             withAnimation(.linear(duration: 2.2).repeatForever(autoreverses: false)) {
                 shimmerX = 1.2
+            }
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
+                checkPop = 1.0
             }
             if !didCelebrate {
                 didCelebrate = true
@@ -195,28 +208,72 @@ struct OnboardingFlowView: View {
 
     var body: some View {
         NavigationStack {
-            switch viewModel.currentStep {
-            case .roleSelection:
-                RoleSelectionView(viewModel: viewModel)
-                    .environmentObject(auth)
-
-            case .basicInfo:
-                BasicInfoView(viewModel: viewModel)
-                    .environmentObject(auth)
-
-            case .skillsAndNeeds:
-                SkillsAndNeedsView(viewModel: viewModel)
-                    .environmentObject(auth)
-
-            case .completed:
-                CompletionView()
-                    .environmentObject(auth)
-                    .onAppear {
-                        Task {
-                            await viewModel.finalizeOnboarding(auth: auth)
+            Group {
+                if viewModel.currentStep == .completed {
+                    CompletionView()
+                        .environmentObject(auth)
+                        .onAppear {
+                            Task {
+                                await viewModel.finalizeOnboarding(auth: auth)
+                            }
                         }
+                } else {
+                    VStack(spacing: 0) {
+                        onboardingProgressDots
+                            .padding(.horizontal, 32)
+                            .padding(.top, 16)
+
+                        Text("第 \(currentStepIndex + 1) 步，共 3 步")
+                            .font(.caption)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .padding(.top, 8)
+
+                        TabView(selection: $viewModel.currentStep) {
+                            RoleSelectionView(viewModel: viewModel)
+                                .environmentObject(auth)
+                                .tag(OnboardingViewModel.OnboardingStep.roleSelection)
+
+                            BasicInfoView(viewModel: viewModel)
+                                .environmentObject(auth)
+                                .tag(OnboardingViewModel.OnboardingStep.basicInfo)
+
+                            SkillsAndNeedsView(viewModel: viewModel)
+                                .environmentObject(auth)
+                                .tag(OnboardingViewModel.OnboardingStep.skillsAndNeeds)
+                        }
+                        #if os(iOS)
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        #endif
+                        .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
                     }
+                    .background(AppColor.background)
+                }
             }
+        }
+    }
+
+    private var onboardingProgressDots: some View {
+        HStack(spacing: 10) {
+            ForEach(0..<3, id: \.self) { index in
+                let current = min(currentStepIndex, 2)
+                let isCurrent = index == current
+                Circle()
+                    .fill(isCurrent ? AppColor.primary : Color.clear)
+                    .frame(width: 8, height: 8)
+                    .overlay(
+                        Circle()
+                            .stroke(AppColor.primary.opacity(isCurrent ? 0 : 0.4), lineWidth: 2)
+                    )
+            }
+        }
+    }
+
+    private var currentStepIndex: Int {
+        switch viewModel.currentStep {
+        case .roleSelection: return 0
+        case .basicInfo: return 1
+        case .skillsAndNeeds: return 2
+        case .completed: return 3
         }
     }
 }

@@ -25,7 +25,7 @@ struct ExploreView: View {
                         if let err = viewModel.errorMessage {
                             VStack(spacing: 16) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 52))
+                                    .font(.system(size: 44))
                                     .foregroundStyle(AppColor.error)
                                 Text(err)
                                     .font(.subheadline)
@@ -165,8 +165,8 @@ struct ExploreView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                    .fill(AppColor.cardBackground)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white)
                     .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             )
             .padding(.horizontal, CardChrome.padding)
@@ -202,16 +202,15 @@ struct ExploreView: View {
     }
 
     private var exploreEmpty: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Image(systemName: "sparkles.rectangle.stack")
-                .font(.system(size: 56))
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(AppColor.secondary, AppColor.gold.opacity(0.9))
+                .font(.system(size: 48))
+                .foregroundStyle(AppColor.textTertiary)
             Text("暫時沒有其他創業者")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text("稍後再回來看看")
+            Text("稍後再回來看看，或調整篩選條件")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -341,6 +340,10 @@ private struct ExploreFounderCard: View {
         return max(0, founder.industryTags.count - 3)
     }
 
+    private var showOnlineDot: Bool {
+        !founder.skills.isEmpty || !founder.industryTags.isEmpty
+    }
+
     private var displayName: String {
         let n = founder.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let base = n.isEmpty ? "創辦人" : n
@@ -372,15 +375,12 @@ private struct ExploreFounderCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Text(displayName)
-                            .font(.headline)
+                            .font(.headline.weight(.bold))
                             .foregroundStyle(AppColor.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                        if founder.verificationBadgeStyle != nil {
-                            Image(systemName: "star.fill")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(AppColor.gold)
-                                .shadow(color: Color.black.opacity(0.08), radius: 2, y: 0)
+                        if let v = founder.verificationBadgeStyle {
+                            VerificationBadgeView(style: v)
                         }
                     }
                     roleBadge
@@ -392,16 +392,17 @@ private struct ExploreFounderCard: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(skillChips, id: \.self) { skill in
+                            let c = skillChipColor(skill)
                             Text(skill)
                                 .font(.caption)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(AppColor.primary.opacity(0.1))
-                                .foregroundStyle(AppColor.primary)
+                                .background(c.opacity(0.14))
+                                .foregroundStyle(c)
                                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                         }
                         if skillChipExtraCount > 0 {
-                            Text("+\(skillChipExtraCount) 更多")
+                            Text("+\(skillChipExtraCount)")
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -433,9 +434,9 @@ private struct ExploreFounderCard: View {
                     )
                 )
                 .foregroundStyle(.white)
-                .cornerRadius(12)
+                .clipShape(Capsule())
             }
-            .buttonStyle(DeskerCardPressStyle())
+            .buttonStyle(DeskerButtonPressStyle())
             .deskerButtonShadow()
             .disabled(inviteInFlight || !ctaEnabled || inviteCTAState == .loading || inviteCTAState == .selfProfile)
             .opacity(inviteCTAState == .selfProfile ? 0.55 : 1)
@@ -459,13 +460,13 @@ private struct ExploreFounderCard: View {
             Text(bio.deskerTruncated(maxLength: 100))
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(3)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
         } else if !detailed.isEmpty {
             Text(detailed.deskerTruncated(maxLength: 100))
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(3)
+                .lineLimit(2)
         } else {
             Text("未填寫")
                 .font(.subheadline)
@@ -483,28 +484,37 @@ private struct ExploreFounderCard: View {
     }
 
     private var founderAvatar: some View {
-        Group {
-            if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
-               let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let img):
-                        img
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
-                        initialsAvatar
-                    case .empty:
-                        ProgressView()
-                            .tint(AppColor.primary)
-                    @unknown default:
-                        initialsAvatar
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+                   let url = URL(string: s) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            initialsAvatar
+                        case .empty:
+                            ProgressView()
+                                .tint(AppColor.primary)
+                        @unknown default:
+                            initialsAvatar
+                        }
                     }
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                } else {
+                    initialsAvatar
                 }
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-            } else {
-                initialsAvatar
+            }
+            if showOnlineDot {
+                Circle()
+                    .fill(AppColor.success)
+                    .frame(width: 12, height: 12)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    .offset(x: 4, y: -2)
             }
         }
     }
@@ -514,9 +524,9 @@ private struct ExploreFounderCard: View {
         return ZStack {
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                 .fill(AppColor.primary)
-                .frame(width: 72, height: 72)
+                .frame(width: 60, height: 60)
             Text(initials)
-                .font(.title2.weight(.bold))
+                .font(.title3.weight(.bold))
                 .foregroundStyle(.white)
         }
     }
@@ -538,5 +548,11 @@ private struct ExploreFounderCard: View {
             .background(RoleBadgePalette.color(for: founder.role).opacity(0.18))
             .foregroundStyle(RoleBadgePalette.color(for: founder.role))
             .clipShape(Capsule())
+    }
+
+    private func skillChipColor(_ skill: String) -> Color {
+        let palette: [Color] = [AppColor.primary, AppColor.secondary, AppColor.teal, AppColor.gold]
+        let i = abs(skill.hashValue) % palette.count
+        return palette[i]
     }
 }

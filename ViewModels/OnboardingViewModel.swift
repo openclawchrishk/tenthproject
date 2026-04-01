@@ -12,6 +12,9 @@ class OnboardingViewModel: ObservableObject {
     @Published var skills: Set<String> = []
     @Published var needs: Set<String> = []
 
+    /// Local avatar image data during onboarding (optional preview).
+    @Published var avatarImageData: Data?
+
     @Published var currentStep: OnboardingStep = .roleSelection
 
     static let languageOptions = ["廣東話", "普通話", "英文", "日本語", "其他"]
@@ -26,7 +29,7 @@ class OnboardingViewModel: ObservableObject {
         "技術合夥人", "資金", "導師", "市場渠道", "招聘", "辦公空間",
     ]
 
-    enum OnboardingStep {
+    enum OnboardingStep: Hashable {
         case roleSelection
         case basicInfo
         case skillsAndNeeds

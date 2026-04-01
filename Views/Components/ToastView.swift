@@ -110,7 +110,7 @@ struct ToastOverlayModifier: ViewModifier {
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .top).combined(with: .opacity),
-                                removal: .move(edge: .top).combined(with: .opacity)
+                                removal: .opacity.combined(with: .move(edge: .top))
                             )
                         )
                         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: center.current?.id)

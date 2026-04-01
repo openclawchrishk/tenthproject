@@ -11,6 +11,7 @@ private let deskDetailLog = Logger(subsystem: "hk.desker", category: "DeskDetail
 struct DeskDetailView: View {
     let deskId: UUID
 
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
     @State private var desk: Desk?
@@ -33,6 +34,7 @@ struct DeskDetailView: View {
     @State private var deskExportBanner: String?
     @State private var showDeskExportShare = false
     @State private var deskExportShareItems: [Any] = []
+    @State private var aboutExpanded = false
 
     private let deskRepository = DeskRepository()
     private let inviteRepository = InviteRepository()
@@ -44,15 +46,17 @@ struct DeskDetailView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             Group {
                 if let loadError, !isLoading {
                     VStack(spacing: 16) {
-                        ContentUnavailableView(
-                            "無法載入",
-                            systemImage: "exclamationmark.triangle",
-                            description: Text(loadError).foregroundStyle(AppColor.error)
-                        )
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(AppColor.error)
+                        Text(loadError)
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.error)
+                            .multilineTextAlignment(.center)
                         Button("重試") {
                             Task { await load() }
                         }
@@ -84,9 +88,12 @@ struct DeskDetailView: View {
                 )
                 .allowsHitTesting(false)
             }
+
+            floatingBackButton
         }
         .navigationTitle("專案詳情")
         .deskerInlineNavigationTitle()
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
@@ -143,11 +150,29 @@ struct DeskDetailView: View {
         }
     }
 
+    private var floatingBackButton: some View {
+        Button {
+            HapticFeedback.light()
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppColor.primary)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color.white))
+                .shadow(color: CardChrome.shadowColor, radius: 10, x: 0, y: 4)
+        }
+        .buttonStyle(DeskerButtonPressStyle())
+        .padding(.leading, 12)
+        .padding(.top, 4)
+    }
+
     @ViewBuilder
     private func detailScroll(_ desk: Desk) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
                 detailHero(desk)
+                    .padding(.horizontal, -CardChrome.padding)
                 if let deskExportBanner {
                     Text(deskExportBanner)
                         .font(.caption)
@@ -189,7 +214,7 @@ struct DeskDetailView: View {
                 }
                 recruitingRolesCards(desk)
                 section(title: "產業標籤", icon: "tag.fill", color: AppColor.primary) {
-                    FlowTags(tags: desk.industryTags)
+                    ColoredDeskTags(tags: desk.industryTags)
                 }
                 metaRow(desk)
                 if canAccessGroupChat {
@@ -223,17 +248,9 @@ struct DeskDetailView: View {
 
     private func detailHero(_ desk: Desk) -> some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [
-                    AppColor.primary,
-                    Color(hex: "4A3F8C"),
-                    AppColor.secondary,
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 200)
+            DeskDetailHeroGradient(deskId: desk.id)
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -260,14 +277,27 @@ struct DeskDetailView: View {
     }
 
     private func aboutProjectSection(_ desk: Desk) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let pitch = desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines)
+        let long = pitch.count > 160
+        return VStack(alignment: .leading, spacing: 12) {
             Label("關於此專案", systemImage: "text.alignleft")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(AppColor.textPrimary)
-            Text(desk.pitch)
+            Text(pitch)
                 .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineSpacing(4)
+                .lineLimit(aboutExpanded ? nil : 5)
+            if long {
+                Button(aboutExpanded ? "收合" : "顯示更多") {
+                    withAnimation(.easeInOut(duration: 0.28)) {
+                        aboutExpanded.toggle()
+                    }
+                    HapticFeedback.selection()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.primary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(CardChrome.padding)
@@ -387,7 +417,7 @@ struct DeskDetailView: View {
                             .background(AppColor.brandGradient)
                             .clipShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(DeskerButtonPressStyle())
                     .deskerButtonShadow()
                     .padding(.horizontal, CardChrome.padding)
                     .padding(.vertical, 12)
@@ -585,7 +615,7 @@ struct DeskDetailView: View {
         return Group {
             if !tags.isEmpty {
                 section(title: "所需技能", icon: "sparkles", color: AppColor.accentOrange) {
-                    FlowTags(tags: tags)
+                    ColoredDeskTags(tags: tags)
                 }
             }
         }
@@ -879,7 +909,30 @@ struct DeskDetailView: View {
     }()
 }
 
-private struct FlowTags: View {
+private struct DeskDetailHeroGradient: View {
+    let deskId: UUID
+
+    var body: some View {
+        LinearGradient(
+            colors: gradientColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var gradientColors: [Color] {
+        let palettes: [[Color]] = [
+            [AppColor.primary, Color(hex: "4A3F8C"), AppColor.secondary],
+            [Color(hex: "312E81"), Color(hex: "6D28D9"), Color(hex: "7C3AED")],
+            [Color(hex: "134E4A"), Color(hex: "0F766E"), AppColor.teal],
+            [Color(hex: "1E3A5F"), Color(hex: "3730A3"), AppColor.secondary],
+        ]
+        let i = abs(deskId.hashValue) % palettes.count
+        return palettes[i]
+    }
+}
+
+private struct ColoredDeskTags: View {
     let tags: [String]
 
     var body: some View {
@@ -889,10 +942,20 @@ private struct FlowTags: View {
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(AppColor.primary.opacity(0.1))
-                    .foregroundStyle(AppColor.primary)
+                    .background(tagTint(tag).opacity(0.14))
+                    .foregroundStyle(tagTint(tag))
                     .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
+                            .stroke(tagTint(tag).opacity(0.35), lineWidth: 1)
+                    )
             }
         }
+    }
+
+    private func tagTint(_ tag: String) -> Color {
+        let palette: [Color] = [AppColor.primary, AppColor.secondary, AppColor.teal, AppColor.gold]
+        let i = abs(tag.hashValue) % palette.count
+        return palette[i]
     }
 }

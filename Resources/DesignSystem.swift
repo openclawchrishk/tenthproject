@@ -76,12 +76,12 @@ enum AppColor {
         endPoint: .bottomTrailing
     )
 
-    /// Full-screen welcome / auth backgrounds (deep indigo).
+    /// Full-screen welcome / auth — indigo → purple.
     static let welcomeGradient = LinearGradient(
         colors: [
-            Color(hex: "1C1C2E"),
-            Color(hex: "2D346D"),
-            Color(hex: "5856D6"),
+            Color(hex: "3730A3"),
+            Color(hex: "4C1D95"),
+            Color(hex: "7C3AED"),
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -216,9 +216,18 @@ enum RoleBadgePalette {
 struct DeskerChipPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
             .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
+/// Primary buttons — press scale 0.97.
+struct DeskerButtonPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
     }
 }
 
@@ -235,6 +244,56 @@ extension View {
     /// Springy slide-up feel for sheet content (call on root inside `sheet`).
     func deskerSheetSpringContent() -> some View {
         modifier(DeskerSheetSpringModifier())
+    }
+
+    /// Loading / skeleton pulse.
+    func deskerPulse(active: Bool) -> some View {
+        modifier(DeskerPulseModifier(active: active))
+    }
+
+    /// Horizontal shake for validation errors (~3 oscillations).
+    func deskerShake(trigger: Int) -> some View {
+        modifier(DeskerShakeModifier(trigger: trigger))
+    }
+}
+
+private struct DeskerPulseModifier: ViewModifier {
+    let active: Bool
+    @State private var phase = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(phase && active ? 0.55 : 1)
+            .onAppear {
+                guard active else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    phase = true
+                }
+            }
+            .onChange(of: active) { _, new in
+                if !new { phase = false }
+            }
+    }
+}
+
+private struct DeskerShakeModifier: ViewModifier {
+    var trigger: Int
+    @State private var offset: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: offset)
+            .onChange(of: trigger) { _, _ in
+                let steps: [CGFloat] = [8, -8, 6, -6, 4, -4, 0]
+                offset = 0
+                for (i, x) in steps.enumerated() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.045) {
+                        withAnimation(.linear(duration: 0.04)) {
+                            offset = x
+                        }
+                    }
+                }
+            }
     }
 }
 

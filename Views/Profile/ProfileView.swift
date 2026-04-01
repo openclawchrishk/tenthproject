@@ -26,9 +26,13 @@ struct ProfileView: View {
     @State private var igExportShareItems: [Any] = []
     @State private var showPremium = false
     @State private var referralCount = 0
+    @State private var deskProjectCount = 0
+    @State private var connectionCount = 0
 
     private let userRepo = UserRepository()
     private let referralRepo = ReferralRepository()
+    private let deskRepo = DeskRepository()
+    private let connectionRepo = ConnectionRepository()
 
     var body: some View {
         NavigationStack {
@@ -57,10 +61,12 @@ struct ProfileView: View {
                             }
                             .listRowBackground(AppColor.cardBackground)
                         }
-                        saveSection
                     }
                     .tint(AppColor.primary)
                     .scrollContentBackground(.hidden)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        profileSaveBar
+                    }
                     .overlay {
                         if isSaving {
                             ZStack {
@@ -94,6 +100,7 @@ struct ProfileView: View {
             await auth.refreshProfile()
             syncFromProfile()
             await loadReferrals()
+            await loadProfileStats()
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
             syncFromProfile()
@@ -135,6 +142,96 @@ struct ProfileView: View {
     private func profileHero(_ user: UserProfile) -> some View {
         VStack(spacing: 16) {
             ZStack {
+                LinearGradient(
+                    colors: [AppColor.primary.opacity(0.22), AppColor.secondary.opacity(0.12), AppColor.background],
+                    startPoint: .topLeading,
+                    endPoint: .bottom
+                )
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
+                .allowsHitTesting(false)
+            }
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .bottom) {
+                avatarStack(user)
+                    .offset(y: 44)
+            }
+            .padding(.bottom, 44)
+
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(user.displayName.isEmpty ? "—" : user.displayName)
+                        .font(.title.bold())
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if user.verificationBadgeStyle != nil {
+                        Image(systemName: "star.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppColor.gold)
+                    }
+                    if let v = user.verificationBadgeStyle {
+                        VerificationBadgeView(style: v)
+                    }
+                }
+                levelBadgeRow(user)
+                Text(user.role.localizedName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(RoleBadgePalette.color(for: user.role))
+            }
+            .padding(.top, 8)
+
+            HStack(spacing: 0) {
+                statCell(title: "專案", value: "\(deskProjectCount)")
+                Divider().frame(height: 36)
+                statCell(title: "連接", value: "\(connectionCount)")
+                Divider().frame(height: 36)
+                statCell(title: "完整度", value: "\(Int(round(user.profileCompleteness * 100)))%")
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.cardBackground)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+            )
+        }
+    }
+
+    private func levelBadgeRow(_ user: UserProfile) -> some View {
+        Group {
+            if user.level >= .level3 {
+                Text(user.level.localizedTitle)
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColor.gold.opacity(0.95), AppColor.gold.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .foregroundStyle(AppColor.textPrimary)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                    )
+            } else {
+                Text(user.level.localizedTitle)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppColor.secondaryGroupedSurface)
+                    .foregroundStyle(AppColor.textPrimary)
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    private func avatarStack(_ user: UserProfile) -> some View {
+        ZStack {
                 if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                    let url = URL(string: s) {
                     AsyncImage(url: url) { phase in
@@ -165,43 +262,6 @@ struct ProfileView: View {
                                 .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
                         )
                 }
-            }
-
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Text(user.displayName.isEmpty ? "—" : user.displayName)
-                        .font(.title.bold())
-                        .foregroundStyle(AppColor.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if user.verificationBadgeStyle != nil {
-                        Image(systemName: "star.fill")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(AppColor.gold)
-                    }
-                    if let v = user.verificationBadgeStyle {
-                        VerificationBadgeView(style: v)
-                    }
-                }
-                Text(user.role.localizedName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(RoleBadgePalette.color(for: user.role))
-            }
-
-            HStack(spacing: 0) {
-                statCell(title: "Level", value: "\(user.level.rawValue)")
-                Divider().frame(height: 36)
-                statCell(title: "推薦", value: "\(referralCount)")
-                Divider().frame(height: 36)
-                statCell(title: "完整度", value: "\(Int(round(user.profileCompleteness * 100)))%")
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 8)
-            .background(
-                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                    .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
-            )
         }
     }
 
@@ -434,37 +494,51 @@ struct ProfileView: View {
                 accent: AppColor.gold
             )
         } header: {
-            Text("產業、技能與需求")
-                .foregroundStyle(AppColor.textSecondary)
+            HStack {
+                Text("產業、技能與需求")
+                Image(systemName: "pencil.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+            .foregroundStyle(AppColor.textSecondary)
         }
         .listRowBackground(AppColor.cardBackground)
     }
 
-    private var saveSection: some View {
-        Section {
-            Button {
-                HapticFeedback.medium()
-                Task { await save() }
-            } label: {
-                if isSaving {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .tint(.white)
-                        Spacer()
+    private var profileSaveBar: some View {
+        Group {
+            if auth.currentUser != nil {
+                Button {
+                    HapticFeedback.medium()
+                    Task { await save() }
+                } label: {
+                    if isSaving {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .tint(.white)
+                            Spacer()
+                        }
+                        .frame(height: 50)
+                    } else {
+                        Text("儲存變更")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
                     }
-                } else {
-                    Text("儲存變更")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
                 }
+                .disabled(isSaving)
+                .foregroundStyle(.white)
+                .background(
+                    LinearGradient(colors: [AppColor.primary, AppColor.secondary], startPoint: .leading, endPoint: .trailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                .deskerButtonShadow()
+                .buttonStyle(DeskerButtonPressStyle())
+                .padding(.horizontal, CardChrome.padding)
+                .padding(.vertical, 10)
+                .background(AppColor.background.opacity(0.98))
             }
-            .disabled(isSaving)
-            .listRowBackground(
-                LinearGradient(colors: [AppColor.primary, AppColor.secondary], startPoint: .leading, endPoint: .trailing)
-            )
-            .foregroundStyle(.white)
         }
     }
 
@@ -475,6 +549,26 @@ struct ProfileView: View {
     private func loadReferrals() async {
         guard let uid = auth.currentUser?.id else { return }
         referralCount = (try? await referralRepo.fetchReferralCount(for: uid)) ?? 0
+    }
+
+    private func loadProfileStats() async {
+        guard let uid = auth.currentUser?.id else {
+            deskProjectCount = 0
+            connectionCount = 0
+            return
+        }
+        do {
+            let desks = try await deskRepo.fetchDesksForFounder(founderId: uid)
+            deskProjectCount = desks.count
+        } catch {
+            deskProjectCount = 0
+        }
+        do {
+            let conns = try await connectionRepo.fetchConnections(userId: uid)
+            connectionCount = conns.count
+        } catch {
+            connectionCount = 0
+        }
     }
 
     private func exportProfileCard(_ user: UserProfile) async {
