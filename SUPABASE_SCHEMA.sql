@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS public.desk_applications (
     desk_id UUID NOT NULL REFERENCES public.desks(id) ON DELETE CASCADE,
     applicant_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     role_id UUID REFERENCES public.desk_roles(id) ON DELETE SET NULL,
+    selected_role TEXT,
     statement TEXT,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'accepted', 'declined', 'rejected')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -349,6 +350,12 @@ CREATE POLICY "Users can update invites they sent or received" ON public.connect
 CREATE POLICY "Users can view their conversations" ON public.conversations FOR SELECT USING (
     auth.uid() = participant_a_id OR auth.uid() = participant_b_id
 );
+CREATE POLICY "Users can create their conversations" ON public.conversations FOR INSERT WITH CHECK (
+    auth.uid() = participant_a_id OR auth.uid() = participant_b_id
+);
+CREATE POLICY "Users can update their conversations" ON public.conversations FOR UPDATE USING (
+    auth.uid() = participant_a_id OR auth.uid() = participant_b_id
+);
 
 -- DIRECT MESSAGES policies
 CREATE POLICY "Users can view messages in their conversations" ON public.direct_messages FOR SELECT USING (
@@ -501,3 +508,38 @@ $$;
 REVOKE ALL ON FUNCTION public.check_email_registered(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.check_email_registered(text) TO anon;
 GRANT EXECUTE ON FUNCTION public.check_email_registered(text) TO authenticated;
+
+-- ============================================================
+-- BATCH E — production polish (run on existing projects)
+-- CHECK constraints, idempotent indexes, column backfill
+-- ============================================================
+BEGIN;
+
+ALTER TABLE public.desk_applications ADD COLUMN IF NOT EXISTS selected_role TEXT;
+
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS check_display_name_length;
+ALTER TABLE public.users ADD CONSTRAINT check_display_name_length CHECK (
+    display_name IS NULL OR (char_length(display_name) >= 1 AND char_length(display_name) <= 50)
+);
+
+ALTER TABLE public.desks DROP CONSTRAINT IF EXISTS check_desk_name_length;
+ALTER TABLE public.desks ADD CONSTRAINT check_desk_name_length CHECK (
+    char_length(name) >= 1 AND char_length(name) <= 60
+);
+
+CREATE INDEX IF NOT EXISTS idx_desk_members_desk_id ON public.desk_members(desk_id);
+CREATE INDEX IF NOT EXISTS idx_desk_applications_desk_id ON public.desk_applications(desk_id);
+CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation_id ON public.direct_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+
+-- Idempotent RLS fixes for DBs created before conversation INSERT/UPDATE policies existed
+DROP POLICY IF EXISTS "Users can create their conversations" ON public.conversations;
+CREATE POLICY "Users can create their conversations" ON public.conversations FOR INSERT WITH CHECK (
+    auth.uid() = participant_a_id OR auth.uid() = participant_b_id
+);
+DROP POLICY IF EXISTS "Users can update their conversations" ON public.conversations;
+CREATE POLICY "Users can update their conversations" ON public.conversations FOR UPDATE USING (
+    auth.uid() = participant_a_id OR auth.uid() = participant_b_id
+);
+
+COMMIT;

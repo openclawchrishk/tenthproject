@@ -177,6 +177,7 @@ final class DMRepository {
             do {
                 try await channel.subscribeWithError()
             } catch {
+                repositoryLogger.error("DM realtime subscribe failed conv=\(conversationId.uuidString): \(error.localizedDescription, privacy: .public)")
                 return
             }
             for await _ in stream {

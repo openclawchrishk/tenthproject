@@ -106,6 +106,7 @@ final class NotificationRepository {
             do {
                 try await channel.subscribeWithError()
             } catch {
+                repositoryLogger.error("Notification realtime subscribe failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
             for await _ in inserts {

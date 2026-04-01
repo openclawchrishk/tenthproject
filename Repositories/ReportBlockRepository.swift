@@ -1,5 +1,4 @@
 import Foundation
-import os
 import Supabase
 
 @MainActor
@@ -21,7 +20,11 @@ final class ReportBlockRepository {
             target_id: draft.targetId,
             reason: draft.reason
         )
-        try await client.from("reports").insert(row).execute()
+        do {
+            try await client.from("reports").insert(row).execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "ReportBlockRepository.submitReport")
+        }
     }
 
     func blockUser(blockerId: UUID, blockedId: UUID) async throws {
@@ -31,30 +34,42 @@ final class ReportBlockRepository {
             let blocked_id: UUID
         }
         let row = Insert(id: UUID(), blocker_id: blockerId, blocked_id: blockedId)
-        try await client.from("blocked_users").insert(row).execute()
+        do {
+            try await client.from("blocked_users").insert(row).execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "ReportBlockRepository.blockUser")
+        }
     }
 
     func unblockUser(blockerId: UUID, blockedId: UUID) async throws {
-        try await client
-            .from("blocked_users")
-            .delete()
-            .eq("blocker_id", value: blockerId)
-            .eq("blocked_id", value: blockedId)
-            .execute()
+        do {
+            try await client
+                .from("blocked_users")
+                .delete()
+                .eq("blocker_id", value: blockerId)
+                .eq("blocked_id", value: blockedId)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "ReportBlockRepository.unblockUser")
+        }
     }
 
     func isBlocked(blockerId: UUID, candidateId: UUID) async throws -> Bool {
         struct Row: Decodable {
             let id: UUID
         }
-        let rows: [Row] = try await client
-            .from("blocked_users")
-            .select("id")
-            .eq("blocker_id", value: blockerId)
-            .eq("blocked_id", value: candidateId)
-            .limit(1)
-            .execute()
-            .value
-        return !rows.isEmpty
+        do {
+            let rows: [Row] = try await client
+                .from("blocked_users")
+                .select("id")
+                .eq("blocker_id", value: blockerId)
+                .eq("blocked_id", value: candidateId)
+                .limit(1)
+                .execute()
+                .value
+            return !rows.isEmpty
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "ReportBlockRepository.isBlocked")
+        }
     }
 }
