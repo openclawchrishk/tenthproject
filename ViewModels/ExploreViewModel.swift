@@ -15,9 +15,17 @@ enum ExploreInviteCTAState: Equatable {
 
 private let exploreVMLog = Logger(subsystem: "hk.desker", category: "Explore")
 
+/// Main Explore screen: browse **用戶** vs **Desk** lists (search applies to both).
+enum ExploreBrowseTab: String, CaseIterable {
+    case users = "用戶"
+    case desks = "Desk"
+}
+
 @MainActor
 final class ExploreViewModel: ObservableObject {
+    @Published var browseTab: ExploreBrowseTab = .desks
     @Published private(set) var desks: [Desk] = []
+    @Published private(set) var browseUsers: [UserProfile] = []
     @Published private(set) var currentDesk: Desk?
     /// Resolved founder for `currentDesk` (Explore card).
     @Published private(set) var currentFounder: UserProfile?
@@ -69,6 +77,38 @@ final class ExploreViewModel: ObservableObject {
             }
         }
         return list
+    }
+
+    /// Users directory (excludes `exceptUserId` when set).
+    func filteredBrowseUsers(exceptUserId: UUID?) -> [UserProfile] {
+        var list = browseUsers
+        if let exceptUserId {
+            list = list.filter { $0.id != exceptUserId }
+        }
+        let chip = selectedFilterChip.trimmingCharacters(in: .whitespacesAndNewlines)
+        if chip != "招募中", !chip.isEmpty, chip != "全部" {
+            list = list.filter { $0.industryTags.contains(chip) }
+        }
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !q.isEmpty {
+            list = list.filter { u in
+                u.displayName.localizedCaseInsensitiveContains(q)
+                    || (u.bio?.localizedCaseInsensitiveContains(q) ?? false)
+                    || (u.detailedBio?.localizedCaseInsensitiveContains(q) ?? false)
+                    || u.skills.contains { $0.localizedCaseInsensitiveContains(q) }
+                    || u.industryTags.contains { $0.localizedCaseInsensitiveContains(q) }
+                    || (u.username?.localizedCaseInsensitiveContains(q) ?? false)
+            }
+        }
+        return list
+    }
+
+    func loadBrowseUsers() async {
+        do {
+            browseUsers = try await users.fetchUsers(limit: 200)
+        } catch {
+            browseUsers = []
+        }
     }
 
     func load() async {

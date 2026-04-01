@@ -5,16 +5,11 @@ struct ExploreView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
     @EnvironmentObject private var tabRouter: MainTabRouter
-    @Namespace private var exploreCardNamespace
-    @State private var inviteInFlight = false
-    @State private var showConnectionMessageSheet = false
-    @State private var connectionMessageDraft = ""
+    @State private var inviteInFlightUserId: UUID?
     @State private var isPullRefreshing = false
     @State private var profileSheetUser: UserProfile?
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
-    @State private var cardDragTranslation: CGFloat = 0
-    @State private var showExploreSwipeTipBanner = false
     @State private var searchDebounceTask: Task<Void, Never>?
 
     private let connectionsRepo = ConnectionRepository()
@@ -30,78 +25,15 @@ struct ExploreView: View {
 
                 searchAndFilters
 
+                browseTabPicker
+
                 ZStack(alignment: .top) {
                     ScrollView {
                         VStack(spacing: CardChrome.sectionSpacing) {
-                            if let err = viewModel.errorMessage,
-                               viewModel.currentDesk == nil || viewModel.currentFounder == nil {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .font(.system(size: 44))
-                                        .foregroundStyle(AppColor.error)
-                                    Text(err)
-                                        .font(.subheadline)
-                                        .foregroundStyle(AppColor.error)
-                                        .multilineTextAlignment(.center)
-                                    Button("重試") {
-                                        HapticFeedback.medium()
-                                        Task { await reloadExploreAndInviteState() }
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(AppColor.primary)
-                                }
-                                .padding(CardChrome.padding)
-                            } else if viewModel.isLoading, viewModel.currentDesk == nil {
-                                VStack(spacing: 20) {
-                                    ExploreCardSkeleton()
-                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                                        .fill(AppColor.cardBackground)
-                                        .frame(height: 140)
-                                        .deskerSkeletonShimmer(active: true)
-                                        .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
-                                }
-                                .padding(.horizontal, CardChrome.padding)
-                            } else if let desk = viewModel.currentDesk, let founder = viewModel.currentFounder {
-                                VStack(spacing: 20) {
-                                    founderCardWithGestures(desk: desk, founder: founder)
-
-                                    DeskCardView(desk: desk, founder: founder) {
-                                        HapticFeedback.medium()
-                                        Task {
-                                            await viewModel.viewAgain()
-                                            await viewModel.refreshInviteCTAState(
-                                                currentUserId: auth.currentUser?.id,
-                                                connectionsRepo: connectionsRepo
-                                            )
-                                        }
-                                    }
-                                    .matchedGeometryEffect(id: "desk-\(desk.id)", in: exploreCardNamespace)
-                                    .id("\(viewModel.refreshGeneration.uuidString)-\(desk.id.uuidString)")
-
-                                    NavigationLink {
-                                        DeskDetailView(deskId: desk.id)
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Image(systemName: "doc.text.magnifyingglass")
-                                                .symbolRenderingMode(.palette)
-                                                .foregroundStyle(AppColor.primary, AppColor.secondary)
-                                            Text("查看完整專案詳情")
-                                                .font(.headline)
-                                                .foregroundStyle(AppColor.primary)
-                                                .lineLimit(1)
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .foregroundStyle(AppColor.textSecondary)
-                                        }
-                                        .padding(CardChrome.padding)
-                                        .deskerElevatedCard()
-                                    }
-                                    .buttonStyle(DeskerCardPressStyle())
-                                }
-                                .padding(.horizontal, CardChrome.padding)
+                            if viewModel.browseTab == .desks {
+                                deskBrowseSection
                             } else {
-                                exploreEmpty
-                                    .padding(.horizontal, CardChrome.padding)
+                                usersBrowseSection
                             }
                         }
                         .padding(.bottom, CardChrome.sectionSpacing)
@@ -138,14 +70,6 @@ struct ExploreView: View {
                     }
                 }
             }
-            .overlay(alignment: .top) {
-                if showExploreSwipeTipBanner {
-                    exploreSwipeTipBanner
-                        .padding(.horizontal, CardChrome.padding)
-                        .padding(.top, 6)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
             .task {
                 await reloadExploreAndInviteState()
             }
@@ -163,21 +87,13 @@ struct ExploreView: View {
                 viewModel.applyFiltersReselectingIfNeeded()
             }
             .onChange(of: viewModel.errorMessage) { _, new in
-                if let new, !viewModel.desks.isEmpty, viewModel.currentDesk != nil, viewModel.currentFounder != nil {
+                if let new, !viewModel.desks.isEmpty, !viewModel.filteredDesks.isEmpty {
                     toast.show(.info, "無法更新列表：\(new)")
                 }
             }
             .onDisappear {
                 searchDebounceTask?.cancel()
                 searchDebounceTask = nil
-            }
-            .onChange(of: viewModel.currentFounder?.id) { _, _ in
-                Task {
-                    await viewModel.refreshInviteCTAState(
-                        currentUserId: auth.currentUser?.id,
-                        connectionsRepo: connectionsRepo
-                    )
-                }
             }
             .onChange(of: auth.currentUser?.id) { _, _ in
                 Task {
@@ -186,6 +102,11 @@ struct ExploreView: View {
                         currentUserId: auth.currentUser?.id,
                         connectionsRepo: connectionsRepo
                     )
+                }
+            }
+            .onChange(of: viewModel.browseTab) { _, tab in
+                if tab == .users, viewModel.browseUsers.isEmpty {
+                    Task { await viewModel.loadBrowseUsers() }
                 }
             }
             .onChange(of: tabRouter.pendingExploreProfileUserId) { _, uid in
@@ -207,142 +128,152 @@ struct ExploreView: View {
                 }
             }
             .deskerHiddenNavigationBar()
-            .sheet(isPresented: $showConnectionMessageSheet, onDismiss: {}) {
-                connectionInviteMessageSheet
-                    .deskerSheetSpringContent()
-            }
             #if os(iOS)
             .sheet(isPresented: $showShareSheet, onDismiss: {}) {
                 ShareSheetView(items: shareItems)
             }
             #endif
-            .sheet(item: $profileSheetUser, onDismiss: {}) { founder in
+            .sheet(item: $profileSheetUser, onDismiss: {}) { user in
                 ExplorePublicProfileSheet(
-                    founder: founder,
-                    desk: founder.id == viewModel.currentFounder?.id ? viewModel.currentDesk : nil
+                    founder: user,
+                    desk: nil
                 )
             }
-            .onAppear {
-                showExploreSwipeTipBanner = DeskerUXPreferences.showExploreSwipeTip && !DeskerUXPreferences.tipExploreDismissed
-            }
         }
     }
 
-    private func founderCardWithGestures(desk: Desk, founder: UserProfile) -> some View {
-        ZStack {
-            HStack(spacing: 0) {
-                swipeHintChip(title: "快速連接", icon: "bolt.horizontal.fill", color: AppColor.primary)
-                Spacer()
-                swipeHintChip(title: "收藏", icon: "star.fill", color: AppColor.gold)
-            }
-            .padding(.horizontal, 8)
-            .opacity(min(1, abs(cardDragTranslation) / 72))
-
-            ExploreFounderCard(
-                founder: founder,
-                inviteCTAState: viewModel.inviteCTAState,
-                inviteInFlight: inviteInFlight,
-                onConnect: { showConnectionMessageSheet = true }
-            )
-            .matchedGeometryEffect(id: "founder-\(founder.id)", in: exploreCardNamespace)
-            .offset(x: cardDragTranslation)
-            .animation(.spring(response: 0.38, dampingFraction: 0.84), value: cardDragTranslation)
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 28, coordinateSpace: .local)
-                    .onChanged { value in
-                        let w = value.translation.width
-                        let h = value.translation.height
-                        guard abs(w) > abs(h) else { return }
-                        cardDragTranslation = max(-130, min(130, w))
-                    }
-                    .onEnded { value in
-                        let w = value.translation.width
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                            if w < -88 {
-                                Task { await quickConnectInvite() }
-                            } else if w > 88 {
-                                DeskerUXPreferences.toggleFavoriteFounder(founder.id)
-                                HapticFeedback.success()
-                                let on = DeskerUXPreferences.isFavoriteFounder(founder.id)
-                                toast.show(.success, on ? "已加入收藏（稍後可用）" : "已取消收藏")
-                            }
-                            cardDragTranslation = 0
-                        }
-                    }
-            )
-            .onTapGesture(count: 2) {
-                profileSheetUser = founder
-                HapticFeedback.light()
-            }
-            .onLongPressGesture(minimumDuration: 0.5) {
-                #if os(iOS)
-                shareItems = [PublicLinks.profilePublicURL(for: founder)]
-                showShareSheet = true
-                DeskerAnalytics.track(.userShareProfile, parameters: ["context": "explore_long_press"])
-                HapticFeedback.medium()
-                #endif
+    private var browseTabPicker: some View {
+        Picker("瀏覽", selection: $viewModel.browseTab) {
+            ForEach(ExploreBrowseTab.allCases, id: \.self) { tab in
+                Text(tab.rawValue).tag(tab)
             }
         }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, CardChrome.padding)
+        .padding(.bottom, 4)
     }
 
-    private func swipeHintChip(title: String, icon: String, color: Color) -> some View {
-        Label(title, systemImage: icon)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Capsule().fill(color.opacity(0.92)))
-    }
-
-    private func quickConnectInvite() async {
-        await sendConnectionInviteWithOptionalMessage(nil)
-    }
-
-    private var exploreSwipeTipBanner: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "hand.draw.fill")
-                .font(.title2)
-                .foregroundStyle(AppColor.primary)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("探索小貼士")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(AppColor.textPrimary)
-                Text("向左滑發送快速連接，向右滑加入收藏")
+    @ViewBuilder
+    private var deskBrowseSection: some View {
+        if let err = viewModel.errorMessage, viewModel.desks.isEmpty {
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(AppColor.error)
+                Text(err)
                     .font(.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineSpacing(3)
-            }
-            Spacer(minLength: 0)
-            Button {
-                withAnimation(.easeInOut(duration: 0.22)) {
-                    DeskerUXPreferences.showExploreSwipeTip = false
-                    DeskerUXPreferences.tipExploreDismissed = true
-                    showExploreSwipeTipBanner = false
+                    .foregroundStyle(AppColor.error)
+                    .multilineTextAlignment(.center)
+                Button("重試") {
+                    HapticFeedback.medium()
+                    Task { await reloadExploreAndInviteState() }
                 }
-                HapticFeedback.selection()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(AppColor.textTertiary, AppColor.secondaryGroupedSurface)
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.primary)
             }
-            .buttonStyle(.plain)
+            .padding(CardChrome.padding)
+        } else if viewModel.isLoading, viewModel.desks.isEmpty {
+            VStack(spacing: 20) {
+                ExploreCardSkeleton()
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.cardBackground)
+                    .frame(height: 140)
+                    .deskerSkeletonShimmer(active: true)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+            }
+            .padding(.horizontal, CardChrome.padding)
+        } else if viewModel.filteredDesks.isEmpty {
+            exploreEmpty
+                .padding(.horizontal, CardChrome.padding)
+        } else {
+            ForEach(viewModel.filteredDesks) { desk in
+                NavigationLink {
+                    DeskDetailView(deskId: desk.id)
+                } label: {
+                    ExploreDeskBrowseCard(desk: desk)
+                }
+                .buttonStyle(DeskerCardPressStyle())
+            }
+            .padding(.horizontal, CardChrome.padding)
         }
-        .padding(CardChrome.padding)
-        .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                .stroke(AppColor.primary.opacity(0.2), lineWidth: 1)
-        )
+    }
+
+    @ViewBuilder
+    private var usersBrowseSection: some View {
+        let users = viewModel.filteredBrowseUsers(exceptUserId: auth.currentUser?.id)
+        if users.isEmpty {
+            exploreUsersEmpty
+                .padding(.horizontal, CardChrome.padding)
+        } else {
+            ForEach(users) { user in
+                ExploreUserBrowseCard(
+                    user: user,
+                    connectBusy: inviteInFlightUserId == user.id,
+                    onProfile: {
+                        profileSheetUser = user
+                        HapticFeedback.light()
+                    },
+                    onConnect: {
+                        Task { await connectFromDirectory(user) }
+                    }
+                )
+            }
+            .padding(.horizontal, CardChrome.padding)
+        }
+    }
+
+    private func connectFromDirectory(_ user: UserProfile) async {
+        HapticFeedback.medium()
+        guard let uid = auth.currentUser?.id else {
+            toast.show(.error, "請先登入")
+            return
+        }
+        if user.id == uid {
+            toast.show(.info, "呢個係你本人")
+            return
+        }
+        inviteInFlightUserId = user.id
+        defer { inviteInFlightUserId = nil }
+        do {
+            if try await connectionsRepo.areConnected(uid, user.id) {
+                toast.show(.info, "你們已連接")
+                HapticFeedback.success()
+                return
+            }
+            if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: user.id) != nil {
+                toast.show(.info, "連接邀請待對方回覆")
+                HapticFeedback.success()
+                return
+            }
+            try await connectionsRepo.sendConnectionInvite(from: uid, to: user.id, message: nil)
+            toast.show(.success, "連接邀請已送出")
+            HapticFeedback.success()
+        } catch {
+            toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
+            HapticFeedback.error()
+        }
+    }
+
+    private var exploreUsersEmpty: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "person.3")
+                .font(.system(size: 48))
+                .foregroundStyle(AppColor.secondary)
+            Text("沒有符合的用戶")
+                .font(.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("試試其他關鍵字或篩選條件。")
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 48)
     }
 
     private func reloadExploreAndInviteState() async {
         await viewModel.load()
+        await viewModel.loadBrowseUsers()
         await viewModel.loadMyDesks(founderId: auth.currentUser?.id)
         await viewModel.refreshInviteCTAState(
             currentUserId: auth.currentUser?.id,
@@ -457,110 +388,6 @@ struct ExploreView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 48)
-    }
-
-    private var connectionInviteMessageSheet: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Text("可選：一句話介紹自己或說明為何想連接（最多 150 字）")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    TextField("個人訊息（可選）", text: $connectionMessageDraft, axis: .vertical)
-                        .lineLimit(3...6)
-                        .onChange(of: connectionMessageDraft) { _, new in
-                            if new.count > 150 {
-                                connectionMessageDraft = String(new.prefix(150))
-                            }
-                        }
-                    Text("\(connectionMessageDraft.count)/150")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-            }
-            .navigationTitle("連接邀請")
-            .deskerInlineNavigationTitle()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        showConnectionMessageSheet = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("傳送") {
-                        Task { await submitConnectionInvite() }
-                    }
-                    .disabled(inviteInFlight)
-                }
-            }
-        }
-    }
-
-    private func submitConnectionInvite() async {
-        let msg = connectionMessageDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        await sendConnectionInviteWithOptionalMessage(msg.isEmpty ? nil : msg)
-    }
-
-    private func sendConnectionInviteWithOptionalMessage(_ message: String?) async {
-        HapticFeedback.medium()
-        guard let uid = auth.currentUser?.id else {
-            toast.show(.error, "請先登入")
-            HapticFeedback.error()
-            return
-        }
-        guard let founder = viewModel.currentFounder else { return }
-        let founderId = founder.id
-        if founderId == uid {
-            toast.show(.info, "呢個係你本人")
-            return
-        }
-        inviteInFlight = true
-        defer { inviteInFlight = false }
-        do {
-            if try await connectionsRepo.areConnected(uid, founderId) {
-                toast.show(.info, "你們已連接")
-                showConnectionMessageSheet = false
-                HapticFeedback.success()
-                await viewModel.refreshInviteCTAState(
-                    currentUserId: auth.currentUser?.id,
-                    connectionsRepo: connectionsRepo
-                )
-                return
-            }
-            if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: founderId) != nil {
-                toast.show(.info, "連接邀請待對方回覆")
-                showConnectionMessageSheet = false
-                HapticFeedback.success()
-                await viewModel.refreshInviteCTAState(
-                    currentUserId: auth.currentUser?.id,
-                    connectionsRepo: connectionsRepo
-                )
-                return
-            }
-            let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines)
-            try await connectionsRepo.sendConnectionInvite(
-                from: uid,
-                to: founderId,
-                message: (trimmed?.isEmpty ?? true) ? nil : trimmed
-            )
-            connectionMessageDraft = ""
-            showConnectionMessageSheet = false
-            toast.show(.success, "連接邀請已送出")
-            HapticFeedback.success()
-            await viewModel.refreshInviteCTAState(
-                currentUserId: auth.currentUser?.id,
-                connectionsRepo: connectionsRepo
-            )
-        } catch {
-            let desc = error.localizedDescription
-            if desc.localizedCaseInsensitiveContains("duplicate") || desc.contains("23505") {
-                toast.show(.info, "已發送過邀請")
-            } else {
-                toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
-            }
-            HapticFeedback.error()
-        }
     }
 }
 
@@ -677,139 +504,147 @@ private struct ExplorePublicProfileSheet: View {
     }
 }
 
-// MARK: - Founder user card (Explore)
+// MARK: - Browse cards (Users / Desks)
 
-private struct ExploreFounderCard: View {
-    let founder: UserProfile
-    let inviteCTAState: ExploreInviteCTAState
-    let inviteInFlight: Bool
-    let onConnect: () -> Void
+private struct ExploreDeskBrowseCard: View {
+    let desk: Desk
 
-    private var skillChips: [String] {
-        let s = Array(founder.skills.prefix(3))
-        if s.isEmpty { return Array(founder.industryTags.prefix(3)) }
-        return s
-    }
-
-    private var skillChipExtraCount: Int {
-        if !founder.skills.isEmpty {
-            return max(0, founder.skills.count - 3)
-        }
-        return max(0, founder.industryTags.count - 3)
-    }
-
-    private var showOnlineDot: Bool {
-        !founder.skills.isEmpty || !founder.industryTags.isEmpty
-    }
-
-    private var displayName: String {
-        let n = founder.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let base = n.isEmpty ? "創辦人" : n
-        return base.deskerTruncated(maxLength: 20)
-    }
-
-    private var ctaTitle: String {
-        switch inviteCTAState {
-        case .loading: return "連接"
-        case .needsLogin: return "連接"
-        case .selfProfile: return "你的專案"
-        case .connected: return "已連接"
-        case .pendingConnectionInvite: return "連接邀請待回覆"
-        case .ready: return "連接"
-        case .error(_): return "重試連接"
-        }
-    }
-
-    private var ctaEnabled: Bool {
-        switch inviteCTAState {
-        case .ready, .needsLogin, .error(_): return true
-        default: return false
-        }
-    }
-
-    private var inviteCTAStateIsError: Bool {
-        if case .error = inviteCTAState { return true }
-        return false
+    private var industryLine: String {
+        desk.industryTags.isEmpty ? "—" : desk.industryTags.joined(separator: " · ")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                founderAvatar
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Text(displayName)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(AppColor.textPrimary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        if let v = founder.verificationBadgeStyle {
-                            VerificationBadgeView(style: v)
-                        }
-                    }
-                    roleBadge
-                    bioBlock
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Text(desk.name)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(2)
+            Text(desk.pitch)
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(industryLine)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppColor.secondary)
+                .lineLimit(2)
+            HStack {
+                Label("\(desk.currentMemberCount) / \(desk.memberLimit) 人", systemImage: "person.2.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+                Spacer()
+                exploreDeskStatusCapsule(desk.status)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
+    }
 
+    @ViewBuilder
+    private func exploreDeskStatusCapsule(_ status: DeskStatus) -> some View {
+        let (t, c): (String, Color) = {
+            switch status {
+            case .recruiting: return ("招募中", AppColor.secondary)
+            case .full: return ("已滿", AppColor.warning)
+            case .archived: return ("已歸檔", AppColor.textSecondary)
+            }
+        }()
+        Text(t)
+            .font(.caption.bold())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(c.opacity(0.2))
+            .foregroundStyle(c)
+            .clipShape(Capsule())
+    }
+}
+
+private struct ExploreUserBrowseCard: View {
+    let user: UserProfile
+    let connectBusy: Bool
+    let onProfile: () -> Void
+    let onConnect: () -> Void
+
+    private var bioLine: String {
+        let b = user.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !b.isEmpty { return b.deskerTruncated(maxLength: 120) }
+        let d = user.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return d.isEmpty ? "—" : d.deskerTruncated(maxLength: 120)
+    }
+
+    private var skillChips: [String] {
+        Array(user.skills.prefix(6))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                avatar
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(user.displayName.isEmpty ? "用戶" : user.displayName)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(1)
+                    Text(user.role.localizedName)
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(RoleBadgePalette.color(for: user.role).opacity(0.18))
+                        .foregroundStyle(RoleBadgePalette.color(for: user.role))
+                        .clipShape(Capsule())
+                    Text(bioLine)
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
             if !skillChips.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(skillChips, id: \.self) { skill in
-                            let c = skillChipColor(skill)
-                            Text(skill)
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(c.opacity(0.14))
-                                .foregroundStyle(c)
-                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
-                        }
-                        if skillChipExtraCount > 0 {
-                            Text("+\(skillChipExtraCount) 更多")
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(AppColor.gold.opacity(0.15))
-                                .foregroundStyle(AppColor.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
-                        }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), alignment: .leading)], alignment: .leading, spacing: 6) {
+                    ForEach(skillChips, id: \.self) { s in
+                        Text(s)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(AppColor.primary.opacity(0.1))
+                            .foregroundStyle(AppColor.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                     }
                 }
             }
-
-            Button(action: onConnect) {
-                HStack {
-                    if inviteInFlight {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Text(ctaTitle)
-                            .font(.headline)
-                    }
+            HStack(spacing: 10) {
+                Button(action: onProfile) {
+                    Text("查看")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(AppColor.surfaceElevated)
+                        .foregroundStyle(AppColor.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    LinearGradient(
-                        colors: [AppColor.primary, AppColor.secondary],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-            }
-            .buttonStyle(DeskerButtonPressStyle())
-            .deskerButtonShadow()
-            .disabled(inviteInFlight || !ctaEnabled || inviteCTAState == .loading || inviteCTAState == .selfProfile)
-            .opacity(inviteCTAState == .selfProfile ? 0.55 : 1)
-
-            if let foot = statusFootnote {
-                Text(foot)
-                    .font(.footnote)
-                    .foregroundStyle(inviteCTAStateIsError ? AppColor.error : AppColor.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                .buttonStyle(.plain)
+                Button(action: onConnect) {
+                    Group {
+                        if connectBusy {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        } else {
+                            Text("連接")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                    }
+                    .background(AppColor.brandGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(connectBusy)
             }
         }
         .padding(CardChrome.padding)
@@ -817,105 +652,36 @@ private struct ExploreFounderCard: View {
     }
 
     @ViewBuilder
-    private var bioBlock: some View {
-        let bio = founder.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let detailed = founder.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !bio.isEmpty {
-            Text(bio.deskerTruncated(maxLength: 100))
-                .font(.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        } else if !detailed.isEmpty {
-            Text(detailed.deskerTruncated(maxLength: 100))
-                .font(.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(2)
-        } else {
-            Text("未填寫")
-                .font(.subheadline)
-                .foregroundStyle(AppColor.textTertiary)
-        }
-    }
-
-    private var statusFootnote: String? {
-        switch inviteCTAState {
-        case .connected: return "你們已連接，可於「訊息」→「人脈」開啟私訊"
-        case .pendingConnectionInvite: return "連接邀請待對方回覆"
-        case .needsLogin: return "登入後可發送連接邀請"
-        case .error(let message): return message
-        default: return nil
-        }
-    }
-
-    private var founderAvatar: some View {
-        ZStack(alignment: .topTrailing) {
-            Group {
-                if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
-                   let url = URL(string: s) {
-                    CachedAsyncImage(url: url, maxPixelDimension: 220) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img
-                                .resizable()
-                                .scaledToFill()
-                        case .failure:
-                            initialsAvatar
-                        case .empty:
-                            ProgressView()
-                                .tint(AppColor.primary)
-                        }
-                    }
-                    .frame(width: 60, height: 60)
-                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-                } else {
-                    initialsAvatar
+    private var avatar: some View {
+        if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let url = URL(string: s) {
+            CachedAsyncImage(url: url, maxPixelDimension: 200) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().scaledToFill()
+                case .empty:
+                    ProgressView().tint(AppColor.primary)
+                case .failure:
+                    placeholder
                 }
             }
-            if showOnlineDot {
-                Circle()
-                    .fill(AppColor.success)
-                    .frame(width: 12, height: 12)
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    .offset(x: 4, y: -2)
-            }
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+        } else {
+            placeholder
         }
     }
 
-    private var initialsAvatar: some View {
-        let initials = initialsFromName(displayName)
+    private var placeholder: some View {
+        let n = user.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let initial = n.first.map(String.init) ?? "?"
         return ZStack {
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                .fill(AppColor.primary)
-                .frame(width: 60, height: 60)
-            Text(initials)
-                .font(.title3.weight(.bold))
+            Circle()
+                .fill(AppColor.brandGradient)
+                .frame(width: 56, height: 56)
+            Text(initial)
+                .font(.headline.bold())
                 .foregroundStyle(.white)
         }
-    }
-
-    private func initialsFromName(_ name: String) -> String {
-        let parts = name.split(separator: " ").filter { !$0.isEmpty }
-        if parts.count >= 2 {
-            return String(parts[0].prefix(1)) + String(parts[1].prefix(1))
-        }
-        let s = String(name.prefix(2))
-        return s.isEmpty ? "?" : s.uppercased()
-    }
-
-    private var roleBadge: some View {
-        Text(founder.role.localizedName)
-            .font(.caption.weight(.bold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(RoleBadgePalette.color(for: founder.role).opacity(0.18))
-            .foregroundStyle(RoleBadgePalette.color(for: founder.role))
-            .clipShape(Capsule())
-    }
-
-    private func skillChipColor(_ skill: String) -> Color {
-        let palette: [Color] = [AppColor.primary, AppColor.secondary, AppColor.teal, AppColor.gold]
-        let i = abs(skill.hashValue) % palette.count
-        return palette[i]
     }
 }

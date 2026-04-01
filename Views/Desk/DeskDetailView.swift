@@ -423,20 +423,23 @@ struct DeskDetailView: View {
         } else if let uid = auth.currentUser?.id, uid != desk.founderId, desk.status == .recruiting {
             VStack(spacing: 0) {
                 Divider()
-                if myApplication != nil {
-                    Button {
-                        showApplySheet = true
-                    } label: {
-                        Label("已申請 · 點擊查看狀態", systemImage: "checkmark.seal.fill")
+                if let app = myApplication {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.white)
+                        Text("已申請 · \(applicationStatusLabel(app.status))")
                             .font(.headline)
                             .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(AppColor.secondary.opacity(0.85))
-                            .clipShape(Capsule())
+                        Spacer(minLength: 0)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
                     .padding(.horizontal, CardChrome.padding)
+                    .background(AppColor.secondary.opacity(0.9))
+                    .clipShape(Capsule())
+                    .padding(.horizontal, CardChrome.padding)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("已申請，狀態 \(applicationStatusLabel(app.status))")
                 } else {
                     Button {
                         prepareApplySheet(desk)

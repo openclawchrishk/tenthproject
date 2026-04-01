@@ -74,6 +74,7 @@ struct MainTabView: View {
     private let invitesRepo = InviteRepository()
     private let connectionsRepo = ConnectionRepository()
     private let deskRepo = DeskRepository()
+    private let notificationRepo = NotificationRepository()
 
     var body: some View {
         Group {
@@ -202,6 +203,9 @@ struct MainTabView: View {
         }
         if let pendingConn = try? await connectionsRepo.fetchPendingInvites(for: uid) {
             n += pendingConn.count
+        }
+        if let notifUnread = try? await notificationRepo.unreadCount(userId: uid) {
+            n += notifUnread
         }
         await MainActor.run { inboxBadgeCount = min(99, n) }
     }

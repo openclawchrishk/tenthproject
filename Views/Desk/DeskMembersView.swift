@@ -96,7 +96,7 @@ struct DeskMembersView: View {
                             .foregroundStyle(AppColor.gold)
                     }
                 }
-                if let tags = tagStrings(for: profile), !tags.isEmpty {
+                if let tags = skillChipStrings(for: profile), !tags.isEmpty {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), alignment: .leading)], alignment: .leading, spacing: 6) {
                         ForEach(tags, id: \.self) { tag in
                             Text(tag)
@@ -109,9 +109,14 @@ struct DeskMembersView: View {
                         }
                     }
                 }
+                if let joined = m.joinedAt {
+                    Text("加入於 \(Self.joinedDateFormatter.string(from: joined))")
+                        .font(.caption2)
+                        .foregroundStyle(AppColor.textTertiary)
+                }
             }
             Spacer(minLength: 0)
-            if isFounder, !founder, let uid = auth.currentUser?.id, uid == desk.founderId {
+            if isFounder && !founder {
                 Button {
                     removeTarget = m
                 } label: {
@@ -124,11 +129,23 @@ struct DeskMembersView: View {
         .padding(.vertical, 6)
     }
 
-    private func tagStrings(for profile: UserProfile?) -> [String]? {
+    /// Skills as chips; if none, fall back to industry tags.
+    private func skillChipStrings(for profile: UserProfile?) -> [String]? {
         guard let profile else { return nil }
-        let merged = Array(Set(profile.skills + profile.industryTags)).sorted()
-        return merged.isEmpty ? nil : merged
+        if !profile.skills.isEmpty {
+            return profile.skills.sorted()
+        }
+        let industries = profile.industryTags.sorted()
+        return industries.isEmpty ? nil : industries
     }
+
+    private static let joinedDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        f.locale = Locale(identifier: "zh_Hant_HK")
+        return f
+    }()
 
     private func memberAvatar(profile: UserProfile?) -> some View {
         Group {

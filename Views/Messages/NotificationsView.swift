@@ -14,14 +14,38 @@ struct NotificationsView: View {
 
     private let repo = NotificationRepository()
 
-    private var groupedSections: [(day: Date, notifications: [AppNotification])] {
+    /// Today → Yesterday → single **更早** bucket for older items.
+    private var groupedSections: [(title: String, notifications: [AppNotification])] {
         let cal = Calendar.current
-        let grouped = Dictionary(grouping: items) { n -> Date in
-            cal.startOfDay(for: n.createdAt ?? .distantPast)
+        let now = Date()
+        let startToday = cal.startOfDay(for: now)
+        let startYesterday = cal.date(byAdding: .day, value: -1, to: startToday) ?? startToday
+
+        var today: [AppNotification] = []
+        var yesterday: [AppNotification] = []
+        var earlier: [AppNotification] = []
+
+        let sorted = items.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+        for n in sorted {
+            guard let created = n.createdAt else {
+                earlier.append(n)
+                continue
+            }
+            let sod = cal.startOfDay(for: created)
+            if sod == startToday {
+                today.append(n)
+            } else if sod == startYesterday {
+                yesterday.append(n)
+            } else {
+                earlier.append(n)
+            }
         }
-        return grouped
-            .map { (day: $0.key, notifications: $0.value.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }) }
-            .sorted { $0.day > $1.day }
+
+        var out: [(title: String, notifications: [AppNotification])] = []
+        if !today.isEmpty { out.append(("今天", today)) }
+        if !yesterday.isEmpty { out.append(("昨天", yesterday)) }
+        if !earlier.isEmpty { out.append(("更早", earlier)) }
+        return out
     }
 
     var body: some View {
@@ -74,7 +98,7 @@ struct NotificationsView: View {
                             )
                         }
                     }
-                    ForEach(groupedSections, id: \.day) { section in
+                    ForEach(Array(groupedSections.enumerated()), id: \.offset) { _, section in
                         Section {
                             ForEach(section.notifications, id: \.id) { n in
                                 notificationCard(n)
@@ -101,7 +125,7 @@ struct NotificationsView: View {
                                     }
                             }
                         } header: {
-                            Text(sectionHeader(section.day))
+                            Text(section.title)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppColor.textSecondary)
                                 .textCase(nil)
@@ -211,17 +235,6 @@ struct NotificationsView: View {
         }
     }
 
-    private func sectionHeader(_ day: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInToday(day) { return "今天" }
-        if cal.isDateInYesterday(day) { return "昨天" }
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        f.locale = Locale(identifier: "zh_Hant_HK")
-        return f.string(from: day)
-    }
-
     private func notificationCard(_ n: AppNotification) -> some View {
         let lines = polishedNotificationLines(n)
         return HStack(alignment: .top, spacing: 14) {
@@ -260,7 +273,7 @@ struct NotificationsView: View {
         .overlay(alignment: .leading) {
             if !n.read {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(AppColor.primary)
+                    .fill(Color.indigo)
                     .frame(width: 4)
                     .padding(.vertical, 10)
             }
@@ -362,10 +375,12 @@ struct NotificationsView: View {
         defer { markAllInFlight = false }
         do {
             try await repo.markAllAsRead(userId: uid)
+            toast.show(.success, "已全部標示為已讀")
             HapticFeedback.success()
             await load()
             await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
         } catch {
+            toast.show(.error, error.localizedDescription)
             HapticFeedback.error()
         }
     }

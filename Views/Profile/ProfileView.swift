@@ -36,6 +36,9 @@ struct ProfileView: View {
     @State private var websiteDraft = ""
     @State private var interestTags: Set<String> = []
     @State private var scrollToSection: String?
+    @State private var isEditingProfile = false
+    @State private var displayNameDraft = ""
+    @State private var roleDraft: UserRole = .aspiringFounder
 
     private let userRepo = UserRepository()
     private let referralRepo = ReferralRepository()
@@ -93,7 +96,9 @@ struct ProfileView: View {
                         }
                     }
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        profileSaveBar
+                        if isEditingProfile {
+                            profileSaveBar
+                        }
                     }
                     .overlay {
                         if isSaving {
@@ -112,6 +117,26 @@ struct ProfileView: View {
             }
             .background(AppColor.background.ignoresSafeArea())
             .deskerInlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if auth.currentUser != nil {
+                        if isEditingProfile {
+                            Button("取消") {
+                                syncFromProfile()
+                                isEditingProfile = false
+                                banner = nil
+                                HapticFeedback.light()
+                            }
+                        } else {
+                            Button("編輯") {
+                                syncFromProfile()
+                                isEditingProfile = true
+                                HapticFeedback.light()
+                            }
+                        }
+                    }
+                }
+            }
         }
         .task {
             await auth.refreshProfile()
@@ -783,18 +808,31 @@ struct ProfileView: View {
     @ViewBuilder
     private func accountSection(_ user: UserProfile) -> some View {
         Section("帳戶") {
+            if isEditingProfile {
+                TextField("顯示名稱", text: $displayNameDraft)
+                    .deskerTextFieldNoAutocaps()
+                    .foregroundStyle(AppColor.textPrimary)
+                Picker("角色", selection: $roleDraft) {
+                    ForEach(UserRole.allCases, id: \.self) { r in
+                        Text(r.localizedName).tag(r)
+                    }
+                }
+                .tint(AppColor.primary)
+            } else {
+                LabeledContent("名稱") {
+                    Text(user.displayName.isEmpty ? "—" : user.displayName)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+                LabeledContent("角色") {
+                    Text(user.role.localizedName)
+                        .foregroundStyle(AppColor.textPrimary)
+                }
+            }
             TextField("使用者名稱（公開連結）", text: $usernameDraft)
                 .deskerTextFieldNoAutocaps()
                 .autocorrectionDisabled()
                 .foregroundStyle(AppColor.textPrimary)
-            LabeledContent("名稱") {
-                Text(user.displayName)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
-            LabeledContent("角色") {
-                Text(user.role.localizedName)
-                    .foregroundStyle(AppColor.textPrimary)
-            }
+                .disabled(!isEditingProfile)
         }
         .listRowBackground(AppColor.cardBackground)
     }
@@ -832,6 +870,7 @@ struct ProfileView: View {
             }
             .foregroundStyle(AppColor.textSecondary)
         }
+        .disabled(!isEditingProfile)
         .listRowBackground(AppColor.cardBackground)
         .id("section_tags")
     }
@@ -869,6 +908,7 @@ struct ProfileView: View {
         } header: {
             Text("簡介與連結")
         }
+        .disabled(!isEditingProfile)
         .listRowBackground(AppColor.cardBackground)
         .id("section_bio")
     }
@@ -1085,6 +1125,8 @@ struct ProfileView: View {
         skills = Set(u.skills)
         needs = Set(u.needs)
         usernameDraft = u.username ?? ""
+        displayNameDraft = u.displayName
+        roleDraft = u.role
         bioDraft = u.bio ?? ""
         detailedBioDraft = u.detailedBio ?? ""
         linkedInDraft = u.linkedInUrl ?? ""
@@ -1104,6 +1146,14 @@ struct ProfileView: View {
         banner = nil
         defer { isSaving = false }
         do {
+            let dn = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !dn.isEmpty else {
+                banner = "請填寫顯示名稱"
+                HapticFeedback.error()
+                return
+            }
+            profile.displayName = dn
+            profile.role = roleDraft
             profile.industryTags = Array(industryTags)
             profile.skills = Array(skills)
             profile.needs = Array(needs)
@@ -1127,6 +1177,7 @@ struct ProfileView: View {
             try await userRepo.upsertUser(profile)
             await auth.refreshProfile()
             await loadReferrals()
+            isEditingProfile = false
             banner = "已儲存"
             toast.show(.success, "已儲存")
             HapticFeedback.success()

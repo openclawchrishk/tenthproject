@@ -102,6 +102,16 @@ struct PremiumUpgradeSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(AppColor.textSecondary, AppColor.secondaryGroupedSurface)
+                    }
+                    .accessibilityLabel("關閉")
+                }
             }
         }
         .deskerSheetSpringContent()

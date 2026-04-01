@@ -60,13 +60,13 @@ struct MyConnectionsView: View {
                             .padding(.horizontal, CardChrome.padding)
                     }
 
-                    if !connections.isEmpty {
-                        connectionAvatarGrid
-                    }
+                    pendingSection
 
                     inviteSection
 
-                    pendingSection
+                    if !connections.isEmpty {
+                        connectionAvatarGrid
+                    }
 
                     connectedListSection
                 }
@@ -238,7 +238,7 @@ struct MyConnectionsView: View {
 
     private var pendingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("待處理邀請", systemImage: "clock.fill")
+            Label("待處理連接邀請", systemImage: "clock.fill")
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(AppColor.gold)
             if pending.isEmpty {
@@ -389,7 +389,9 @@ private extension MyConnectionsView {
             HapticFeedback.success()
             await load()
         } catch {
-            banner = "失敗：\(error.localizedDescription)"
+            let msg = error.localizedDescription
+            banner = "失敗：\(msg)"
+            toast.show(.error, msg)
             HapticFeedback.error()
         }
     }
@@ -410,7 +412,8 @@ private extension MyConnectionsView {
             }
             offerShareAfterConnection = true
         } catch {
-            banner = "接受失敗：\(error.localizedDescription)"
+            let msg = error.localizedDescription
+            toast.show(.error, "接受失敗：\(msg)")
             HapticFeedback.error()
         }
     }
@@ -419,10 +422,12 @@ private extension MyConnectionsView {
         guard let uid = auth.currentUser?.id else { return }
         do {
             try await connectionsRepo.declineConnectionInvite(inviteId: inv.id, currentUserId: uid)
+            toast.show(.info, "已拒絕邀請")
             HapticFeedback.success()
             await load()
         } catch {
-            banner = "拒絕失敗：\(error.localizedDescription)"
+            let msg = error.localizedDescription
+            toast.show(.error, "拒絕失敗：\(msg)")
             HapticFeedback.error()
         }
     }
