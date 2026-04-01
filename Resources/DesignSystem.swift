@@ -273,6 +273,10 @@ extension View {
                 .foregroundStyle(AppColor.primary)
             }
         }
+        .onAppear {
+            // Prevent constraint warnings in Simulator
+            UITextField.appearance().tintColor = UIColor(AppColor.primary)
+        }
         #else
         self
         #endif
