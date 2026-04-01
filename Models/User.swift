@@ -280,6 +280,9 @@ extension UserProfile: Hashable {
 enum ProfileFieldValidation {
     static let displayNameMaxLength = 50
     static let deskNameMaxLength = 60
+    static let pitchMaxLength = 150
+    static let bioMaxLength = 500
+    static let usernameMaxLength = 30
 
     static func isValidDisplayName(_ raw: String) -> Bool {
         let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -289,6 +292,78 @@ enum ProfileFieldValidation {
     static func isValidDeskName(_ raw: String) -> Bool {
         let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return !t.isEmpty && t.count <= deskNameMaxLength
+    }
+
+    /// One-line desk pitch: required, max 150 chars.
+    static func isValidDeskPitch(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !t.isEmpty && t.count <= pitchMaxLength
+    }
+
+    static func isValidBioLength(_ raw: String?) -> Bool {
+        guard let raw else { return true }
+        return raw.count <= bioMaxLength
+    }
+
+    /// Public handle: alphanumeric + underscore, ASCII, max length.
+    static func isValidUsername(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty, t.count <= usernameMaxLength else { return false }
+        return t.range(of: "^[a-zA-Z0-9_]+$", options: .regularExpression) != nil
+    }
+
+    /// Empty or valid username (for optional handle).
+    static func isValidUsernameOrEmpty(_ raw: String?) -> Bool {
+        let t = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if t.isEmpty { return true }
+        return isValidUsername(t)
+    }
+
+    /// RFC 4122 UUID string.
+    static func isValidUUIDString(_ raw: String) -> Bool {
+        UUID(uuidString: raw) != nil
+    }
+
+    /// Optional http/https URL string.
+    static func isValidOptionalHTTPURLString(_ raw: String?) -> Bool {
+        let t = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if t.isEmpty { return true }
+        guard let url = URL(string: t), let scheme = url.scheme?.lowercased() else { return false }
+        return (scheme == "http" || scheme == "https") && url.host != nil
+    }
+
+    /// Password strength for signup (aligned with onboarding UI).
+    enum PasswordStrength: Equatable {
+        case weak
+        case medium
+        case strong
+
+        static func evaluate(_ password: String) -> PasswordStrength {
+            if password.count < 8 { return .weak }
+            let hasLetter = password.range(of: "[A-Za-z]", options: .regularExpression) != nil
+            let hasDigit = password.range(of: "[0-9]", options: .regularExpression) != nil
+            let hasSymbol = password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil
+            var score = 0
+            if password.count >= 12 { score += 1 }
+            if hasLetter { score += 1 }
+            if hasDigit { score += 1 }
+            if hasSymbol { score += 1 }
+            if score >= 3 { return .strong }
+            if score >= 1 { return .medium }
+            return .weak
+        }
+
+        var meetsSignUpMinimum: Bool {
+            self != .weak
+        }
+
+        var strengthLabel: String {
+            switch self {
+            case .weak: return "弱"
+            case .medium: return "中"
+            case .strong: return "強"
+            }
+        }
     }
 }
 

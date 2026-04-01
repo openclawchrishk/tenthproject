@@ -64,14 +64,6 @@ struct RoleSelectionView: View {
     }
 }
 
-private struct RoleCardScaleStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
-    }
-}
-
 struct RoleCard: View {
     let role: UserRole
     let isSelected: Bool
@@ -124,8 +116,10 @@ struct RoleCard: View {
                     .stroke(isSelected ? AppColor.gold.opacity(0.85) : Color.clear, lineWidth: 2)
             )
             .contentShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
+            .scaleEffect(isSelected ? 1.02 : 1)
+            .animation(.spring(response: 0.34, dampingFraction: 0.62), value: isSelected)
         }
-        .buttonStyle(RoleCardScaleStyle())
+        .buttonStyle(DeskerCardPressStyle())
     }
 
     private var roleIcon: String {

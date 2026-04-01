@@ -65,6 +65,12 @@ struct SkillsAndNeedsView: View {
                     selection: $viewModel.skills,
                     accent: AppColor.secondary
                 )
+                if viewModel.skills.isEmpty {
+                    Text("建議選擇至少一項技能，方便他人了解你")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 // Needs
                 tagSection(
@@ -76,6 +82,12 @@ struct SkillsAndNeedsView: View {
                     selection: $viewModel.needs,
                     accent: AppColor.accentOrange
                 )
+                if viewModel.needs.isEmpty {
+                    Text("建議選擇至少一項需求，方便配對資源")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 // Error
                 if let saveError {
@@ -213,7 +225,7 @@ struct SkillsAndNeedsView: View {
         }
         let hasTag = !viewModel.industryTags.isEmpty || !viewModel.skills.isEmpty || !viewModel.needs.isEmpty
         guard hasTag else {
-            saveError = "請至少選擇一個產業、技能或需求標籤"
+            saveError = "請至少選擇一個標籤（產業、技能或需求）"
             HapticFeedback.error()
             return
         }
@@ -224,7 +236,7 @@ struct SkillsAndNeedsView: View {
             try await viewModel.persistSkillsAndNeeds(auth: auth)
             viewModel.proceedToNextStep()
         } catch {
-            saveError = "儲存失敗：\(error.localizedDescription)"
+            saveError = "儲存失敗：\(APIErrorMessages.userFacingMessage(for: error))"
             HapticFeedback.error()
         }
     }

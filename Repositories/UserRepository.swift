@@ -99,6 +99,16 @@ final class UserRepository {
         guard ProfileFieldValidation.isValidDisplayName(user.displayName) else {
             throw RepositoryError.serverError("顯示名稱須為 1–\(ProfileFieldValidation.displayNameMaxLength) 字")
         }
+        if let u = user.username?.trimmingCharacters(in: .whitespacesAndNewlines), !u.isEmpty {
+            guard ProfileFieldValidation.isValidUsername(u) else {
+                throw RepositoryError.serverError(
+                    "使用者名稱只可使用英文、數字及底線（最多 \(ProfileFieldValidation.usernameMaxLength) 字）"
+                )
+            }
+        }
+        if let bio = user.bio, !ProfileFieldValidation.isValidBioLength(bio) {
+            throw RepositoryError.serverError("簡介最多 \(ProfileFieldValidation.bioMaxLength) 字")
+        }
         let payload = UserUpsertPayload(from: user)
         do {
             try await client

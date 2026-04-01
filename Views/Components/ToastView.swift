@@ -51,7 +51,7 @@ final class ToastCenter: ObservableObject {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run {
                 if current?.id == id {
-                    withAnimation(.easeInOut(duration: 0.22)) {
+                    withAnimation(.easeOut(duration: 0.35)) {
                         current = nil
                     }
                 }
@@ -61,7 +61,7 @@ final class ToastCenter: ObservableObject {
 
     func dismiss() {
         dismissTask?.cancel()
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(.easeOut(duration: 0.28)) {
             current = nil
         }
     }

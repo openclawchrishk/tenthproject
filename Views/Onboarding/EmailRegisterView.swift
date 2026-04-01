@@ -7,6 +7,7 @@ struct EmailRegisterView: View {
     @StateObject private var vm: AuthViewModel
     @State private var showPassword = false
     @State private var showConfirm = false
+    @State private var formShakeTick = 0
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -53,6 +54,7 @@ struct EmailRegisterView: View {
                                 Text(err)
                                     .font(.caption)
                                     .foregroundStyle(AppColor.error)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
 
                             Button {
@@ -90,6 +92,7 @@ struct EmailRegisterView: View {
                             .fill(AppColor.cardBackground)
                             .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                     )
+                    .deskerShake(trigger: formShakeTick)
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 28)
@@ -99,6 +102,9 @@ struct EmailRegisterView: View {
         .deskerInlineNavigationTitle()
         .onChange(of: auth.session?.user.id) { _, new in
             if new != nil { dismiss() }
+        }
+        .onChange(of: vm.validationShakeTick) { _, _ in
+            formShakeTick += 1
         }
         .overlay {
             if vm.isLoading {
@@ -147,8 +153,17 @@ struct EmailRegisterView: View {
                     .modifier(RegisterEmailTextFieldPlatform())
                     .deskerTextFieldNoAutocaps()
                     .autocorrectionDisabled()
+                    .onChange(of: vm.email) { _, _ in vm.fieldErrorEmail = nil }
+                if AuthViewModel.isValidEmail(vm.email.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColor.success)
+                        .accessibilityLabel("格式正確")
+                }
             }
-            .modifier(RegisterFieldChrome(focused: focusedField == .email))
+            .modifier(RegisterFieldChrome(focused: focusedField == .email, invalid: vm.fieldErrorEmail != nil))
+            if let err = vm.fieldErrorEmail {
+                Text(err).font(.caption).foregroundStyle(AppColor.error)
+            }
         }
     }
 
@@ -161,8 +176,16 @@ struct EmailRegisterView: View {
                     .frame(width: 22)
                 TextField("你嘅名稱", text: $vm.displayName)
                     .focused($focusedField, equals: .displayName)
+                    .onChange(of: vm.displayName) { _, _ in vm.fieldErrorDisplayName = nil }
+                if registerDisplayNameLooksValid {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColor.success)
+                }
             }
-            .modifier(RegisterFieldChrome(focused: focusedField == .displayName))
+            .modifier(RegisterFieldChrome(focused: focusedField == .displayName, invalid: vm.fieldErrorDisplayName != nil))
+            if let err = vm.fieldErrorDisplayName {
+                Text(err).font(.caption).foregroundStyle(AppColor.error)
+            }
         }
     }
 
@@ -181,6 +204,7 @@ struct EmailRegisterView: View {
                     }
                 }
                 .focused($focusedField, equals: .password)
+                .onChange(of: vm.password) { _, _ in vm.fieldErrorPassword = nil }
                 Button {
                     showPassword.toggle()
                 } label: {
@@ -188,7 +212,10 @@ struct EmailRegisterView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
-            .modifier(RegisterFieldChrome(focused: focusedField == .password))
+            .modifier(RegisterFieldChrome(focused: focusedField == .password, invalid: vm.fieldErrorPassword != nil))
+            if let err = vm.fieldErrorPassword {
+                Text(err).font(.caption).foregroundStyle(AppColor.error)
+            }
         }
     }
 
@@ -207,6 +234,7 @@ struct EmailRegisterView: View {
                     }
                 }
                 .focused($focusedField, equals: .confirm)
+                .onChange(of: vm.confirmPassword) { _, _ in vm.fieldErrorConfirmPassword = nil }
                 Button {
                     showConfirm.toggle()
                 } label: {
@@ -214,8 +242,16 @@ struct EmailRegisterView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
-            .modifier(RegisterFieldChrome(focused: focusedField == .confirm))
+            .modifier(RegisterFieldChrome(focused: focusedField == .confirm, invalid: vm.fieldErrorConfirmPassword != nil))
+            if let err = vm.fieldErrorConfirmPassword {
+                Text(err).font(.caption).foregroundStyle(AppColor.error)
+            }
         }
+    }
+
+    private var registerDisplayNameLooksValid: Bool {
+        let name = vm.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !name.isEmpty && name.count <= ProfileFieldValidation.displayNameMaxLength
     }
 
     private func fieldLabel(_ title: String) -> some View {
@@ -225,12 +261,12 @@ struct EmailRegisterView: View {
     }
 
     private func passwordStrengthRow(_ password: String) -> some View {
-        let s = PasswordStrengthTier.evaluate(password)
+        let s = ProfileFieldValidation.PasswordStrength.evaluate(password)
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("強度：\(s.label)")
+                Text("強度：\(s.strengthLabel)")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(s.tint)
+                    .foregroundStyle(strengthTint(s))
                 Spacer()
             }
             GeometryReader { geo in
@@ -239,73 +275,45 @@ struct EmailRegisterView: View {
                         .fill(AppColor.textTertiary.opacity(0.2))
                         .frame(height: 6)
                     Capsule()
-                        .fill(s.barGradient)
-                        .frame(width: geo.size.width * s.fillFraction, height: 6)
+                        .fill(strengthBarGradient(s))
+                        .frame(width: geo.size.width * strengthFill(s), height: 6)
                 }
             }
             .frame(height: 6)
         }
     }
 
-    private enum PasswordStrengthTier {
-        case weak
-        case medium
-        case strong
-
-        var label: String {
-            switch self {
-            case .weak: return "弱"
-            case .medium: return "中"
-            case .strong: return "強"
-            }
+    private func strengthTint(_ s: ProfileFieldValidation.PasswordStrength) -> Color {
+        switch s {
+        case .weak: return AppColor.error
+        case .medium: return AppColor.warning
+        case .strong: return AppColor.success
         }
+    }
 
-        var tint: Color {
-            switch self {
-            case .weak: return AppColor.error
-            case .medium: return AppColor.warning
-            case .strong: return AppColor.success
-            }
+    private func strengthFill(_ s: ProfileFieldValidation.PasswordStrength) -> CGFloat {
+        switch s {
+        case .weak: return 0.33
+        case .medium: return 0.66
+        case .strong: return 1
         }
+    }
 
-        var barGradient: LinearGradient {
-            switch self {
-            case .weak:
-                return LinearGradient(colors: [AppColor.error.opacity(0.85), AppColor.error], startPoint: .leading, endPoint: .trailing)
-            case .medium:
-                return LinearGradient(colors: [AppColor.warning.opacity(0.85), AppColor.warning], startPoint: .leading, endPoint: .trailing)
-            case .strong:
-                return LinearGradient(colors: [AppColor.success.opacity(0.85), AppColor.success], startPoint: .leading, endPoint: .trailing)
-            }
-        }
-
-        var fillFraction: CGFloat {
-            switch self {
-            case .weak: return 0.33
-            case .medium: return 0.66
-            case .strong: return 1
-            }
-        }
-
-        static func evaluate(_ password: String) -> PasswordStrengthTier {
-            if password.count < 8 { return .weak }
-            let hasLetter = password.range(of: "[A-Za-z]", options: .regularExpression) != nil
-            let hasDigit = password.range(of: "[0-9]", options: .regularExpression) != nil
-            let hasSymbol = password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil
-            var score = 0
-            if password.count >= 12 { score += 1 }
-            if hasLetter { score += 1 }
-            if hasDigit { score += 1 }
-            if hasSymbol { score += 1 }
-            if score >= 3 { return .strong }
-            if score >= 1 { return .medium }
-            return .weak
+    private func strengthBarGradient(_ s: ProfileFieldValidation.PasswordStrength) -> LinearGradient {
+        switch s {
+        case .weak:
+            return LinearGradient(colors: [AppColor.error.opacity(0.85), AppColor.error], startPoint: .leading, endPoint: .trailing)
+        case .medium:
+            return LinearGradient(colors: [AppColor.warning.opacity(0.85), AppColor.warning], startPoint: .leading, endPoint: .trailing)
+        case .strong:
+            return LinearGradient(colors: [AppColor.success.opacity(0.85), AppColor.success], startPoint: .leading, endPoint: .trailing)
         }
     }
 }
 
 private struct RegisterFieldChrome: ViewModifier {
     let focused: Bool
+    var invalid: Bool = false
 
     func body(content: Content) -> some View {
         content
@@ -315,8 +323,8 @@ private struct RegisterFieldChrome: ViewModifier {
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(
-                        focused ? AppColor.primary : AppColor.textTertiary.opacity(0.35),
-                        lineWidth: focused ? 2 : 1
+                        invalid ? AppColor.error : (focused ? AppColor.primary : AppColor.textTertiary.opacity(0.35)),
+                        lineWidth: invalid || focused ? 2 : 1
                     )
             )
     }

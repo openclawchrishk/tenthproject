@@ -16,6 +16,8 @@ class OnboardingViewModel: ObservableObject {
     @Published var avatarImageData: Data?
 
     @Published var currentStep: OnboardingStep = .roleSelection
+    /// Drives asymmetric slide transitions in `OnboardingFlowView` (forward vs back).
+    @Published private(set) var lastStepNavigationWasForward: Bool = true
 
     static let languageOptions = ["廣東話", "普通話", "英文", "日本語", "其他"]
 
@@ -39,26 +41,32 @@ class OnboardingViewModel: ObservableObject {
     private let userRepo = UserRepository()
 
     func proceedToNextStep() {
-        switch currentStep {
-        case .roleSelection:
-            currentStep = .basicInfo
-        case .basicInfo:
-            currentStep = .skillsAndNeeds
-        case .skillsAndNeeds:
-            currentStep = .completed
-        case .completed:
-            break
+        lastStepNavigationWasForward = true
+        withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+            switch currentStep {
+            case .roleSelection:
+                currentStep = .basicInfo
+            case .basicInfo:
+                currentStep = .skillsAndNeeds
+            case .skillsAndNeeds:
+                currentStep = .completed
+            case .completed:
+                break
+            }
         }
     }
 
     func goToPreviousStep() {
-        switch currentStep {
-        case .roleSelection, .completed:
-            break
-        case .basicInfo:
-            currentStep = .roleSelection
-        case .skillsAndNeeds:
-            currentStep = .basicInfo
+        lastStepNavigationWasForward = false
+        withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+            switch currentStep {
+            case .roleSelection, .completed:
+                break
+            case .basicInfo:
+                currentStep = .roleSelection
+            case .skillsAndNeeds:
+                currentStep = .basicInfo
+            }
         }
     }
 

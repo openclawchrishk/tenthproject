@@ -7,6 +7,7 @@ struct EmailLoginView: View {
     @StateObject private var vm: AuthViewModel
     @State private var path = NavigationPath()
     @State private var showPassword = false
+    @State private var formShakeTick = 0
     @FocusState private var focusedField: Field?
 
     private enum Field: Hashable {
@@ -55,6 +56,7 @@ struct EmailLoginView: View {
                                 Text(err)
                                     .font(.caption)
                                     .foregroundStyle(AppColor.error)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
 
                             Button {
@@ -68,8 +70,7 @@ struct EmailLoginView: View {
                                     .background(AppColor.brandGradient)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
-                            .disabled(vm.isLoading || !canSubmitEmailLogin)
-                            .opacity(canSubmitEmailLogin ? 1 : 0.55)
+                            .disabled(vm.isLoading)
                             .deskerButtonShadow()
 
                             NavigationLink(value: EmailLoginRoute.register) {
@@ -90,6 +91,7 @@ struct EmailLoginView: View {
                                 .fill(AppColor.cardBackground)
                                 .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                         )
+                        .deskerShake(trigger: formShakeTick)
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 28)
@@ -119,6 +121,9 @@ struct EmailLoginView: View {
         .onChange(of: auth.session?.user.id) { _, new in
             if new != nil { dismiss() }
         }
+        .onChange(of: vm.validationShakeTick) { _, _ in
+            formShakeTick += 1
+        }
         .overlay {
             if vm.isLoading {
                 Color.black.opacity(0.35)
@@ -138,11 +143,6 @@ struct EmailLoginView: View {
         }
     }
 
-    private var canSubmitEmailLogin: Bool {
-        let e = vm.email.trimmingCharacters(in: .whitespacesAndNewlines)
-        return AuthViewModel.isValidEmail(e) && !vm.password.isEmpty
-    }
-
     private var emailField: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("電郵")
@@ -157,9 +157,30 @@ struct EmailLoginView: View {
                     .modifier(EmailTextFieldPlatform())
                     .deskerTextFieldNoAutocaps()
                     .autocorrectionDisabled()
+                    .onChange(of: vm.email) { _, _ in
+                        vm.fieldErrorEmail = nil
+                    }
+                if loginEmailLooksValid {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AppColor.success)
+                        .accessibilityLabel("格式正確")
+                }
             }
-            .modifier(EmailFieldModifiers(focused: focusedField == .email))
+            .modifier(EmailFieldModifiers(
+                focused: focusedField == .email,
+                invalid: vm.fieldErrorEmail != nil
+            ))
+            if let err = vm.fieldErrorEmail {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(AppColor.error)
+            }
         }
+    }
+
+    private var loginEmailLooksValid: Bool {
+        let e = vm.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        return AuthViewModel.isValidEmail(e)
     }
 
     private var passwordField: some View {
@@ -179,6 +200,9 @@ struct EmailLoginView: View {
                     }
                 }
                 .focused($focusedField, equals: .password)
+                .onChange(of: vm.password) { _, _ in
+                    vm.fieldErrorPassword = nil
+                }
                 Button {
                     showPassword.toggle()
                 } label: {
@@ -186,13 +210,22 @@ struct EmailLoginView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
             }
-            .modifier(EmailFieldModifiers(focused: focusedField == .password))
+            .modifier(EmailFieldModifiers(
+                focused: focusedField == .password,
+                invalid: vm.fieldErrorPassword != nil
+            ))
+            if let err = vm.fieldErrorPassword {
+                Text(err)
+                    .font(.caption)
+                    .foregroundStyle(AppColor.error)
+            }
         }
     }
 }
 
 private struct EmailFieldModifiers: ViewModifier {
     let focused: Bool
+    var invalid: Bool = false
 
     func body(content: Content) -> some View {
         content
@@ -202,8 +235,8 @@ private struct EmailFieldModifiers: ViewModifier {
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(
-                        focused ? AppColor.primary : AppColor.textTertiary.opacity(0.35),
-                        lineWidth: focused ? 2 : 1
+                        invalid ? AppColor.error : (focused ? AppColor.primary : AppColor.textTertiary.opacity(0.35)),
+                        lineWidth: invalid || focused ? 2 : 1
                     )
             )
     }

@@ -11,6 +11,7 @@ struct BasicInfoView: View {
 
     @State private var nameError: String?
     @State private var langError: String?
+    @State private var regionError: String?
     @State private var validationShakeTrigger = 0
 #if os(iOS)
     @State private var photoPickerItem: PhotosPickerItem?
@@ -80,6 +81,7 @@ struct BasicInfoView: View {
                             .stroke(nameError != nil ? AppColor.error.opacity(0.85) : Color.clear, lineWidth: 1.5)
                     )
                     .deskerShake(trigger: validationShakeTrigger)
+                    .deskerErrorBorderPulse(trigger: validationShakeTrigger, cornerRadius: CardChrome.cornerRadiusMedium)
 
                     if let nameError {
                         inlineError(nameError)
@@ -99,6 +101,7 @@ struct BasicInfoView: View {
                     Menu {
                         ForEach(regionOptions, id: \.self) { region in
                             Button(region) {
+                                regionError = nil
                                 viewModel.region = region
                             }
                         }
@@ -121,9 +124,18 @@ struct BasicInfoView: View {
                         .background(AppColor.cardBackground)
                         .cornerRadius(CardChrome.cornerRadiusMedium)
                         .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium)
+                                .stroke(regionError != nil ? AppColor.error.opacity(0.9) : Color.clear, lineWidth: 1.5)
+                        )
+                    }
+                    if let regionError {
+                        inlineError(regionError)
+                            .padding(.top, 4)
                     }
                 }
                 .padding(.horizontal, 24)
+                .animation(.spring(response: 0.38, dampingFraction: 0.82), value: regionError)
 
                 // Languages
                 VStack(alignment: .leading, spacing: 8) {
@@ -390,6 +402,15 @@ struct BasicInfoView: View {
         if viewModel.selectedLanguages.isEmpty {
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
                 langError = "請至少選擇一種語言"
+            }
+            validationShakeTrigger += 1
+            HapticFeedback.error()
+            ok = false
+        }
+        let regionTrimmed = viewModel.region.trimmingCharacters(in: .whitespacesAndNewlines)
+        if regionTrimmed.isEmpty {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                regionError = "請選擇地區"
             }
             validationShakeTrigger += 1
             HapticFeedback.error()

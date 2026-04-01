@@ -145,10 +145,12 @@ struct WelcomeView: View {
         .sheet(isPresented: $showPhoneLogin) {
             PhoneLoginView()
                 .environmentObject(auth)
+                .deskerSheetSpringContent()
         }
         .sheet(isPresented: $showingEmailLogin) {
             EmailLoginView(auth: auth)
                 .environmentObject(auth)
+                .deskerSheetSpringContent()
         }
     }
 

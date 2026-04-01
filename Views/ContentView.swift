@@ -113,7 +113,7 @@ struct MainTabView: View {
                 .opacity(tabRouter.selectedTab == 3 ? 1 : 0)
                 .allowsHitTesting(tabRouter.selectedTab == 3)
         }
-        .animation(.easeInOut(duration: 0.24), value: tabRouter.selectedTab)
+        .animation(DeskerAnimation.tabCrossFade, value: tabRouter.selectedTab)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             iosCustomTabBar
         }
@@ -201,7 +201,7 @@ struct MainTabView: View {
             guard now.timeIntervalSince(lastTabSwitchAt) >= 0.3 else { return }
             lastTabSwitchAt = now
             HapticFeedback.selection()
-            withAnimation(.easeInOut(duration: 0.24)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = index
             }
         } label: {

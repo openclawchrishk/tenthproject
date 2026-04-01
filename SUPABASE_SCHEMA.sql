@@ -543,3 +543,18 @@ CREATE POLICY "Users can update their conversations" ON public.conversations FOR
 );
 
 COMMIT;
+
+-- ============================================================
+-- BATCH N — pitch length, member limit (idempotent). Bio length enforced in app (`ProfileFieldValidation`).
+-- ============================================================
+BEGIN;
+
+ALTER TABLE public.desks DROP CONSTRAINT IF EXISTS check_desk_pitch_length;
+ALTER TABLE public.desks ADD CONSTRAINT check_desk_pitch_length CHECK (
+    char_length(trim(both from pitch)) >= 1 AND char_length(pitch) <= 150
+);
+
+ALTER TABLE public.desks DROP CONSTRAINT IF EXISTS check_member_limit_positive;
+ALTER TABLE public.desks ADD CONSTRAINT check_member_limit_positive CHECK (member_limit >= 1);
+
+COMMIT;

@@ -125,10 +125,12 @@ struct ProfileView: View {
                     url: profileURL(for: user),
                     onBuildIGCardShareItems: { await buildProfileIGShareItems(for: user) }
                 )
+                .deskerSheetSpringContent()
             }
         }
         .sheet(isPresented: $showVerificationSheet) {
             verificationRequestForm
+                .deskerSheetSpringContent()
         }
         .fileImporter(
             isPresented: $showDocImporter,
@@ -583,6 +585,7 @@ struct ProfileView: View {
                     }
                 }
                 .disabled(isSaving)
+                .opacity(isSaving ? 0.5 : 1)
                 .foregroundStyle(.white)
                 .background(
                     LinearGradient(colors: [AppColor.primary, AppColor.secondary], startPoint: .leading, endPoint: .trailing)
@@ -728,7 +731,7 @@ struct ProfileView: View {
             toast.show(.success, "已提交認證申請")
             HapticFeedback.success()
         } catch {
-            banner = "提交失敗：\(error.localizedDescription)"
+            banner = "提交失敗：\(APIErrorMessages.userFacingMessage(for: error))"
             HapticFeedback.error()
         }
     }
@@ -759,6 +762,12 @@ struct ProfileView: View {
 
     private func save() async {
         guard var profile = auth.currentUser else { return }
+        let u = usernameDraft.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !u.isEmpty && !ProfileFieldValidation.isValidUsername(u) {
+            banner = "使用者名稱只可使用英文、數字及底線（最多 \(ProfileFieldValidation.usernameMaxLength) 字）"
+            HapticFeedback.error()
+            return
+        }
         isSaving = true
         banner = nil
         defer { isSaving = false }
@@ -766,8 +775,8 @@ struct ProfileView: View {
             profile.industryTags = Array(industryTags)
             profile.skills = Array(skills)
             profile.needs = Array(needs)
-            let u = usernameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             profile.username = u.isEmpty ? nil : u
+            usernameDraft = u.isEmpty ? "" : u
             try await userRepo.upsertUser(profile)
             await auth.refreshProfile()
             await loadReferrals()
@@ -775,7 +784,7 @@ struct ProfileView: View {
             toast.show(.success, "已儲存")
             HapticFeedback.success()
         } catch {
-            banner = "儲存失敗：\(error.localizedDescription)"
+            banner = "儲存失敗：\(APIErrorMessages.userFacingMessage(for: error))"
             HapticFeedback.error()
         }
     }

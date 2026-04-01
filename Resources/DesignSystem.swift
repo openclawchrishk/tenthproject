@@ -115,6 +115,11 @@ enum CardChrome {
 
     static let sectionSpacing: CGFloat = 24
     static let padding: CGFloat = 16
+    /// Primary buttons — horizontal / vertical padding (spec).
+    static let buttonPaddingHorizontal: CGFloat = 16
+    static let buttonPaddingVertical: CGFloat = 12
+    /// List rows — vertical rhythm between items.
+    static let listItemSpacing: CGFloat = 12
 
     /// Elevated cards — opacity 0.06, radius 16, y 6.
     static let shadowColor = Color.black.opacity(0.06)
@@ -133,6 +138,28 @@ enum CardChrome {
     /// Legacy single shadow — maps to elevated (for any remaining references).
     static let shadowRadius: CGFloat = shadowRadiusElevated
     static let shadowY: CGFloat = shadowYElevated
+
+    /// Floating controls (FAB, overlay back affordances).
+    static let shadowRadiusFloating: CGFloat = 14
+    static let shadowYFloating: CGFloat = 8
+    static let shadowColorFloating = Color.black.opacity(0.12)
+}
+
+// MARK: - Animation timing (micro-interactions)
+
+enum DeskerAnimation {
+    /// Press-in for buttons / chips.
+    static let pressIn = Animation.easeInOut(duration: 0.1)
+    /// Release — spring back (~200ms feel).
+    static let releaseSpring = Animation.spring(response: 0.2, dampingFraction: 0.78)
+    /// Card press / release (mirrors buttons with slightly softer release).
+    static let cardReleaseSpring = Animation.spring(response: 0.2, dampingFraction: 0.8)
+    /// Tab content cross-fade.
+    static let tabCrossFade = Animation.easeInOut(duration: 0.2)
+    /// Validation shake window.
+    static let shakeTotal: TimeInterval = 0.3
+    /// Error border pulse cycle.
+    static let errorPulse: TimeInterval = 0.2
 }
 
 extension View {
@@ -158,6 +185,11 @@ extension View {
 
     func deskerButtonShadow() -> some View {
         shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+    }
+
+    /// Stronger shadow for floating chrome (e.g. overlay back button).
+    func deskerFloatingShadow() -> some View {
+        shadow(color: CardChrome.shadowColorFloating, radius: CardChrome.shadowRadiusFloating, x: 0, y: CardChrome.shadowYFloating)
     }
 
     /// `navigationBarTitleDisplayMode` is unavailable on macOS.
@@ -227,31 +259,31 @@ struct DeskerChipPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.92 : 1)
-            .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
+            .animation(configuration.isPressed ? DeskerAnimation.pressIn : DeskerAnimation.releaseSpring, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed { HapticFeedback.light() }
             }
     }
 }
 
-/// Primary buttons — press scale 0.97.
+/// Primary buttons — press 0.97 @ 100ms, spring release ~200ms; use `.opacity` when `disabled`.
 struct DeskerButtonPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
+            .animation(configuration.isPressed ? DeskerAnimation.pressIn : DeskerAnimation.releaseSpring, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed { HapticFeedback.medium() }
             }
     }
 }
 
-/// Card-style controls: subtle scale on press (0.98).
+/// Card-style controls: press 0.98 @ 100ms, spring release ~200ms.
 struct DeskerCardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
+            .animation(configuration.isPressed ? DeskerAnimation.pressIn : DeskerAnimation.cardReleaseSpring, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed { HapticFeedback.light() }
             }
@@ -264,14 +296,24 @@ extension View {
         modifier(DeskerSheetSpringModifier())
     }
 
-    /// Loading / skeleton pulse.
+    /// Loading / skeleton pulse (legacy subtle opacity breathe).
     func deskerPulse(active: Bool) -> some View {
         modifier(DeskerPulseModifier(active: active))
     }
 
-    /// Horizontal shake for validation errors (~3 oscillations).
+    /// Skeleton placeholder shimmer (preferred over pulse for bars).
+    func deskerSkeletonShimmer(active: Bool = true) -> some View {
+        modifier(DeskerSkeletonShimmerModifier(active: active))
+    }
+
+    /// Horizontal shake for validation errors — 3 oscillations in 300ms.
     func deskerShake(trigger: Int) -> some View {
         modifier(DeskerShakeModifier(trigger: trigger))
+    }
+
+    /// One-cycle red border emphasis when `active` becomes true (e.g. inline validation).
+    func deskerErrorBorderPulse(trigger: Int, cornerRadius: CGFloat = CardChrome.cornerRadiusMedium) -> some View {
+        modifier(DeskerErrorBorderPulseModifier(trigger: trigger, cornerRadius: cornerRadius))
     }
 }
 
@@ -302,14 +344,76 @@ private struct DeskerShakeModifier: ViewModifier {
         content
             .offset(x: offset)
             .onChange(of: trigger) { _, _ in
-                let steps: [CGFloat] = [8, -8, 6, -6, 4, -4, 0]
+                // 3 oscillations (6 half-cycles + rest) within ~300ms
+                let steps: [CGFloat] = [10, -10, 8, -8, 5, -5, 0]
+                let stepCount = max(steps.count - 1, 1)
+                let dt = DeskerAnimation.shakeTotal / Double(stepCount)
                 offset = 0
                 for (i, x) in steps.enumerated() {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.045) {
-                        withAnimation(.linear(duration: 0.04)) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * dt) {
+                        withAnimation(.easeInOut(duration: dt * 0.95)) {
                             offset = x
                         }
                     }
+                }
+            }
+    }
+}
+
+private struct DeskerErrorBorderPulseModifier: ViewModifier {
+    var trigger: Int
+    var cornerRadius: CGFloat
+    @State private var pulse: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(AppColor.error.opacity(0.25 + pulse * 0.7), lineWidth: 1 + pulse * 1.25)
+            )
+            .onChange(of: trigger) { _, _ in
+                var t = Transaction(animation: nil)
+                t.disablesAnimations = true
+                withTransaction(t) { pulse = 1 }
+                withAnimation(.easeInOut(duration: DeskerAnimation.errorPulse)) {
+                    pulse = 0
+                }
+            }
+    }
+}
+
+private struct DeskerSkeletonShimmerModifier: ViewModifier {
+    let active: Bool
+    @State private var phase: CGFloat = -0.7
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if active {
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0),
+                                Color.white.opacity(0.55),
+                                Color.white.opacity(0),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .frame(width: w * 0.42)
+                        .offset(x: phase * (w + w * 0.42))
+                        .blendMode(.overlay)
+                    }
+                    .allowsHitTesting(false)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+            }
+            .onAppear {
+                guard active else { return }
+                phase = -0.7
+                withAnimation(.linear(duration: 1.35).repeatForever(autoreverses: false)) {
+                    phase = 1.3
                 }
             }
     }
@@ -320,13 +424,13 @@ private struct DeskerSheetSpringModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .offset(y: appeared ? 0 : 28)
+            .offset(y: appeared ? 0 : 36)
             .opacity(appeared ? 1 : 0)
             #if os(iOS)
             .presentationDragIndicator(.visible)
             #endif
             .onAppear {
-                withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
+                withAnimation(.spring(response: 0.52, dampingFraction: 0.84)) {
                     appeared = true
                 }
             }
@@ -456,8 +560,8 @@ struct DeskerSkeletonBar: View {
             .fill(AppColor.secondaryGroupedSurface)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .deskerPulse(active: true)
-            .opacity(0.85)
+            .deskerSkeletonShimmer(active: true)
+            .opacity(0.92)
     }
 }
 
@@ -468,7 +572,7 @@ struct ExploreCardSkeleton: View {
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .fill(AppColor.secondaryGroupedSurface)
                     .frame(width: 60, height: 60)
-                    .deskerPulse(active: true)
+                    .deskerSkeletonShimmer(active: true)
                 VStack(alignment: .leading, spacing: 8) {
                     DeskerSkeletonBar(height: 18)
                     DeskerSkeletonBar(height: 12)

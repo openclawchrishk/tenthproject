@@ -57,7 +57,7 @@ struct ExploreView: View {
                                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                                         .fill(AppColor.cardBackground)
                                         .frame(height: 140)
-                                        .deskerPulse(active: true)
+                                        .deskerSkeletonShimmer(active: true)
                                         .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                                 }
                                 .padding(.horizontal, CardChrome.padding)
@@ -107,6 +107,9 @@ struct ExploreView: View {
                         .padding(.bottom, CardChrome.sectionSpacing)
                     }
                     .refreshable {
+                        #if os(iOS)
+                        HapticFeedback.light()
+                        #endif
                         isPullRefreshing = true
                         await reloadExploreAndInviteState()
                         withAnimation(.easeInOut(duration: 0.28)) {
@@ -196,6 +199,7 @@ struct ExploreView: View {
             .deskerHiddenNavigationBar()
             .sheet(isPresented: $showConnectionMessageSheet) {
                 connectionInviteMessageSheet
+                    .deskerSheetSpringContent()
             }
             #if os(iOS)
             .sheet(isPresented: $showShareSheet) {
@@ -388,7 +392,7 @@ struct ExploreView: View {
     private var exploreEmpty: some View {
         VStack(spacing: 18) {
             Image(systemName: "person.3.sequence")
-                .font(.system(size: 52))
+                .font(.system(size: 48))
                 .foregroundStyle(AppColor.secondary)
                 .symbolRenderingMode(.hierarchical)
             Text("暫時沒有創業者，稍後再回來")
@@ -403,7 +407,7 @@ struct ExploreView: View {
                 .frame(maxWidth: 520)
             Button {
                 HapticFeedback.medium()
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                withAnimation(DeskerAnimation.tabCrossFade) {
                     tabRouter.selectedTab = 3
                 }
             } label: {
@@ -530,16 +534,11 @@ struct ExploreView: View {
 // MARK: - Custom refresh + public profile preview
 
 private struct DeskerCustomRefreshIndicator: View {
-    @State private var spin = false
-
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(AppColor.primary)
-                .rotationEffect(.degrees(spin ? 360 : 0))
-                .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin)
-                .onAppear { spin = true }
+            ProgressView()
+                .tint(AppColor.primary)
+                .scaleEffect(1.05)
             Text("更新中…")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppColor.textSecondary)
@@ -547,7 +546,7 @@ private struct DeskerCustomRefreshIndicator: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: Capsule())
-        .shadow(color: CardChrome.shadowColor, radius: 8, x: 0, y: 3)
+        .deskerFloatingShadow()
     }
 }
 
@@ -766,7 +765,7 @@ private struct ExploreFounderCard: View {
                     )
                 )
                 .foregroundStyle(.white)
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             }
             .buttonStyle(DeskerButtonPressStyle())
             .deskerButtonShadow()

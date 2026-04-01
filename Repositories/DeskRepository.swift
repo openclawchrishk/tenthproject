@@ -377,7 +377,17 @@ final class DeskRepository {
         guard ProfileFieldValidation.isValidDeskName(trimmedName) else {
             throw RepositoryError.serverError("Desk 名稱須為 1–\(ProfileFieldValidation.deskNameMaxLength) 字")
         }
+        let trimmedPitch = pitch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard ProfileFieldValidation.isValidDeskPitch(trimmedPitch) else {
+            throw RepositoryError.serverError("一句 Pitch 須為 1–\(ProfileFieldValidation.pitchMaxLength) 字")
+        }
+        guard !industries.isEmpty else {
+            throw RepositoryError.serverError("請至少選擇一個行業")
+        }
         let memberLimit = recruitingRoles.reduce(1) { $0 + $1.count }
+        guard memberLimit > 0 else {
+            throw RepositoryError.serverError("成員人數須大於 0")
+        }
 
         struct DeskInsert: Encodable {
             let id: UUID
@@ -399,7 +409,7 @@ final class DeskRepository {
             id: deskId,
             founder_id: founderId,
             name: trimmedName,
-            pitch: pitch.trimmingCharacters(in: .whitespacesAndNewlines),
+            pitch: trimmedPitch,
             industries: industries,
             region: region,
             languages: [],

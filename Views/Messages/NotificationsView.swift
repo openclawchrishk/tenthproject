@@ -195,6 +195,9 @@ struct NotificationsView: View {
     }
 
     private func deleteOne(_ n: AppNotification) async {
+        #if os(iOS)
+        HapticFeedback.medium()
+        #endif
         deleteInFlightId = n.id
         defer { deleteInFlightId = nil }
         do {

@@ -95,6 +95,7 @@ struct PremiumUpgradeSheet: View {
                 }
             }
         }
+        .deskerSheetSpringContent()
     }
 
     private var comparisonTable: some View {

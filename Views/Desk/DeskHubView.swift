@@ -62,9 +62,15 @@ struct DeskHubView: View {
             CreateDeskView()
                 .environmentObject(auth)
                 .environmentObject(toast)
+                .deskerSheetSpringContent()
         }
         .task { await reload() }
-        .refreshable { await reload() }
+        .refreshable {
+            #if os(iOS)
+            HapticFeedback.light()
+            #endif
+            await reload()
+        }
     }
 
     private var deskFirstVisitTip: some View {

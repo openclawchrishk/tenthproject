@@ -124,28 +124,37 @@ struct DeskDetailView: View {
         }
         .task { await load() }
         .sheet(isPresented: $showDeskShareOptions) {
-            if let desk {
-                DeskerShareOptionsSheet(
-                    title: "分享 Desk",
-                    url: PublicLinks.deskURL(deskId: desk.id),
-                    onBuildIGCardShareItems: { await buildDeskIGCardShareItems() }
-                )
-            }
-        }
-        .sheet(isPresented: $showDeskReport) {
-            if let desk {
-                ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
-                    guard let uid = auth.currentUser?.id else {
-                        throw RepositoryError.notAuthenticated
-                    }
-                    try await ReportBlockRepository().submitReport(draft, reporterId: uid)
+            Group {
+                if let desk {
+                    DeskerShareOptionsSheet(
+                        title: "分享 Desk",
+                        url: PublicLinks.deskURL(deskId: desk.id),
+                        onBuildIGCardShareItems: { await buildDeskIGCardShareItems() }
+                    )
                 }
             }
+            .deskerSheetSpringContent()
+        }
+        .sheet(isPresented: $showDeskReport) {
+            Group {
+                if let desk {
+                    ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
+                        guard let uid = auth.currentUser?.id else {
+                            throw RepositoryError.notAuthenticated
+                        }
+                        try await ReportBlockRepository().submitReport(draft, reporterId: uid)
+                    }
+                }
+            }
+            .deskerSheetSpringContent()
         }
         .sheet(isPresented: $showApplySheet) {
-            if let desk {
-                applySheet(desk)
+            Group {
+                if let desk {
+                    applySheet(desk)
+                }
             }
+            .deskerSheetSpringContent()
         }
         .sheet(isPresented: $showDeskExportShare) {
             ShareSheetView(items: deskExportShareItems)
@@ -162,7 +171,7 @@ struct DeskDetailView: View {
                 .foregroundStyle(AppColor.primary)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(Color.white))
-                .shadow(color: CardChrome.shadowColor, radius: 10, x: 0, y: 4)
+                .deskerFloatingShadow()
         }
         .buttonStyle(DeskerButtonPressStyle())
         .padding(.leading, 12)

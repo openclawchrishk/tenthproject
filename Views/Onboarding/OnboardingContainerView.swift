@@ -23,17 +23,34 @@ struct OnboardingContainerView: View {
                 switch viewModel.currentStep {
                 case .roleSelection:
                     RoleSelectionView(viewModel: viewModel)
+                        .transition(onboardingSlideTransition)
                 case .basicInfo:
                     BasicInfoView(viewModel: viewModel)
+                        .transition(onboardingSlideTransition)
                 case .skillsAndNeeds:
                     SkillsAndNeedsView(viewModel: viewModel)
+                        .transition(onboardingSlideTransition)
                 case .completed:
                     Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
+            .animation(.spring(response: 0.48, dampingFraction: 0.82), value: viewModel.currentStep)
         }
         .background(AppColor.background)
+    }
+
+    private var onboardingSlideTransition: AnyTransition {
+        if viewModel.lastStepNavigationWasForward {
+            .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+        } else {
+            .asymmetric(
+                insertion: .move(edge: .leading).combined(with: .opacity),
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        }
     }
 
     private var onboardingProgressDots: some View {
@@ -189,17 +206,20 @@ struct CompletionView: View {
     }
 }
 
-/// Lightweight confetti-like dots drifting upward (non-interactive).
+/// Confetti-like dots falling from the top of the field (non-interactive).
 private struct CompletionConfettiField: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
             Canvas { context, size in
                 let t = CGFloat(timeline.date.timeIntervalSinceReferenceDate)
                 let colors: [Color] = [AppColor.gold, AppColor.secondary, AppColor.teal, .white]
+                let fallHeight = size.height + 80
                 for i in 0..<36 {
                     let fi = CGFloat(i)
-                    let x = (sin(fi * 1.1 + t * 0.8) * 0.42 + 0.5) * size.width
-                    let y = (CGFloat((Double(i * 7) + t * 55.0).truncatingRemainder(dividingBy: Double(size.height + 40))) - 20)
+                    let x = (sin(fi * 1.1 + t * 0.35) * 0.42 + 0.5) * size.width
+                    let phase = Double(i) * 0.31 + Double(t) * 1.15
+                    let yRaw = CGFloat(phase.truncatingRemainder(dividingBy: Double(fallHeight)))
+                    let y = yRaw - 40
                     let c = colors[Int(i) % colors.count].opacity(0.55 + Double(i % 3) * 0.12)
                     let r = CGRect(x: x, y: y, width: 5 + (i % 3 == 0 ? 3 : 0), height: 7 + (i % 4 == 0 ? 4 : 0))
                     context.fill(Path(ellipseIn: r), with: .color(c))
@@ -241,17 +261,20 @@ struct OnboardingFlowView: View {
                             case .roleSelection:
                                 RoleSelectionView(viewModel: viewModel)
                                     .environmentObject(auth)
+                                    .transition(onboardingSlideTransition)
                             case .basicInfo:
                                 BasicInfoView(viewModel: viewModel)
                                     .environmentObject(auth)
+                                    .transition(onboardingSlideTransition)
                             case .skillsAndNeeds:
                                 SkillsAndNeedsView(viewModel: viewModel)
                                     .environmentObject(auth)
+                                    .transition(onboardingSlideTransition)
                             case .completed:
                                 Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                         }
-                        .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
+                        .animation(.spring(response: 0.48, dampingFraction: 0.82), value: viewModel.currentStep)
                     }
                     .background(AppColor.background)
                     .navigationTitle(onboardingNavigationTitle)
@@ -276,14 +299,26 @@ struct OnboardingFlowView: View {
         .tint(AppColor.primary)
     }
 
+    private var onboardingSlideTransition: AnyTransition {
+        if viewModel.lastStepNavigationWasForward {
+            .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+        } else {
+            .asymmetric(
+                insertion: .move(edge: .leading).combined(with: .opacity),
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        }
+    }
+
     @ViewBuilder
     private var onboardingBackButton: some View {
         if showsOnboardingBackButton {
             Button {
                 HapticFeedback.selection()
-                withAnimation(.easeInOut(duration: 0.35)) {
-                    viewModel.goToPreviousStep()
-                }
+                viewModel.goToPreviousStep()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))

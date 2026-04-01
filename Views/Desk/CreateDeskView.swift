@@ -18,6 +18,7 @@ struct CreateDeskView: View {
     @State private var expectations: String = ""
     @State private var isSubmitting = false
     @State private var errorText: String?
+    @State private var formShakeTick = 0
 
     private let deskRepository = DeskRepository()
 
@@ -42,15 +43,23 @@ struct CreateDeskView: View {
                     case 2: tagsStepSections
                     default: previewStepSections
                     }
-                    if let errorText {
+                    if let err = errorText {
                         Section {
-                            Text(errorText)
-                                .foregroundStyle(AppColor.error)
-                                .font(.footnote)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(err)
+                                    .foregroundStyle(AppColor.error)
+                                    .font(.footnote)
+                                Button("重試") {
+                                    errorText = nil
+                                    Task { await submit() }
+                                }
+                                .font(.footnote.weight(.semibold))
+                            }
                         }
                     }
                 }
             }
+            .deskerShake(trigger: formShakeTick)
             .navigationTitle("創建 Desk")
             .deskerInlineNavigationTitle()
             .toolbar {
@@ -401,7 +410,8 @@ struct CreateDeskView: View {
             isSubmitting = false
             dismiss()
         } catch {
-            errorText = error.localizedDescription
+            errorText = APIErrorMessages.userFacingMessage(for: error)
+            formShakeTick += 1
             isSubmitting = false
         }
     }
