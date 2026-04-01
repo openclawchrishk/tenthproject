@@ -73,6 +73,7 @@
 		F3FDC2F480DD74FB5A1F0A5B /* DMRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6643C3331C001332C86320 /* DMRepository.swift */; };
 		F771B8FF1B84445AC8192BA5 /* ReportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD57D00F3BE78024D1B7A7E5 /* ReportSheetView.swift */; };
 		F92B825C973A5ACDDA14C272 /* DeskGroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98F384A201B7AC6E5CD5A962 /* DeskGroupChatView.swift */; };
+		F96ED78D74305EFE962DA7F6 /* NetworkResilience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98FD302C9612896B1EDBE60A /* NetworkResilience.swift */; };
 		FADE9D63797319BCA1227798 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 680A5D533D5F9120DA065502 /* PushNotificationService.swift */; };
 		FD72ACC56BDB1BA8410F4736 /* PublicLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6554DC8B8122379D93B8C2 /* PublicLinks.swift */; };
 		FF7BCA18012DF8DFFA521086 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD31218D01A71FDA599B4CC6 /* DeepLinkHandler.swift */; };
@@ -125,6 +126,7 @@
 		9204F6096D71FD5722C15C89 /* EmailLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailLoginView.swift; sourceTree = "<group>"; };
 		985C4B544CF54478FCF20BDC /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
 		98F384A201B7AC6E5CD5A962 /* DeskGroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskGroupChatView.swift; sourceTree = "<group>"; };
+		98FD302C9612896B1EDBE60A /* NetworkResilience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkResilience.swift; sourceTree = "<group>"; };
 		993C7F7EF8BE206A4A00DF5F /* SkillsAndNeedsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsAndNeedsView.swift; sourceTree = "<group>"; };
 		A0CD1F4E84A8A5E1D1C1A8AF /* DeskerAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskerAnalytics.swift; sourceTree = "<group>"; };
 		A0F84537FD04013ED346D1AD /* CreateDeskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateDeskView.swift; sourceTree = "<group>"; };
@@ -325,6 +327,7 @@
 				EC6643C3331C001332C86320 /* DMRepository.swift */,
 				2E7DE6A2107A1533163E46CE /* InviteRepository.swift */,
 				B37D51260A0516456ACD2535 /* MessageRepository.swift */,
+				98FD302C9612896B1EDBE60A /* NetworkResilience.swift */,
 				85DDB92CC6B2453C384DE1D1 /* NotificationRepository.swift */,
 				1DF9F772CA29E11C5975D2A6 /* ReferralRepository.swift */,
 				BA842683E699D8D352E8DCE9 /* ReportBlockRepository.swift */,
@@ -465,6 +468,7 @@
 				0F3DFA8BEB920416763D9D55 /* MessageRepository.swift in Sources */,
 				50A01FA541AE328054D10A29 /* MessagesInboxView.swift in Sources */,
 				B3FED0B504072D47EFAF3ABF /* MyConnectionsView.swift in Sources */,
+				F96ED78D74305EFE962DA7F6 /* NetworkResilience.swift in Sources */,
 				0EA3976432B05E2EF3428357 /* NotificationRepository.swift in Sources */,
 				C00BA172A41E48E31F16E093 /* NotificationsView.swift in Sources */,
 				98A4BCDA7B4F1576C068AD08 /* OfflineDirectMessageQueue.swift in Sources */,
@@ -558,10 +562,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
@@ -590,10 +592,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
