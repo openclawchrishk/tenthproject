@@ -97,13 +97,8 @@ struct SkillsAndNeedsView: View {
                     Task { await saveAndContinue() }
                 } label: {
                     HStack {
-                        if isSaving {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Image(systemName: "checkmark.circle.fill")
-                            Text("完成設定")
-                        }
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("完成設定")
                     }
                     .font(.headline)
                     .foregroundStyle(.white)
@@ -117,6 +112,7 @@ struct SkillsAndNeedsView: View {
                         )
                     )
                     .cornerRadius(12)
+                    .opacity(isSaving ? 0.65 : 1)
                 }
                 .disabled(isSaving)
                 .padding(.bottom, 32)
@@ -124,6 +120,20 @@ struct SkillsAndNeedsView: View {
             .padding(.horizontal, 24)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .overlay {
+            if isSaving {
+                ZStack {
+                    Color.black.opacity(0.04).ignoresSafeArea()
+                    ProgressView()
+                        .padding(22)
+                        .background(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        )
+                }
+                .allowsHitTesting(false)
+            }
+        }
     }
 
     @ViewBuilder
@@ -143,44 +153,53 @@ struct SkillsAndNeedsView: View {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
+                if !selection.wrappedValue.isEmpty {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.success)
+                        .accessibilityLabel("已完成選擇")
+                }
             }
 
             Text(subtitle)
                 .font(.caption)
                 .foregroundStyle(AppColor.textSecondary)
 
-            FlowLayout(spacing: 8) {
-                ForEach(options, id: \.self) { option in
-                    let isSelected = selection.wrappedValue.contains(option)
-                    Button {
-                        HapticFeedback.light()
-                        if isSelected {
-                            selection.wrappedValue.remove(option)
-                        } else {
-                            selection.wrappedValue.insert(option)
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if let iconName = icons[option] {
-                                Image(systemName: iconName)
-                                    .font(.caption)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(options, id: \.self) { option in
+                        let isSelected = selection.wrappedValue.contains(option)
+                        Button {
+                            HapticFeedback.light()
+                            if isSelected {
+                                selection.wrappedValue.remove(option)
+                            } else {
+                                selection.wrappedValue.insert(option)
                             }
-                            Text(option)
-                                .font(.subheadline)
+                        } label: {
+                            HStack(spacing: 6) {
+                                if let iconName = icons[option] {
+                                    Image(systemName: iconName)
+                                        .font(.caption)
+                                }
+                                Text(option)
+                                    .font(.subheadline)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(isSelected ? accent : accent.opacity(0.1))
+                            .foregroundStyle(isSelected ? .white : accent)
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
+                            .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: 3, x: 0, y: 1)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
+                                    .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)
+                            )
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(isSelected ? accent : accent.opacity(0.1))
-                        .foregroundStyle(isSelected ? .white : accent)
-                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
-                        .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: 3, x: 0, y: 1)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
-                                .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)
-                        )
+                        .buttonStyle(DeskerChipPressStyle())
                     }
-                    .buttonStyle(DeskerChipPressStyle())
                 }
+                .padding(.vertical, 2)
             }
         }
     }
@@ -198,6 +217,7 @@ struct SkillsAndNeedsView: View {
             viewModel.proceedToNextStep()
         } catch {
             saveError = "儲存失敗：\(error.localizedDescription)"
+            HapticFeedback.error()
         }
     }
 }

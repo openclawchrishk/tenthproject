@@ -183,12 +183,12 @@ struct DeskCardView: View {
                     Spacer()
                 }
 
-                Text(desk.name)
+                Text(desk.name.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 20))
                     .font(.headline)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
 
-                Text(desk.pitch)
+                Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 100))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(3)
@@ -197,13 +197,24 @@ struct DeskCardView: View {
                 if !desk.industryTags.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(desk.industryTags, id: \.self) { tag in
+                            let visible = Array(desk.industryTags.prefix(3))
+                            let more = max(0, desk.industryTags.count - 3)
+                            ForEach(visible, id: \.self) { tag in
                                 Text(tag)
                                     .font(.caption)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(.white.opacity(0.22))
                                     .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
+                            }
+                            if more > 0 {
+                                Text("+\(more) 更多")
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.white.opacity(0.18))
+                                    .foregroundStyle(AppColor.gold)
                                     .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                             }
                         }

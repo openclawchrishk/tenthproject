@@ -53,6 +53,9 @@ struct OnboardingContainerView: View {
 
 struct CompletionView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @State private var iconPulse = false
+    @State private var shimmerX: CGFloat = -1
+    @State private var didCelebrate = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -60,14 +63,20 @@ struct CompletionView: View {
 
             VStack(spacing: 20) {
                 ZStack {
+                    CompletionConfettiField()
+                        .frame(width: 260, height: 200)
+
                     Circle()
                         .fill(AppColor.success.opacity(0.15))
                         .frame(width: 120, height: 120)
+                        .scaleEffect(iconPulse ? 1.06 : 1.0)
+                        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: iconPulse)
 
                     Image(systemName: "checkmark.seal.fill")
                         .font(.system(size: 52))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.success, AppColor.primary)
+                        .shadow(color: AppColor.gold.opacity(0.45), radius: 12, y: 2)
                 }
 
                 Text("歡迎加入 Desker HK！")
@@ -96,18 +105,43 @@ struct CompletionView: View {
                 }
             } label: {
                 Text("開始探索")
-                    .font(.headline)
+                    .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 54)
+                    .frame(height: 56)
                     .background(AppColor.brandGradient)
-                    .cornerRadius(12)
+                    .cornerRadius(14)
+                    .overlay {
+                        GeometryReader { geo in
+                            LinearGradient(
+                                colors: [.clear, .white.opacity(0.45), .clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            .frame(width: geo.size.width * 0.45)
+                            .offset(x: shimmerX * geo.size.width)
+                            .blendMode(.overlay)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .shadow(color: AppColor.primary.opacity(0.35), radius: 12, x: 0, y: 6)
             }
-            .padding(.horizontal, 32)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 28)
             .padding(.bottom, 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background)
+        .onAppear {
+            iconPulse = true
+            withAnimation(.linear(duration: 2.2).repeatForever(autoreverses: false)) {
+                shimmerX = 1.2
+            }
+            if !didCelebrate {
+                didCelebrate = true
+                HapticFeedback.success()
+            }
+        }
     }
 
     private func featureRow(icon: String, color: Color, title: String, desc: String) -> some View {
@@ -131,6 +165,27 @@ struct CompletionView: View {
             Spacer()
         }
         .padding(.vertical, 8)
+    }
+}
+
+/// Lightweight confetti-like dots drifting upward (non-interactive).
+private struct CompletionConfettiField: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+            Canvas { context, size in
+                let t = CGFloat(timeline.date.timeIntervalSinceReferenceDate)
+                let colors: [Color] = [AppColor.gold, AppColor.secondary, AppColor.teal, .white]
+                for i in 0..<36 {
+                    let fi = CGFloat(i)
+                    let x = (sin(fi * 1.1 + t * 0.8) * 0.42 + 0.5) * size.width
+                    let y = (CGFloat((Double(i * 7) + t * 55.0).truncatingRemainder(dividingBy: Double(size.height + 40))) - 20)
+                    let c = colors[Int(i) % colors.count].opacity(0.55 + Double(i % 3) * 0.12)
+                    let r = CGRect(x: x, y: y, width: 5 + (i % 3 == 0 ? 3 : 0), height: 7 + (i % 4 == 0 ? 4 : 0))
+                    context.fill(Path(ellipseIn: r), with: .color(c))
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import os
 
 /// CTA state for sending a Desk invite to the current card founder.
 enum ExploreInviteCTAState: Equatable {
@@ -12,6 +13,8 @@ enum ExploreInviteCTAState: Equatable {
     case pendingConnectionInvite
     case ready
 }
+
+private let exploreVMLog = Logger(subsystem: "hk.desker", category: "Explore")
 
 @MainActor
 final class ExploreViewModel: ObservableObject {
@@ -68,7 +71,8 @@ final class ExploreViewModel: ObservableObject {
             pickCurrentDesk(excluding: nil)
             await refreshFounderForCurrentDesk()
         } catch {
-            errorMessage = error.localizedDescription
+            exploreVMLog.error("load failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = Self.userFacingMessage(for: error)
             desks = []
             currentDesk = nil
             currentFounder = nil
@@ -169,8 +173,31 @@ final class ExploreViewModel: ObservableObject {
             }
             await refreshFounderForCurrentDesk()
         } catch {
-            errorMessage = error.localizedDescription
+            exploreVMLog.error("viewAgain failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = Self.userFacingMessage(for: error)
         }
+    }
+
+    private static func userFacingMessage(for error: Error) -> String {
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            switch ns.code {
+            case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost,
+                 NSURLErrorTimedOut, NSURLErrorDataNotAllowed:
+                return "無網絡連接"
+            default:
+                break
+            }
+        }
+        if let u = error as? URLError {
+            switch u.code {
+            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .timedOut, .dataNotAllowed:
+                return "無網絡連接"
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
     }
 
     private func pickCurrentDesk(excluding: UUID?) {

@@ -1,8 +1,15 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit) && !os(iOS)
+import AppKit
+#endif
+
 // MARK: - App colors (premium indigo / gold)
 
-/// Brand and surface colors. Uses hex values so the app works without an Asset Catalog.
+/// Brand and surface colors. Indigo / gold stay fixed for brand; surfaces follow system appearance (dark mode).
 enum AppColor {
     /// Deep indigo — main brand.
     static let primary = Color(hex: "2D346D")
@@ -13,15 +20,32 @@ enum AppColor {
     /// Soft teal — secondary accents.
     static let teal = Color(hex: "7ECBC0")
 
+    #if os(iOS)
+    static var background: Color { Color(uiColor: .systemBackground) }
+    static var cardBackground: Color { Color(uiColor: .secondarySystemBackground) }
+    static var surfaceElevated: Color { Color(uiColor: .tertiarySystemBackground) }
+    static var textPrimary: Color { Color(uiColor: .label) }
+    static var textSecondary: Color { Color(uiColor: .secondaryLabel) }
+    static var textTertiary: Color { Color(uiColor: .tertiaryLabel) }
+    /// Grouped list chips / bubbles.
+    static var secondaryGroupedSurface: Color { Color(uiColor: .secondarySystemFill) }
+    #elseif os(macOS)
+    static var background: Color { Color(nsColor: .windowBackgroundColor) }
+    static var cardBackground: Color { Color(nsColor: .controlBackgroundColor) }
+    static var surfaceElevated: Color { Color(nsColor: .underPageBackgroundColor) }
+    static var textPrimary: Color { Color(nsColor: .labelColor) }
+    static var textSecondary: Color { Color(nsColor: .secondaryLabelColor) }
+    static var textTertiary: Color { Color(nsColor: .tertiaryLabelColor) }
+    static var secondaryGroupedSurface: Color { Color(nsColor: .controlBackgroundColor) }
+    #else
     static let background = Color(hex: "F5F5F7")
     static let cardBackground = Color.white
     static let surfaceElevated = Color(hex: "FAFAFA")
-    /// Grouped list chips / bubbles (alias for elevated surface).
-    static let secondaryGroupedSurface = surfaceElevated
-
     static let textPrimary = Color(hex: "1A1A2E")
     static let textSecondary = Color(hex: "6B7280")
     static let textTertiary = Color(hex: "9CA3AF")
+    static let secondaryGroupedSurface = surfaceElevated
+    #endif
 
     static let error = Color(hex: "DC2626")
     static let success = Color(hex: "059669")
@@ -62,14 +86,13 @@ enum AppColor {
         endPoint: .bottomTrailing
     )
 
-    static let headerGradient = LinearGradient(
-        colors: [
-            Color.white,
-            AppColor.surfaceElevated,
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
+    static var headerGradient: LinearGradient {
+        LinearGradient(
+            colors: [AppColor.background, AppColor.surfaceElevated],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 
     /// Gold shimmer for premium CTAs.
     static let goldAccentGradient = LinearGradient(
@@ -223,6 +246,17 @@ private struct DeskerSheetSpringModifier: ViewModifier {
                     appeared = true
                 }
             }
+    }
+}
+
+// MARK: - Display truncation (cards & lists)
+
+extension String {
+    /// Trims whitespace, then truncates to `maxLength` characters with an ellipsis (not counting the suffix).
+    func deskerTruncated(maxLength: Int, suffix: String = "…") -> String {
+        let t = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count > maxLength else { return t }
+        return String(t.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + suffix
     }
 }
 

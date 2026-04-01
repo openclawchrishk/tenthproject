@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 struct ProfileView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
@@ -11,6 +15,8 @@ struct ProfileView: View {
     @State private var banner: String?
     @State private var showShareInvite = false
     @State private var showShareProfile = false
+    @State private var showIGExportShare = false
+    @State private var igExportShareItems: [Any] = []
     @State private var showPremium = false
     @State private var referralCount = 0
 
@@ -66,6 +72,7 @@ struct ProfileView: View {
                                 )
                                 .deskerButtonShadow()
                             }
+                            .allowsHitTesting(false)
                         }
                     }
                 } else {
@@ -98,6 +105,9 @@ struct ProfileView: View {
                 let url = profileURL(for: user)
                 ShareSheetView(items: [url])
             }
+        }
+        .sheet(isPresented: $showIGExportShare) {
+            ShareSheetView(items: igExportShareItems)
         }
     }
 
@@ -435,11 +445,7 @@ struct ProfileView: View {
     }
 
     private func profileURL(for user: UserProfile) -> URL {
-        let handle = user.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !handle.isEmpty {
-            return PublicLinks.profileURL(username: handle)
-        }
-        return URL(string: "\(PublicLinks.baseURLString)/u/\(user.id.uuidString.lowercased())")!
+        PublicLinks.profilePublicURL(for: user)
     }
 
     private func loadReferrals() async {
@@ -449,16 +455,25 @@ struct ProfileView: View {
 
     private func exportProfileCard(_ user: UserProfile) async {
         #if os(iOS)
-        guard let image = IGCardExportService.renderProfileCard(user: user) else {
+        var avatar: UIImage?
+        if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let url = URL(string: s) {
+            avatar = await IGCardExportService.loadUIImage(from: url)
+        }
+        guard let image = IGCardExportService.renderProfileCard(user: user, avatarImage: avatar) else {
             banner = "無法產生圖片"
             return
         }
         do {
             try await IGCardExportService.saveToPhotoLibrary(image)
-            banner = "已儲存到相簿"
+            banner = "已儲存到相簿，可分享"
+            igExportShareItems = [image, profileURL(for: user)]
+            showIGExportShare = true
             HapticFeedback.success()
         } catch {
-            banner = "儲存失敗：\(error.localizedDescription)"
+            banner = "儲存失敗：\(error.localizedDescription)，仍可分享"
+            igExportShareItems = [image, profileURL(for: user)]
+            showIGExportShare = true
             HapticFeedback.error()
         }
         #endif

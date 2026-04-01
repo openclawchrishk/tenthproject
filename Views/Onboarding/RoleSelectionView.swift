@@ -122,6 +122,7 @@ struct RoleCard: View {
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .stroke(isSelected ? AppColor.gold.opacity(0.85) : Color.clear, lineWidth: 2)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
         }
         .buttonStyle(RoleCardScaleStyle())
     }

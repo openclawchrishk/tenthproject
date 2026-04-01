@@ -1,4 +1,11 @@
 import SwiftUI
+import os
+
+#if os(iOS)
+import UIKit
+#endif
+
+private let deskDetailLog = Logger(subsystem: "hk.desker", category: "DeskDetail")
 
 /// Full project detail — founder, tags, team, funding, apply / invite.
 struct DeskDetailView: View {
@@ -24,6 +31,8 @@ struct DeskDetailView: View {
     @State private var showDeskShare = false
     @State private var showDeskReport = false
     @State private var deskExportBanner: String?
+    @State private var showDeskExportShare = false
+    @State private var deskExportShareItems: [Any] = []
 
     private let deskRepository = DeskRepository()
     private let inviteRepository = InviteRepository()
@@ -35,33 +44,45 @@ struct DeskDetailView: View {
     }
 
     var body: some View {
-        Group {
+        ZStack {
+            Group {
+                if let loadError, !isLoading {
+                    VStack(spacing: 16) {
+                        ContentUnavailableView(
+                            "無法載入",
+                            systemImage: "exclamationmark.triangle",
+                            description: Text(loadError).foregroundStyle(AppColor.error)
+                        )
+                        Button("重試") {
+                            Task { await load() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColor.primary)
+                    }
+                    .padding()
+                } else if let desk {
+                    detailScroll(desk)
+                } else if !isLoading {
+                    ContentUnavailableView("找不到專案", systemImage: "folder")
+                } else {
+                    Color.clear
+                }
+            }
+
             if isLoading {
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     ProgressView()
                         .tint(AppColor.secondary)
                     Text("載入中...")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
-            } else if let loadError {
-                VStack(spacing: 16) {
-                    ContentUnavailableView(
-                        "無法載入",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(loadError).foregroundStyle(AppColor.error)
-                    )
-                    Button("重試") {
-                        Task { await load() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.primary)
-                }
-                .padding()
-            } else if let desk {
-                detailScroll(desk)
-            } else {
-                ContentUnavailableView("找不到專案", systemImage: "folder")
+                .padding(24)
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                )
+                .allowsHitTesting(false)
             }
         }
         .navigationTitle("專案詳情")
@@ -112,6 +133,9 @@ struct DeskDetailView: View {
             if let desk {
                 applySheet(desk)
             }
+        }
+        .sheet(isPresented: $showDeskExportShare) {
+            ShareSheetView(items: deskExportShareItems)
         }
     }
 
@@ -753,6 +777,7 @@ struct DeskDetailView: View {
             }
             founder = await founderFetch
         } catch {
+            deskDetailLog.error("load desk failed: \(error.localizedDescription, privacy: .public)")
             loadError = error.localizedDescription
         }
     }
@@ -764,17 +789,26 @@ struct DeskDetailView: View {
     private func exportDeskStoryCard() async {
         #if os(iOS)
         guard let desk, let founder else { return }
-        let name = founder.displayName.isEmpty ? "創辦人" : founder.displayName
-        guard let image = IGCardExportService.renderDeskRecruitmentCard(desk: desk, founderName: name) else {
+        var founderImage: UIImage?
+        if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let url = URL(string: s) {
+            founderImage = await IGCardExportService.loadUIImage(from: url)
+        }
+        guard let image = IGCardExportService.renderDeskRecruitmentCard(desk: desk, founder: founder, founderAvatar: founderImage) else {
             deskExportBanner = "無法產生圖片"
             return
         }
+        let link = PublicLinks.deskURL(deskId: desk.id)
         do {
             try await IGCardExportService.saveToPhotoLibrary(image)
-            deskExportBanner = "招募卡已儲存到相簿"
+            deskExportBanner = "招募卡已儲存到相簿，可分享"
+            deskExportShareItems = [image, link]
+            showDeskExportShare = true
             HapticFeedback.success()
         } catch {
-            deskExportBanner = "儲存失敗：\(error.localizedDescription)"
+            deskExportBanner = "儲存失敗：\(error.localizedDescription)，仍可分享"
+            deskExportShareItems = [image, link]
+            showDeskExportShare = true
             HapticFeedback.error()
         }
         #endif

@@ -3,6 +3,11 @@ import SwiftUI
 struct BasicInfoView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     @EnvironmentObject private var auth: AuthRepository
+    @FocusState private var focusedField: BasicInfoFocusField?
+
+    private enum BasicInfoFocusField: Hashable {
+        case displayName
+    }
 
     private let regionOptions = ["HK", "深圳", "廣州", "澳門", "珠海", "東莞", "海外港人", "其他"]
     private let commitmentOptions = [
@@ -12,8 +17,9 @@ struct BasicInfoView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 28) {
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "person.fill")
@@ -60,13 +66,16 @@ struct BasicInfoView: View {
                             .frame(width: 24)
 
                         TextField("你嘅稱呼", text: $viewModel.displayName)
+                            .focused($focusedField, equals: .displayName)
                             .deskerTextFieldNoAutocaps()
+                            .submitLabel(.next)
                     }
                     .padding(14)
                     .background(AppColor.cardBackground)
                     .cornerRadius(12)
                     .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
                 }
+                .id("displayNameField")
                 .padding(.horizontal, 24)
 
                 // Region
@@ -215,10 +224,17 @@ struct BasicInfoView: View {
                     )
                     .cornerRadius(12)
                 }
-                .disabled(viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty)
-                .opacity(viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty ? 0.5 : 1)
+                .disabled(viewModel.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedLanguages.isEmpty)
+                .opacity(viewModel.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedLanguages.isEmpty ? 0.5 : 1)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
+            }
+            }
+            .onChange(of: focusedField) { _, new in
+                guard new == .displayName else { return }
+                withAnimation(.easeInOut(duration: 0.35)) {
+                    proxy.scrollTo("displayNameField", anchor: .center)
+                }
             }
         }
         .background(AppColor.background.ignoresSafeArea())

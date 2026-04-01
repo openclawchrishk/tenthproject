@@ -21,16 +21,7 @@ struct ExploreView: View {
 
                 ScrollView {
                     VStack(spacing: CardChrome.sectionSpacing) {
-                        if viewModel.isLoading {
-                            VStack(spacing: 16) {
-                                ProgressView()
-                                    .tint(AppColor.secondary)
-                                Text("載入中...")
-                                    .font(.subheadline)
-                                    .foregroundStyle(AppColor.textSecondary)
-                            }
-                            .padding(.top, 48)
-                        } else if let err = viewModel.errorMessage {
+                        if let err = viewModel.errorMessage {
                             VStack(spacing: 16) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 52))
@@ -100,6 +91,24 @@ struct ExploreView: View {
                 .refreshable { await reloadExploreAndInviteState() }
             }
             .background(AppColor.background.ignoresSafeArea())
+            .overlay {
+                if viewModel.isLoading {
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(AppColor.secondary)
+                        Text("載入中...")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .shadow(color: CardChrome.shadowColor, radius: 12, x: 0, y: 4)
+                    )
+                    .allowsHitTesting(false)
+                }
+            }
             .task {
                 await reloadExploreAndInviteState()
             }
@@ -194,9 +203,10 @@ struct ExploreView: View {
 
     private var exploreEmpty: some View {
         VStack(spacing: 16) {
-            Image(systemName: "person.2.slash")
-                .font(.system(size: 52))
-                .foregroundStyle(AppColor.textSecondary)
+            Image(systemName: "sparkles.rectangle.stack")
+                .font(.system(size: 56))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(AppColor.secondary, AppColor.gold.opacity(0.9))
             Text("暫時沒有其他創業者")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -280,14 +290,22 @@ private struct ExploreFounderCard: View {
     let onSendInvite: () -> Void
 
     private var skillChips: [String] {
-        let s = Array(founder.skills.prefix(4))
+        let s = Array(founder.skills.prefix(3))
         if s.isEmpty { return Array(founder.industryTags.prefix(3)) }
         return s
     }
 
+    private var skillChipExtraCount: Int {
+        if !founder.skills.isEmpty {
+            return max(0, founder.skills.count - 3)
+        }
+        return max(0, founder.industryTags.count - 3)
+    }
+
     private var displayName: String {
         let n = founder.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        return n.isEmpty ? "創辦人" : n
+        let base = n.isEmpty ? "創辦人" : n
+        return base.deskerTruncated(maxLength: 20)
     }
 
     private var ctaTitle: String {
@@ -345,6 +363,15 @@ private struct ExploreFounderCard: View {
                                 .foregroundStyle(AppColor.primary)
                                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                         }
+                        if skillChipExtraCount > 0 {
+                            Text("+\(skillChipExtraCount) 更多")
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(AppColor.gold.opacity(0.15))
+                                .foregroundStyle(AppColor.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
+                        }
                     }
                 }
             }
@@ -392,13 +419,13 @@ private struct ExploreFounderCard: View {
         let bio = founder.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let detailed = founder.detailedBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !bio.isEmpty {
-            Text(bio)
+            Text(bio.deskerTruncated(maxLength: 100))
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
         } else if !detailed.isEmpty {
-            Text(detailed)
+            Text(detailed.deskerTruncated(maxLength: 100))
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(3)
