@@ -95,6 +95,7 @@ struct EmailRegisterView: View {
                 .padding(.vertical, 28)
             }
         }
+        .navigationTitle("建立帳戶")
         .deskerInlineNavigationTitle()
         .onChange(of: auth.session?.user.id) { _, new in
             if new != nil { dismiss() }

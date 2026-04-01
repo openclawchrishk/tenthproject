@@ -23,25 +23,35 @@ final class DMRepository {
                 .value
         } catch {
             repositoryLogger.error("fetchConversations or() failed, legacy path: \(error.localizedDescription, privacy: .public)")
-            return try await fetchConversationsLegacy(for: userId)
+            do {
+                return try await fetchConversationsLegacy(for: userId)
+            } catch {
+                throw RepositoryErrorMapping.map(error, context: "DMRepository.fetchConversations legacy")
+            }
         }
     }
 
     private func fetchConversationsLegacy(for userId: UUID) async throws -> [Conversation] {
-        let a: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .eq("participant_a_id", value: userId)
-            .order("last_message_at", ascending: false, nullsFirst: false)
-            .execute()
-            .value
-        let b: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .eq("participant_b_id", value: userId)
-            .order("last_message_at", ascending: false, nullsFirst: false)
-            .execute()
-            .value
+        let a: [Conversation]
+        let b: [Conversation]
+        do {
+            a = try await client
+                .from("conversations")
+                .select()
+                .eq("participant_a_id", value: userId)
+                .order("last_message_at", ascending: false, nullsFirst: false)
+                .execute()
+                .value
+            b = try await client
+                .from("conversations")
+                .select()
+                .eq("participant_b_id", value: userId)
+                .order("last_message_at", ascending: false, nullsFirst: false)
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.fetchConversationsLegacy")
+        }
         var byId: [UUID: Conversation] = [:]
         for c in a + b { byId[c.id] = c }
         return byId.values.sorted { $0.sortDate > $1.sortDate }
@@ -52,13 +62,17 @@ final class DMRepository {
     }
 
     func fetchMessages(conversationId: UUID) async throws -> [DirectMessage] {
-        try await client
-            .from("direct_messages")
-            .select()
-            .eq("conversation_id", value: conversationId)
-            .order("created_at", ascending: true)
-            .execute()
-            .value
+        do {
+            return try await client
+                .from("direct_messages")
+                .select()
+                .eq("conversation_id", value: conversationId)
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.fetchMessages")
+        }
     }
 
     func fetchConversation(id: UUID) async throws -> Conversation {
@@ -77,18 +91,27 @@ final class DMRepository {
 
     /// Opens or creates a DM conversation if the two users are connected.
     func getOrCreateConversation(currentUserId: UUID, peerId: UUID) async throws -> Conversation {
-        guard try await connections.areConnected(currentUserId, peerId) else {
+        try await getOrCreateConversation(userId: currentUserId, peerId: peerId)
+    }
+
+    func getOrCreateConversation(userId: UUID, peerId: UUID) async throws -> Conversation {
+        guard try await connections.areConnected(userId, peerId) else {
             throw RepositoryError.serverError("只能與已連接的用戶私訊")
         }
-        let (pa, pb) = ConnectionPair.normalizedUserIds(currentUserId, peerId)
-        let existing: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .eq("participant_a_id", value: pa)
-            .eq("participant_b_id", value: pb)
-            .limit(1)
-            .execute()
-            .value
+        let (pa, pb) = ConnectionPair.normalizedUserIds(userId, peerId)
+        let existing: [Conversation]
+        do {
+            existing = try await client
+                .from("conversations")
+                .select()
+                .eq("participant_a_id", value: pa)
+                .eq("participant_b_id", value: pb)
+                .limit(1)
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.getOrCreateConversation load")
+        }
         if let c = existing.first { return c }
 
         struct Insert: Encodable {
@@ -98,14 +121,22 @@ final class DMRepository {
         }
         let id = UUID()
         let row = Insert(id: id, participant_a_id: pa, participant_b_id: pb)
-        try await client.from("conversations").insert(row).execute()
-        return try await client
-            .from("conversations")
-            .select()
-            .eq("id", value: id)
-            .single()
-            .execute()
-            .value
+        do {
+            try await client.from("conversations").insert(row).execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.getOrCreateConversation insert")
+        }
+        do {
+            return try await client
+                .from("conversations")
+                .select()
+                .eq("id", value: id)
+                .single()
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.getOrCreateConversation refetch")
+        }
     }
 
     func sendDirectMessage(conversationId: UUID, senderId: UUID, content: String) async throws {
@@ -125,17 +156,25 @@ final class DMRepository {
             sender_id: senderId,
             content: content
         )
-        try await client.from("direct_messages").insert(row).execute()
+        do {
+            try await client.from("direct_messages").insert(row).execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.sendMessage insert")
+        }
 
         struct ConvPatch: Encodable {
             let last_message_at: String
         }
         let iso = ISO8601DateFormatter().string(from: Date())
-        try await client
-            .from("conversations")
-            .update(ConvPatch(last_message_at: iso))
-            .eq("id", value: conversationId)
-            .execute()
+        do {
+            try await client
+                .from("conversations")
+                .update(ConvPatch(last_message_at: iso))
+                .eq("id", value: conversationId)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.sendMessage patch conversation")
+        }
     }
 
     func fetchRecentDMPreviews(for userId: UUID) async throws -> [MessageListItem] {

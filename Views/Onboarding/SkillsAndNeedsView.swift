@@ -211,6 +211,12 @@ struct SkillsAndNeedsView: View {
             saveError = "尚未登入，無法儲存。請返回重新登入。"
             return
         }
+        let hasTag = !viewModel.industryTags.isEmpty || !viewModel.skills.isEmpty || !viewModel.needs.isEmpty
+        guard hasTag else {
+            saveError = "請至少選擇一個產業、技能或需求標籤"
+            HapticFeedback.error()
+            return
+        }
         isSaving = true
         saveError = nil
         defer { isSaving = false }

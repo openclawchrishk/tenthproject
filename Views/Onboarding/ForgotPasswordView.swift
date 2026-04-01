@@ -101,7 +101,8 @@ struct ForgotPasswordView: View {
                                     .background(AppColor.brandGradient)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
-                            .disabled(vm.isLoading)
+                            .disabled(vm.isLoading || !AuthViewModel.isValidEmail(vm.email.trimmingCharacters(in: .whitespacesAndNewlines)))
+                            .opacity(AuthViewModel.isValidEmail(vm.email.trimmingCharacters(in: .whitespacesAndNewlines)) ? 1 : 0.55)
                             .deskerButtonShadow()
                         }
                     }
@@ -116,6 +117,7 @@ struct ForgotPasswordView: View {
                 .padding(.vertical, 28)
             }
         }
+        .navigationTitle("重置密碼")
         .deskerInlineNavigationTitle()
         .overlay {
             if vm.isLoading {

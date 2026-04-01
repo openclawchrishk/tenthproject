@@ -60,9 +60,13 @@ final class AuthRepository: ObservableObject {
     }
 
     func signInWithApple(idToken: String, nonce: String) async throws {
-        _ = try await client.auth.signInWithIdToken(
-            credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
-        )
+        do {
+            _ = try await client.auth.signInWithIdToken(
+                credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
+            )
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signInWithApple")
+        }
     }
 
     func signInWithPhone(phone: String) async throws {

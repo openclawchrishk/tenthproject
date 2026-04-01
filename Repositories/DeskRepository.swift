@@ -66,6 +66,35 @@ final class DeskRepository {
         }
     }
 
+    /// Alias for audit/API consistency (`founderId` == `userId` for founders).
+    func fetchDesksForFounder(userId: UUID) async throws -> [Desk] {
+        try await fetchDesksForFounder(founderId: userId)
+    }
+
+    func updateDesk(id: UUID, patch: DeskPartialPatch) async throws {
+        do {
+            try await client
+                .from("desks")
+                .update(patch)
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DeskRepository.updateDesk id=\(id)")
+        }
+    }
+
+    func deleteDesk(id: UUID) async throws {
+        do {
+            try await client
+                .from("desks")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DeskRepository.deleteDesk id=\(id)")
+        }
+    }
+
     func fetchApplicationsForDesk(deskId: UUID) async throws -> [DeskApplication] {
         do {
             return try await client

@@ -68,7 +68,8 @@ struct EmailLoginView: View {
                                     .background(AppColor.brandGradient)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
-                            .disabled(vm.isLoading)
+                            .disabled(vm.isLoading || !canSubmitEmailLogin)
+                            .opacity(canSubmitEmailLogin ? 1 : 0.55)
                             .deskerButtonShadow()
 
                             NavigationLink(value: EmailLoginRoute.register) {
@@ -94,6 +95,7 @@ struct EmailLoginView: View {
                     .padding(.vertical, 28)
                 }
             }
+            .navigationTitle("登入")
             .deskerInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -134,6 +136,11 @@ struct EmailLoginView: View {
         } message: {
             Text("你可以立即建立新帳戶。")
         }
+    }
+
+    private var canSubmitEmailLogin: Bool {
+        let e = vm.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        return AuthViewModel.isValidEmail(e) && !vm.password.isEmpty
     }
 
     private var emailField: some View {

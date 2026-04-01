@@ -153,19 +153,24 @@ final class UserRepository {
         struct Patch: Encodable {
             let verification_status: String
             let verification_domain: String?
+            let verification_document_note: String?
         }
         let domain: String? = {
             guard kind == .expert else { return nil }
             let t = expertDomain?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return t.isEmpty ? nil : t
         }()
-        _ = documentNote
+        let note: String? = {
+            let t = documentNote?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return t.isEmpty ? nil : String(t.prefix(2000))
+        }()
         do {
             try await client
                 .from("users")
                 .update(Patch(
                     verification_status: VerificationStatus.pending.rawValue,
-                    verification_domain: domain
+                    verification_domain: domain,
+                    verification_document_note: note
                 ))
                 .eq("id", value: userId)
                 .execute()

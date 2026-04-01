@@ -246,6 +246,39 @@ enum ApplicationStatus: Equatable, Codable {
 }
 
 /// Application row plus resolved applicant name for founder UI.
+/// Partial update for `desks` (snake_case columns; only non-`nil` fields are sent).
+struct DeskPartialPatch: Encodable {
+    var name: String?
+    var pitch: String?
+    var industries: [String]?
+    var region: String?
+    var languages: [String]?
+    var description: String?
+    var funding_needs: String?
+    var expectations: String?
+    var status: DeskStatus?
+    var member_limit: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case name, pitch, industries, region, languages, description
+        case funding_needs, expectations, status, member_limit
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(name, forKey: .name)
+        try c.encodeIfPresent(pitch, forKey: .pitch)
+        try c.encodeIfPresent(industries, forKey: .industries)
+        try c.encodeIfPresent(region, forKey: .region)
+        try c.encodeIfPresent(languages, forKey: .languages)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(funding_needs, forKey: .funding_needs)
+        try c.encodeIfPresent(expectations, forKey: .expectations)
+        if let status { try c.encode(status.rawValue, forKey: .status) }
+        try c.encodeIfPresent(member_limit, forKey: .member_limit)
+    }
+}
+
 struct DeskApplicationItem: Identifiable, Equatable {
     let application: DeskApplication
     let applicantDisplayName: String

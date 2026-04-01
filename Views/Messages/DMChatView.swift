@@ -63,35 +63,17 @@ struct DMChatView: View {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
-                }
-                HStack(alignment: .bottom, spacing: 12) {
-                    TextField("傳送訊息…", text: $inputText, axis: .vertical)
-                        .lineLimit(1...5)
-                        #if os(iOS)
-                        .submitLabel(.send)
-                        #endif
-                        .onSubmit { Task { await send() } }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                                .fill(AppColor.cardBackground)
-                                .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
-                        )
-                    Button {
-                        Task { await send() }
-                    } label: {
-                        Image(systemName: "paperplane.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, AppColor.secondary.opacity(0.9))
-                            .padding(12)
-                            .background(AppColor.brandGradient, in: Circle())
+                    .onAppear {
+                        if let last = messages.last {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
                     }
-                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .opacity(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
                 }
-                .padding(CardChrome.padding)
-                .background(AppColor.background)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !isLoading, errorText == nil, conversation != nil {
+                dmInputBar
             }
         }
         .navigationTitle(peerDisplayName)
@@ -131,6 +113,37 @@ struct DMChatView: View {
             realtimeTask?.cancel()
             realtimeTask = nil
         }
+    }
+
+    private var dmInputBar: some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            TextField("傳送訊息…", text: $inputText, axis: .vertical)
+                .lineLimit(1...5)
+                #if os(iOS)
+                .submitLabel(.send)
+                #endif
+                .onSubmit { Task { await send() } }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .fill(AppColor.cardBackground)
+                        .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+                )
+            Button {
+                Task { await send() }
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, AppColor.secondary.opacity(0.9))
+                    .padding(12)
+                    .background(AppColor.brandGradient, in: Circle())
+            }
+            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
+        }
+        .padding(CardChrome.padding)
+        .background(AppColor.background)
     }
 
     private func messageRow(_ msg: DirectMessage) -> some View {

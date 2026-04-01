@@ -111,6 +111,7 @@ struct WelcomeView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(AppColor.cardBackground.opacity(0.22))
                         .cornerRadius(12)
                     }

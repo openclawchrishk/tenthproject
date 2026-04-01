@@ -54,9 +54,9 @@ struct NotificationsView: View {
                     description: Text("新邀請、申請與訊息會顯示於此")
                 )
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
-                        if let errorText {
+                List {
+                    if let errorText {
+                        Section {
                             VStack(spacing: 10) {
                                 Text(errorText)
                                     .font(.subheadline)
@@ -66,40 +66,51 @@ struct NotificationsView: View {
                                     .buttonStyle(.borderedProminent)
                                     .tint(AppColor.primary)
                             }
-                            .padding(CardChrome.padding)
                             .frame(maxWidth: .infinity)
-                            .background(
+                            .padding(.vertical, 8)
+                            .listRowBackground(
                                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                                     .fill(AppColor.error.opacity(0.08))
                             )
                         }
-                        ForEach(groupedSections, id: \.day) { section in
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(sectionHeader(section.day))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(AppColor.textSecondary)
-                                    .padding(.horizontal, 4)
-
-                                ForEach(section.notifications, id: \.id) { n in
-                                    notificationCard(n)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            Task { await onNotificationTap(n) }
+                    }
+                    ForEach(groupedSections, id: \.day) { section in
+                        Section {
+                            ForEach(section.notifications, id: \.id) { n in
+                                notificationCard(n)
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 6, leading: CardChrome.padding, bottom: 6, trailing: CardChrome.padding))
+                                    .listRowBackground(Color.clear)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        Task { await onNotificationTap(n) }
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            Task { await deleteOne(n) }
+                                        } label: {
+                                            Label("清除", systemImage: "trash")
                                         }
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                Task { await deleteOne(n) }
-                                            } label: {
-                                                Label("清除此通知", systemImage: "trash")
-                                            }
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            Task { await deleteOne(n) }
+                                        } label: {
+                                            Label("清除此通知", systemImage: "trash")
                                         }
-                                }
+                                    }
                             }
+                        } header: {
+                            Text(sectionHeader(section.day))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColor.textSecondary)
+                                .textCase(nil)
+                                .listRowInsets(EdgeInsets(top: 12, leading: CardChrome.padding, bottom: 4, trailing: CardChrome.padding))
                         }
                     }
-                    .padding(.horizontal, CardChrome.padding)
-                    .padding(.bottom, 24)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
         .toolbar {

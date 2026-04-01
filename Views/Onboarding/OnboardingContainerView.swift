@@ -254,8 +254,58 @@ struct OnboardingFlowView: View {
                         .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
                     }
                     .background(AppColor.background)
+                    .navigationTitle(onboardingNavigationTitle)
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbarBackground(AppColor.background, for: .navigationBar)
+                    #endif
+                    .toolbar {
+                        #if os(iOS)
+                        ToolbarItem(placement: .topBarLeading) {
+                            onboardingBackButton
+                        }
+                        #elseif os(macOS)
+                        ToolbarItem(placement: .navigation) {
+                            onboardingBackButton
+                        }
+                        #endif
+                    }
                 }
             }
+        }
+        .tint(AppColor.primary)
+    }
+
+    @ViewBuilder
+    private var onboardingBackButton: some View {
+        if showsOnboardingBackButton {
+            Button {
+                HapticFeedback.selection()
+                withAnimation(.easeInOut(duration: 0.35)) {
+                    viewModel.goToPreviousStep()
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+            }
+            .accessibilityLabel("返回上一步")
+        }
+    }
+
+    private var showsOnboardingBackButton: Bool {
+        switch viewModel.currentStep {
+        case .basicInfo, .skillsAndNeeds: return true
+        case .roleSelection, .completed: return false
+        }
+    }
+
+    private var onboardingNavigationTitle: String {
+        switch viewModel.currentStep {
+        case .roleSelection: return "選擇角色"
+        case .basicInfo: return "基本資料"
+        case .skillsAndNeeds: return "標籤設定"
+        case .completed: return ""
         }
     }
 

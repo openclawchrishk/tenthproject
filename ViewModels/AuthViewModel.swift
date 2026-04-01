@@ -76,6 +76,10 @@ final class AuthViewModel: ObservableObject {
             errorMessage = "請輸入顯示名稱"
             return
         }
+        guard name.count <= ProfileFieldValidation.displayNameMaxLength else {
+            errorMessage = "顯示名稱最多 \(ProfileFieldValidation.displayNameMaxLength) 字"
+            return
+        }
         guard password.count >= 8 else {
             errorMessage = "密碼至少需要 8 個字元"
             return

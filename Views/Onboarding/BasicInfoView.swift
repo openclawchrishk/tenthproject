@@ -250,6 +250,9 @@ struct BasicInfoView: View {
                 .padding(.bottom, 32)
             }
             }
+            #if os(iOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
             .onChange(of: focusedField) { _, new in
                 guard new == .displayName else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
