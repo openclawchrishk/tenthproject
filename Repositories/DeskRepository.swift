@@ -72,6 +72,7 @@ final class DeskRepository {
     }
 
     func updateDesk(id: UUID, patch: DeskPartialPatch) async throws {
+        guard !patch.isEmpty else { return }
         do {
             try await client
                 .from("desks")

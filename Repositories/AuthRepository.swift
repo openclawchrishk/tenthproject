@@ -95,18 +95,30 @@ final class AuthRepository: ObservableObject {
 
     /// Email/password sign-in using Supabase `auth.users` (GoTrue).
     func signInWithEmail(email: String, password: String) async throws -> AuthResponse {
-        let session = try await client.auth.signIn(email: email, password: password)
-        return .session(session)
+        do {
+            let session = try await client.auth.signIn(email: email, password: password)
+            return .session(session)
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signInWithEmail")
+        }
     }
 
     /// Registers a new email user; `display_name` is stored in user metadata.
     func signUpWithEmail(email: String, password: String, displayName: String) async throws -> AuthResponse {
         let data: [String: AnyJSON] = ["display_name": .string(displayName)]
-        return try await client.auth.signUp(email: email, password: password, data: data)
+        do {
+            return try await client.auth.signUp(email: email, password: password, data: data)
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signUpWithEmail")
+        }
     }
 
     func resetPassword(email: String) async throws {
-        try await client.auth.resetPasswordForEmail(email)
+        do {
+            try await client.auth.resetPasswordForEmail(email)
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.resetPassword")
+        }
     }
 
     /// Current Supabase session wrapped as ``AuthResponse``, if any.
@@ -117,10 +129,14 @@ final class AuthRepository: ObservableObject {
 
     /// Requires `public.check_email_registered` in the database (see `SUPABASE_SCHEMA.sql`).
     func checkEmailRegistered(email: String) async throws -> Bool {
-        try await client
-            .rpc("check_email_registered", params: CheckEmailRegisteredParams(p_email: email))
-            .execute()
-            .value
+        do {
+            return try await client
+                .rpc("check_email_registered", params: CheckEmailRegisteredParams(p_email: email))
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.checkEmailRegistered")
+        }
     }
 
     func signOut() async throws {

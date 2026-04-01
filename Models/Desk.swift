@@ -277,6 +277,13 @@ struct DeskPartialPatch: Encodable {
         if let status { try c.encode(status.rawValue, forKey: .status) }
         try c.encodeIfPresent(member_limit, forKey: .member_limit)
     }
+
+    /// True if no column would be sent (avoids empty PATCH bodies).
+    var isEmpty: Bool {
+        name == nil && pitch == nil && industries == nil && region == nil && languages == nil
+            && description == nil && funding_needs == nil && expectations == nil && status == nil
+            && member_limit == nil
+    }
 }
 
 struct DeskApplicationItem: Identifiable, Equatable {
