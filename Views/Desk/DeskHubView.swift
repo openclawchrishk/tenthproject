@@ -93,7 +93,7 @@ struct DeskHubView: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.top, 48)
-        } else if let errorText {
+        } else if let errorText, myDesks.isEmpty, applications.isEmpty {
             VStack(spacing: 16) {
                 Text(errorText)
                     .font(.subheadline)
@@ -108,7 +108,26 @@ struct DeskHubView: View {
             .padding(CardChrome.padding)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+                LazyVStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+                    if let errorText, (!myDesks.isEmpty || !applications.isEmpty) {
+                        VStack(spacing: 10) {
+                            Text(errorText)
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.error)
+                                .multilineTextAlignment(.center)
+                            Button("重試") {
+                                Task { await reload() }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(AppColor.primary)
+                        }
+                        .padding(CardChrome.padding)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .fill(AppColor.error.opacity(0.08))
+                        )
+                    }
                     sectionTitle("我創建的專案", icon: "folder.fill", tint: AppColor.primary)
 
                     if myDesks.isEmpty {
@@ -200,7 +219,7 @@ struct DeskHubView: View {
     private func deskFounderCard(_ desk: Desk) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text(desk.name)
+                Text(desk.name.deskerTruncated(maxLength: 20))
                     .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
@@ -208,7 +227,7 @@ struct DeskHubView: View {
                 Spacer()
                 deskStatusPill(desk.status)
             }
-            Text(desk.pitch)
+            Text(desk.pitch.deskerTruncated(maxLength: 100))
                 .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .lineLimit(3)
@@ -341,7 +360,7 @@ struct DeskHubView: View {
         Group {
             if let s = url?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let u = URL(string: s) {
-                AsyncImage(url: u) { phase in
+                CachedAsyncImage(url: u) { phase in
                     switch phase {
                     case .success(let img):
                         img
@@ -352,8 +371,6 @@ struct DeskHubView: View {
                     case .empty:
                         ProgressView()
                             .tint(AppColor.primary)
-                    @unknown default:
-                        placeholderPerson
                     }
                 }
                 .frame(width: 52, height: 52)
@@ -430,6 +447,9 @@ struct DeskHubView: View {
             applications = try await a
         } catch {
             errorText = error.localizedDescription
+            if !myDesks.isEmpty || !applications.isEmpty {
+                toast.show(.info, "更新失敗，顯示上次資料")
+            }
         }
     }
 }

@@ -115,8 +115,7 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showShareInvite) {
             if let user = auth.currentUser {
-                let link = URL(string: "\(PublicLinks.baseURLString)/join?code=\(user.invitationCode)")!
-                ShareSheetView(items: [link])
+                ShareSheetView(items: [PublicLinks.inviteURL(invitationCode: user.invitationCode)])
             }
         }
         .sheet(isPresented: $showProfileShareOptions) {
@@ -190,7 +189,7 @@ struct ProfileView: View {
 
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    Text(user.displayName.isEmpty ? "—" : user.displayName)
+                    Text((user.displayName.isEmpty ? "—" : user.displayName).deskerTruncated(maxLength: 20))
                         .font(.title.bold())
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
@@ -264,7 +263,7 @@ struct ProfileView: View {
         ZStack {
                 if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                    let url = URL(string: s) {
-                    AsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):
                             img
@@ -275,8 +274,6 @@ struct ProfileView: View {
                         case .empty:
                             ProgressView()
                                 .tint(AppColor.primary)
-                        @unknown default:
-                            placeholderAvatar(for: user)
                         }
                     }
                     .frame(width: 112, height: 112)

@@ -10,13 +10,17 @@ final class DeskChatRepository {
     }
 
     func fetchMessages(deskId: UUID) async throws -> [DeskMessage] {
-        try await client
-            .from("desk_messages")
-            .select()
-            .eq("desk_id", value: deskId)
-            .order("created_at", ascending: true)
-            .execute()
-            .value
+        do {
+            return try await client
+                .from("desk_messages")
+                .select()
+                .eq("desk_id", value: deskId)
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DeskChatRepository.fetchMessages")
+        }
     }
 
     func sendDeskMessage(deskId: UUID, senderId: UUID, content: String) async throws {
@@ -31,7 +35,11 @@ final class DeskChatRepository {
             let content: String
         }
         let row = Insert(id: UUID(), desk_id: deskId, sender_id: senderId, content: content)
-        try await client.from("desk_messages").insert(row).execute()
+        do {
+            try await client.from("desk_messages").insert(row).execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DeskChatRepository.sendMessage")
+        }
     }
 
     func subscribeToDeskMessages(
@@ -50,6 +58,7 @@ final class DeskChatRepository {
             do {
                 try await channel.subscribeWithError()
             } catch {
+                repositoryLogger.error("DeskChat realtime subscribe failed desk=\(deskId.uuidString): \(error.localizedDescription, privacy: .public)")
                 return
             }
             for await _ in stream {

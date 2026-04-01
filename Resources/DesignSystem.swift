@@ -219,6 +219,9 @@ struct DeskerChipPressStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.92 : 1)
             .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { HapticFeedback.selection() }
+            }
     }
 }
 
@@ -228,6 +231,9 @@ struct DeskerButtonPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { HapticFeedback.medium() }
+            }
     }
 }
 
@@ -237,6 +243,9 @@ struct DeskerCardPressStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.78), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                if pressed { HapticFeedback.light() }
+            }
     }
 }
 

@@ -17,7 +17,7 @@ struct MyConnectionsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+            LazyVStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("我的人脈")
                         .font(.title2.bold())
@@ -123,7 +123,7 @@ struct MyConnectionsView: View {
                         } label: {
                             VStack(spacing: 8) {
                                 peerAvatar(userId: other, name: peerNames[other] ?? "?", size: 64)
-                                Text(peerNames[other] ?? "用戶")
+                                Text((peerNames[other] ?? "用戶").deskerTruncated(maxLength: 20))
                                     .font(.caption.weight(.medium))
                                     .foregroundStyle(AppColor.textPrimary)
                                     .lineLimit(1)
@@ -143,15 +143,15 @@ struct MyConnectionsView: View {
         return Group {
             if let s = urlString?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img
                             .resizable()
                             .scaledToFill()
-                    case .failure, .empty:
+                    case .failure:
                         initialsCircle(name, size: size)
-                    @unknown default:
+                    case .empty:
                         initialsCircle(name, size: size)
                     }
                 }

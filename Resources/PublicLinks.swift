@@ -3,16 +3,24 @@ import Foundation
 enum PublicLinks {
     static let baseURLString = "https://desker.hk"
 
-    static let termsURL = URL(string: "\(baseURLString)/terms")!
-    static let privacyURL = URL(string: "\(baseURLString)/privacy")!
+    private static func requireURL(_ string: String) -> URL {
+        guard let u = URL(string: string) else {
+            preconditionFailure("Invalid URL: \(string)")
+        }
+        return u
+    }
+
+    static let termsURL = requireURL("\(baseURLString)/terms")
+    static let privacyURL = requireURL("\(baseURLString)/privacy")
 
     static func deskURL(deskId: UUID) -> URL {
-        URL(string: "\(baseURLString)/desk/\(deskId.uuidString.lowercased())")!
+        requireURL("\(baseURLString)/desk/\(deskId.uuidString.lowercased())")
     }
 
     static func profileURL(username: String) -> URL {
         let u = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        return URL(string: "\(baseURLString)/u/\(u.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? u)")!
+        let path = u.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? u
+        return requireURL("\(baseURLString)/u/\(path)")
     }
 
     /// Public profile URL for IG cards and sharing (username path, or UUID fallback).
@@ -21,6 +29,11 @@ enum PublicLinks {
         if !handle.isEmpty {
             return profileURL(username: handle)
         }
-        return URL(string: "\(baseURLString)/u/\(user.id.uuidString.lowercased())")!
+        return requireURL("\(baseURLString)/u/\(user.id.uuidString.lowercased())")
+    }
+
+    static func inviteURL(invitationCode: String) -> URL {
+        let code = invitationCode.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? invitationCode
+        return requireURL("\(baseURLString)/join?code=\(code)")
     }
 }

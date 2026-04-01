@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Supabase
 
 private struct CheckEmailRegisteredParams: Encodable {
@@ -21,6 +22,7 @@ final class AuthRepository: ObservableObject {
                     do {
                         try await fetchUserProfile(userId: session.user.id)
                     } catch {
+                        repositoryLogger.error("Auth authStateChanges fetchUserProfile: \(error.localizedDescription, privacy: .public)")
                         self.currentUser = nil
                     }
                 } else {
@@ -35,19 +37,27 @@ final class AuthRepository: ObservableObject {
     }
 
     func fetchUserProfile(userId: UUID) async throws {
-        let profile: UserProfile = try await client
-            .from("users")
-            .select()
-            .eq("id", value: userId)
-            .single()
-            .execute()
-            .value
-        self.currentUser = profile
+        do {
+            let profile: UserProfile = try await client
+                .from("users")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            self.currentUser = profile
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.fetchUserProfile")
+        }
     }
 
     func refreshProfile() async {
         guard let uid = session?.user.id else { return }
-        try? await fetchUserProfile(userId: uid)
+        do {
+            try await fetchUserProfile(userId: uid)
+        } catch {
+            repositoryLogger.error("refreshProfile: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func signInWithApple(idToken: String, nonce: String) async throws {
@@ -111,7 +121,12 @@ final class AuthRepository: ObservableObject {
     }
 
     func signOut() async throws {
-        try await client.auth.signOut()
+        do {
+            try await client.auth.signOut()
+        } catch {
+            repositoryLogger.error("signOut: \(error.localizedDescription, privacy: .public)")
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signOut")
+        }
         currentUser = nil
         session = nil
     }

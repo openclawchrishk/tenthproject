@@ -26,7 +26,7 @@ struct NotificationsView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && items.isEmpty {
                 VStack(spacing: 16) {
                     ProgressView()
                         .tint(AppColor.primary)
@@ -35,7 +35,7 @@ struct NotificationsView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 .padding(.top, 24)
-            } else if let errorText {
+            } else if let errorText, items.isEmpty {
                 VStack(spacing: 16) {
                     ContentUnavailableView(
                         "載入失敗",
@@ -56,6 +56,23 @@ struct NotificationsView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+                        if let errorText {
+                            VStack(spacing: 10) {
+                                Text(errorText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.error)
+                                    .multilineTextAlignment(.center)
+                                Button("重試") { Task { await load() } }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(AppColor.primary)
+                            }
+                            .padding(CardChrome.padding)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                    .fill(AppColor.error.opacity(0.08))
+                            )
+                        }
                         ForEach(groupedSections, id: \.day) { section in
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(sectionHeader(section.day))
@@ -355,11 +372,14 @@ private struct ConnectionInviteNotificationDetailView: View {
                                 Group {
                                     if let s = from.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                                        let url = URL(string: s) {
-                                        AsyncImage(url: url) { phase in
+                                        CachedAsyncImage(url: url) { phase in
                                             switch phase {
                                             case .success(let img):
                                                 img.resizable().scaledToFill()
-                                            default:
+                                            case .empty:
+                                                ProgressView()
+                                                    .tint(.white)
+                                            case .failure:
                                                 Image(systemName: "person.fill")
                                                     .foregroundStyle(.white)
                                             }

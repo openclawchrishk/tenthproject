@@ -1,18 +1,6 @@
 import Foundation
 import Supabase
 
-enum InviteRepositoryError: LocalizedError {
-    case notInvitee
-    case invalidTransition
-
-    var errorDescription: String? {
-        switch self {
-        case .notInvitee: return "只有被邀請者可以回覆此邀請"
-        case .invalidTransition: return "此邀請已處理"
-        }
-    }
-}
-
 @MainActor
 final class InviteRepository {
     private let client = SupabaseManager.shared.client
@@ -40,8 +28,10 @@ final class InviteRepository {
             .single()
             .execute()
             .value
-        guard invite.inviteeId == actingUserId else { throw InviteRepositoryError.notInvitee }
-        guard invite.status == .pending else { throw InviteRepositoryError.invalidTransition }
+        guard invite.inviteeId == actingUserId else {
+            throw RepositoryError.serverError("只有被邀請者可以回覆此邀請")
+        }
+        guard invite.status == .pending else { throw RepositoryError.serverError("此邀請已處理") }
 
         struct StatusPatch: Encodable {
             let status: String

@@ -54,7 +54,7 @@ class OnboardingViewModel: ObservableObject {
     /// Persists industry / skills / needs and merges with existing `users` row if present.
     func persistSkillsAndNeeds(auth: AuthRepository) async throws {
         guard let session = auth.session else {
-            throw UserRepositoryError.notAuthenticated
+            throw RepositoryError.notAuthenticated
         }
         let uid = session.user.id
 

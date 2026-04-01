@@ -136,7 +136,7 @@ struct DeskDetailView: View {
             if let desk {
                 ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
                     guard let uid = auth.currentUser?.id else {
-                        throw UserRepositoryError.notAuthenticated
+                        throw RepositoryError.notAuthenticated
                     }
                     try await ReportBlockRepository().submitReport(draft, reporterId: uid)
                 }
@@ -582,7 +582,7 @@ struct DeskDetailView: View {
         Group {
             if let s = avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img
@@ -594,9 +594,6 @@ struct DeskDetailView: View {
                             .foregroundStyle(AppColor.primary, AppColor.secondary)
                     case .empty:
                         ProgressView()
-                    @unknown default:
-                        Image(systemName: "person.crop.circle.fill")
-                            .foregroundStyle(AppColor.primary)
                     }
                 }
                 .frame(width: 64, height: 64)

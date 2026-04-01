@@ -36,6 +36,11 @@ final class ExploreViewModel: ObservableObject {
     private let repository = DeskRepository()
     private let users = UserRepository()
 
+    /// Cancels stale `load()` / `viewAgain()` results when a newer request starts.
+    private var loadRequestID = UUID()
+    /// Cancels stale founder fetches when desk or filters change quickly.
+    private var founderRequestID = UUID()
+
     /// Chips shown above the list (探索篩選).
     static let filterChipOptions: [String] = [
         "全部", "招募中", "金融科技", "教育", "醫療健康", "電商", "SaaS", "AI / 數據", "區塊鏈", "消費品牌",
@@ -61,20 +66,25 @@ final class ExploreViewModel: ObservableObject {
     }
 
     func load() async {
+        let req = UUID()
+        loadRequestID = req
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
             let list = try await repository.fetchExploreDesks()
+            guard req == loadRequestID else { return }
             desks = list
             pickCurrentDesk(excluding: nil)
             await refreshFounderForCurrentDesk()
         } catch {
             exploreVMLog.error("load failed: \(error.localizedDescription, privacy: .public)")
+            guard req == loadRequestID else { return }
             errorMessage = Self.userFacingMessage(for: error)
-            desks = []
-            currentDesk = nil
-            currentFounder = nil
+            if desks.isEmpty {
+                currentDesk = nil
+                currentFounder = nil
+            }
         }
     }
 
@@ -141,6 +151,8 @@ final class ExploreViewModel: ObservableObject {
 
     /// Reloads from the server and shows another card when possible so **再看一次** always refreshes content.
     func viewAgain() async {
+        let req = UUID()
+        loadRequestID = req
         refreshGeneration = UUID()
         let previousId = currentDesk?.id
         isLoading = true
@@ -148,6 +160,7 @@ final class ExploreViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             let list = try await repository.fetchExploreDesks()
+            guard req == loadRequestID else { return }
             desks = list
             let pool = filteredDesks
             if pool.isEmpty {
@@ -165,6 +178,7 @@ final class ExploreViewModel: ObservableObject {
             await refreshFounderForCurrentDesk()
         } catch {
             exploreVMLog.error("viewAgain failed: \(error.localizedDescription, privacy: .public)")
+            guard req == loadRequestID else { return }
             errorMessage = Self.userFacingMessage(for: error)
         }
     }
@@ -211,6 +225,16 @@ final class ExploreViewModel: ObservableObject {
             currentFounder = nil
             return
         }
-        currentFounder = try? await users.fetchUser(id: d.founderId)
+        let req = UUID()
+        founderRequestID = req
+        do {
+            let profile = try await users.fetchUser(id: d.founderId)
+            guard req == founderRequestID else { return }
+            currentFounder = profile
+        } catch {
+            guard req == founderRequestID else { return }
+            exploreVMLog.error("refreshFounder failed: \(error.localizedDescription, privacy: .public)")
+            currentFounder = nil
+        }
     }
 }

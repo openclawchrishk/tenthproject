@@ -15,6 +15,7 @@ struct ExploreView: View {
     @State private var shareItems: [Any] = []
     @State private var cardDragTranslation: CGFloat = 0
     @State private var showExploreSwipeTipBanner = false
+    @State private var searchDebounceTask: Task<Void, Never>?
 
     private let connectionsRepo = ConnectionRepository()
 
@@ -31,7 +32,8 @@ struct ExploreView: View {
                 ZStack(alignment: .top) {
                     ScrollView {
                         VStack(spacing: CardChrome.sectionSpacing) {
-                            if let err = viewModel.errorMessage {
+                            if let err = viewModel.errorMessage,
+                               viewModel.currentDesk == nil || viewModel.currentFounder == nil {
                                 VStack(spacing: 16) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.system(size: 44))
@@ -131,10 +133,26 @@ struct ExploreView: View {
                 await reloadExploreAndInviteState()
             }
             .onChange(of: viewModel.searchText) { _, _ in
-                viewModel.applyFiltersReselectingIfNeeded()
+                searchDebounceTask?.cancel()
+                searchDebounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        viewModel.applyFiltersReselectingIfNeeded()
+                    }
+                }
             }
             .onChange(of: viewModel.selectedFilterChip) { _, _ in
                 viewModel.applyFiltersReselectingIfNeeded()
+            }
+            .onChange(of: viewModel.errorMessage) { _, new in
+                if let new, !viewModel.desks.isEmpty, viewModel.currentDesk != nil, viewModel.currentFounder != nil {
+                    toast.show(.info, "無法更新列表：\(new)")
+                }
+            }
+            .onDisappear {
+                searchDebounceTask?.cancel()
+                searchDebounceTask = nil
             }
             .onChange(of: viewModel.currentFounder?.id) { _, _ in
                 Task {
@@ -351,7 +369,7 @@ struct ExploreView: View {
                 .font(.system(size: 52))
                 .foregroundStyle(AppColor.secondary)
                 .symbolRenderingMode(.hierarchical)
-            Text("暫時沒有其他創業者")
+            Text("暫時沒有創業者，稍後再回來")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
@@ -574,11 +592,14 @@ private struct ExplorePublicProfileSheet: View {
         Group {
             if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img.resizable().scaledToFill()
-                    default:
+                    case .empty:
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    case .failure:
                         placeholder
                     }
                 }
@@ -691,7 +712,7 @@ private struct ExploreFounderCard: View {
                                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                         }
                         if skillChipExtraCount > 0 {
-                            Text("+\(skillChipExtraCount)")
+                            Text("+\(skillChipExtraCount) 更多")
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
@@ -778,7 +799,7 @@ private struct ExploreFounderCard: View {
             Group {
                 if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                    let url = URL(string: s) {
-                    AsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let img):
                             img
@@ -789,8 +810,6 @@ private struct ExploreFounderCard: View {
                         case .empty:
                             ProgressView()
                                 .tint(AppColor.primary)
-                        @unknown default:
-                            initialsAvatar
                         }
                     }
                     .frame(width: 60, height: 60)

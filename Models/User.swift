@@ -276,6 +276,61 @@ extension UserProfile: Hashable {
     }
 }
 
+/// Shared limits aligned with `SUPABASE_SCHEMA.sql` CHECK constraints.
+enum ProfileFieldValidation {
+    static let displayNameMaxLength = 50
+    static let deskNameMaxLength = 60
+
+    static func isValidDisplayName(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !t.isEmpty && t.count <= displayNameMaxLength
+    }
+
+    static func isValidDeskName(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !t.isEmpty && t.count <= deskNameMaxLength
+    }
+}
+
+/// Partial update: only non-`nil` fields are encoded (PATCH semantics).
+struct UserProfilePartialPatch: Encodable {
+    var display_name: String?
+    var avatar_url: String?
+    var bio: String?
+    var detailed_bio: String?
+    var region: String?
+    var languages: [String]?
+    var industry_tags: [String]?
+    var interest_tags: [String]?
+    var skills: [String]?
+    var needs: [String]?
+    var linked_in_url: String?
+    var website_url: String?
+    var commitment_level: String?
+
+    enum CodingKeys: String, CodingKey {
+        case display_name, avatar_url, bio, detailed_bio, region, languages
+        case industry_tags, interest_tags, skills, needs, linked_in_url, website_url, commitment_level
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(display_name, forKey: .display_name)
+        try c.encodeIfPresent(avatar_url, forKey: .avatar_url)
+        try c.encodeIfPresent(bio, forKey: .bio)
+        try c.encodeIfPresent(detailed_bio, forKey: .detailed_bio)
+        try c.encodeIfPresent(region, forKey: .region)
+        try c.encodeIfPresent(languages, forKey: .languages)
+        try c.encodeIfPresent(industry_tags, forKey: .industry_tags)
+        try c.encodeIfPresent(interest_tags, forKey: .interest_tags)
+        try c.encodeIfPresent(skills, forKey: .skills)
+        try c.encodeIfPresent(needs, forKey: .needs)
+        try c.encodeIfPresent(linked_in_url, forKey: .linked_in_url)
+        try c.encodeIfPresent(website_url, forKey: .website_url)
+        try c.encodeIfPresent(commitment_level, forKey: .commitment_level)
+    }
+}
+
 /// Payload for upserting the `users` row (snake_case columns).
 struct UserUpsertPayload: Encodable {
     let id: UUID

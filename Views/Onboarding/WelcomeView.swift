@@ -16,7 +16,7 @@ struct WelcomeView: View {
         let letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
         var nonce = ""
         for _ in 0..<32 {
-            nonce += String(letters.randomElement()!)
+            nonce += String(letters.randomElement() ?? "0")
         }
         return nonce
     }

@@ -112,7 +112,7 @@ struct DMChatView: View {
         .sheet(isPresented: $showReportUser) {
             ReportSheetView(targetType: .user, targetId: peerId) { draft in
                 guard let uid = auth.currentUser?.id else {
-                    throw UserRepositoryError.notAuthenticated
+                    throw RepositoryError.notAuthenticated
                 }
                 try await moderation.submitReport(draft, reporterId: uid)
             }

@@ -83,7 +83,7 @@ struct DeskGroupChatView: View {
         .sheet(isPresented: $showReport) {
             ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
                 guard let uid = auth.currentUser?.id else {
-                    throw UserRepositoryError.notAuthenticated
+                    throw RepositoryError.notAuthenticated
                 }
                 try await reports.submitReport(draft, reporterId: uid)
             }

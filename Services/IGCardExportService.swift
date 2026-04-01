@@ -33,12 +33,7 @@ enum IGCardExportService {
     /// Loads an image from a remote URL for embedding in export cards (async).
     static func loadUIImage(from url: URL) async -> UIImage? {
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                igCardLog.debug("Avatar HTTP \(http.statusCode) for \(url.absoluteString, privacy: .public)")
-                return nil
-            }
-            return UIImage(data: data)
+            return try await ImageCache.shared.uiImage(for: url)
         } catch {
             igCardLog.error("Avatar load failed: \(error.localizedDescription, privacy: .public)")
             return nil

@@ -126,8 +126,7 @@ final class ConnectionRepository {
     func acceptConnectionInvite(inviteId: UUID, currentUserId: UUID) async throws {
         let inv = try await fetchInvite(id: inviteId)
         guard inv.toUserId == currentUserId else {
-            struct Err: LocalizedError { var errorDescription: String? { "無法接受此邀請" } }
-            throw Err()
+            throw RepositoryError.serverError("無法接受此邀請")
         }
         guard inv.status == .pending else { return }
         try await acceptInvite(inviteId: inviteId)
@@ -137,8 +136,7 @@ final class ConnectionRepository {
     func declineConnectionInvite(inviteId: UUID, currentUserId: UUID) async throws {
         let inv = try await fetchInvite(id: inviteId)
         guard inv.toUserId == currentUserId else {
-            struct Err: LocalizedError { var errorDescription: String? { "無法拒絕此邀請" } }
-            throw Err()
+            throw RepositoryError.serverError("無法拒絕此邀請")
         }
         guard inv.status == .pending else { return }
         struct Patch: Encodable {

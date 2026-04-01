@@ -351,7 +351,6 @@ struct MessagesInboxView: View {
         do {
             messages = try await messagesRepo.fetchRecentMessagesPreview(for: uid)
         } catch {
-            messages = []
             messagesError = error.localizedDescription
         }
 

@@ -16,6 +16,9 @@
 		1B5B7E684120EFF9191F9829 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4854C843299AC9173F7BB236 /* OnboardingViewModel.swift */; };
 		2F260CA4E265AFF62F106967 /* PushNotificationPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF05935B2CBA4C1803D0943 /* PushNotificationPlaceholderView.swift */; };
 		331E20F3CE39E7CCA2258E97 /* IGCardExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBD9B08872DD2C82B128038 /* IGCardExportService.swift */; };
+		F1E2D3C4B5A69788796A5B4C2 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */; };
+		F2E3D4C5B6A79889796B5C4D2 /* CachedAsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E3D4C5B6A79889796B5C4D1 /* CachedAsyncImage.swift */; };
+		F3E4D5C6B7A89990896C5D4E2 /* ConnectivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */; };
 		3445C27DF315516D25956FDD /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD466517B1C2A0A979EBEB1 /* SupabaseManager.swift */; };
 		453AC1370601761D9A7AEAF5 /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62FCEBCCEFE7005784F15387 /* Invite.swift */; };
 		4E9FE02DE09C99A25C0E106A /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90A3008EA1051527384B9BF /* Connection.swift */; };
@@ -23,6 +26,7 @@
 		55AC992E341633C68F0E0A55 /* DeskCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAF45E5351EAF42719DEE49C /* DeskCardView.swift */; };
 		56205C30E334C72183AE85A6 /* DeskDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3787FF4F9C214927C686D78 /* DeskDetailView.swift */; };
 		57D82A1CD2C875CE9EEB8CE8 /* UserRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48644DF9A02469299110C4E4 /* UserRepository.swift */; };
+		A9B8C7D6E5F4030211009987 /* RepositoryError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B8C7D6E5F4030211009988 /* RepositoryError.swift */; };
 		5817A244057FC21D4D6DB290 /* DeskerHKApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E262501E5918C0EED41BCD37 /* DeskerHKApp.swift */; };
 		5B34A33113AC10452124D01C /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7400B49117B4F833DFC08F66 /* DesignSystem.swift */; };
 		5B78314F89D3F3D2C70FDA2B /* SkillsAndNeedsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 993C7F7EF8BE206A4A00DF5F /* SkillsAndNeedsView.swift */; };
@@ -72,6 +76,9 @@
 		05090879B5D36F156FA9B396 /* DeskHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskHubView.swift; sourceTree = "<group>"; };
 		0A4B170939EB95655143222F /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		0EBD9B08872DD2C82B128038 /* IGCardExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IGCardExportService.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
+		F2E3D4C5B6A79889796B5C4D1 /* CachedAsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAsyncImage.swift; sourceTree = "<group>"; };
+		F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		108F09C9BAF758522FD3B832 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		15B72A2A0CFB478C66D8EED3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		165680953AD33BDAF2AA0389 /* PremiumUpgradeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumUpgradeSheet.swift; sourceTree = "<group>"; };
@@ -85,6 +92,7 @@
 		47A8C429740C89C1CAC2CCD0 /* MessagesInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesInboxView.swift; sourceTree = "<group>"; };
 		4854C843299AC9173F7BB236 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		48644DF9A02469299110C4E4 /* UserRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserRepository.swift; sourceTree = "<group>"; };
+		A9B8C7D6E5F4030211009988 /* RepositoryError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryError.swift; sourceTree = "<group>"; };
 		4D0C9F934B62BDCE4E3AA5FF /* DeskChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskChatRepository.swift; sourceTree = "<group>"; };
 		4F5BA13C793FB656A1E04BCA /* OnboardingContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContainerView.swift; sourceTree = "<group>"; };
 		51E6689C1641182E49424135 /* ConnectionRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionRepository.swift; sourceTree = "<group>"; };
@@ -156,7 +164,9 @@
 		1AE55988C819B4AE1B77D1D8 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */,
 				0EBD9B08872DD2C82B128038 /* IGCardExportService.swift */,
+				F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -263,6 +273,7 @@
 			isa = PBXGroup;
 			children = (
 				5B261C2A4843E9C043A8E0A4 /* AppHeaderView.swift */,
+				F2E3D4C5B6A79889796B5C4D1 /* CachedAsyncImage.swift */,
 				DAF45E5351EAF42719DEE49C /* DeskCardView.swift */,
 				7CF05935B2CBA4C1803D0943 /* PushNotificationPlaceholderView.swift */,
 				BD57D00F3BE78024D1B7A7E5 /* ReportSheetView.swift */,
@@ -298,6 +309,7 @@
 				B37D51260A0516456ACD2535 /* MessageRepository.swift */,
 				85DDB92CC6B2453C384DE1D1 /* NotificationRepository.swift */,
 				1DF9F772CA29E11C5975D2A6 /* ReferralRepository.swift */,
+				A9B8C7D6E5F4030211009988 /* RepositoryError.swift */,
 				BA842683E699D8D352E8DCE9 /* ReportBlockRepository.swift */,
 				AFD466517B1C2A0A979EBEB1 /* SupabaseManager.swift */,
 				48644DF9A02469299110C4E4 /* UserRepository.swift */,
@@ -421,7 +433,10 @@
 				AE0A4CB110CA4040E5002A08 /* ExploreViewModel.swift in Sources */,
 				A1B2C3D4E5F6789012345608 /* ForgotPasswordView.swift in Sources */,
 				6794A6D72947B170503C2F82 /* HapticFeedback.swift in Sources */,
+				F2E3D4C5B6A79889796B5C4D2 /* CachedAsyncImage.swift in Sources */,
+				F3E4D5C6B7A89990896C5D4E2 /* ConnectivityMonitor.swift in Sources */,
 				331E20F3CE39E7CCA2258E97 /* IGCardExportService.swift in Sources */,
+				F1E2D3C4B5A69788796A5B4C2 /* ImageCache.swift in Sources */,
 				453AC1370601761D9A7AEAF5 /* Invite.swift in Sources */,
 				F194EC2EC047E8721E368688 /* InviteRepository.swift in Sources */,
 				A5544A9FA1FF0AEE557E8516 /* Message.swift in Sources */,
@@ -438,6 +453,7 @@
 				2F260CA4E265AFF62F106967 /* PushNotificationPlaceholderView.swift in Sources */,
 				0CE0267EB4615AF1D3171473 /* Referral.swift in Sources */,
 				D014788C3F5AF8AD23970C65 /* ReferralRepository.swift in Sources */,
+				A9B8C7D6E5F4030211009987 /* RepositoryError.swift in Sources */,
 				879566160EEFF8595AE50B4B /* ReportBlock.swift in Sources */,
 				049AF1630F92BE9AD3C0D43E /* ReportBlockRepository.swift in Sources */,
 				F771B8FF1B84445AC8192BA5 /* ReportSheetView.swift in Sources */,

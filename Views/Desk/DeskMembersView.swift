@@ -134,11 +134,14 @@ struct DeskMembersView: View {
         Group {
             if let s = profile?.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img.resizable().scaledToFill()
-                    default:
+                    case .empty:
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    case .failure:
                         placeholderInitials(profile?.displayName ?? "?")
                     }
                 }

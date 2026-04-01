@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Supabase
 
 @MainActor
@@ -22,6 +23,7 @@ final class DMRepository {
                 .execute()
                 .value
         } catch {
+            repositoryLogger.error("fetchConversations or() failed, legacy path: \(error.localizedDescription, privacy: .public)")
             return try await fetchConversationsLegacy(for: userId)
         }
     }
@@ -31,14 +33,14 @@ final class DMRepository {
             .from("conversations")
             .select()
             .eq("participant_a_id", value: userId)
-            .order("updated_at", ascending: false, nullsFirst: false)
+            .order("last_message_at", ascending: false, nullsFirst: false)
             .execute()
             .value
         let b: [Conversation] = try await client
             .from("conversations")
             .select()
             .eq("participant_b_id", value: userId)
-            .order("updated_at", ascending: false, nullsFirst: false)
+            .order("last_message_at", ascending: false, nullsFirst: false)
             .execute()
             .value
         var byId: [UUID: Conversation] = [:]
@@ -63,8 +65,7 @@ final class DMRepository {
     /// Opens or creates a DM conversation if the two users are connected.
     func getOrCreateConversation(currentUserId: UUID, peerId: UUID) async throws -> Conversation {
         guard try await connections.areConnected(currentUserId, peerId) else {
-            struct Err: LocalizedError { var errorDescription: String? { "只能與已連接的用戶私訊" } }
-            throw Err()
+            throw RepositoryError.serverError("只能與已連接的用戶私訊")
         }
         let (pa, pb) = ConnectionPair.normalizedUserIds(currentUserId, peerId)
         let existing: [Conversation] = try await client

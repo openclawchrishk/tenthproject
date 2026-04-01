@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Supabase
 
 @MainActor
@@ -10,13 +11,17 @@ final class NotificationRepository {
     }
 
     func fetchNotifications(userId: UUID) async throws -> [AppNotification] {
-        try await client
-            .from("notifications")
-            .select()
-            .eq("user_id", value: userId)
-            .order("created_at", ascending: false)
-            .execute()
-            .value
+        do {
+            return try await client
+                .from("notifications")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "NotificationRepository.fetchNotifications")
+        }
     }
 
     func markRead(notificationId: UUID) async throws {
@@ -27,11 +32,15 @@ final class NotificationRepository {
         struct Patch: Encodable {
             let read: Bool
         }
-        try await client
-            .from("notifications")
-            .update(Patch(read: true))
-            .eq("id", value: notificationId)
-            .execute()
+        do {
+            try await client
+                .from("notifications")
+                .update(Patch(read: true))
+                .eq("id", value: notificationId)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "NotificationRepository.markAsRead")
+        }
     }
 
     func markAllRead(for userId: UUID) async throws {
@@ -42,25 +51,43 @@ final class NotificationRepository {
         struct Patch: Encodable {
             let read: Bool
         }
-        try await client
-            .from("notifications")
-            .update(Patch(read: true))
-            .eq("user_id", value: userId)
-            .eq("read", value: false)
-            .execute()
+        do {
+            try await client
+                .from("notifications")
+                .update(Patch(read: true))
+                .eq("user_id", value: userId)
+                .eq("read", value: false)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "NotificationRepository.markAllAsRead")
+        }
     }
 
     func deleteNotification(id: UUID) async throws {
-        try await client
-            .from("notifications")
-            .delete()
-            .eq("id", value: id)
-            .execute()
+        do {
+            try await client
+                .from("notifications")
+                .delete()
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "NotificationRepository.deleteNotification")
+        }
     }
 
+    /// Unread total via `HEAD` + `Prefer: count=exact` (no row payload).
     func unreadCount(userId: UUID) async throws -> Int {
-        let list = try await fetchNotifications(userId: userId)
-        return list.filter { !$0.read }.count
+        do {
+            let response = try await client
+                .from("notifications")
+                .select("*", head: true, count: .exact)
+                .eq("user_id", value: userId)
+                .eq("read", value: false)
+                .execute()
+            return response.count ?? 0
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "NotificationRepository.unreadCount")
+        }
     }
 
     func subscribeToNotifications(

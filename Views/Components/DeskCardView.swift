@@ -27,7 +27,7 @@ struct DeskCardView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(AppColor.gold)
                             HStack(spacing: 6) {
-                                Text(founder.displayName.isEmpty ? "—" : founder.displayName)
+                                Text((founder.displayName.isEmpty ? "—" : founder.displayName).deskerTruncated(maxLength: 20))
                                     .font(.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                                 if let v = founder.verificationBadgeStyle {
@@ -184,7 +184,7 @@ struct DeskCardView: View {
                     .foregroundStyle(.white)
                     .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
 
-                Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 90))
+                Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 80))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(1)
@@ -281,7 +281,7 @@ private struct FounderAvatar: View {
         Group {
             if let s = urlString?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                AsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
                         img
@@ -292,8 +292,6 @@ private struct FounderAvatar: View {
                     case .empty:
                         ProgressView()
                             .tint(AppColor.primary)
-                    @unknown default:
-                        placeholder
                     }
                 }
                 .frame(width: 52, height: 52)

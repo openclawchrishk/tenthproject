@@ -94,6 +94,14 @@ struct Desk: Identifiable, Codable, Equatable {
         case createdAt = "created_at"
     }
 
+    /// Alternate SQL column names (`desks.industries`, `desks.languages`, etc.).
+    private enum DeskSQLKeys: String, CodingKey {
+        case industries
+        case languages
+        case description
+        case member_limit
+    }
+
     init(
         id: UUID,
         founderId: UUID,
@@ -132,16 +140,54 @@ struct Desk: Identifiable, Codable, Equatable {
         founderId = try c.decode(UUID.self, forKey: .founderId)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
         pitch = try c.decodeIfPresent(String.self, forKey: .pitch) ?? ""
-        industryTags = try c.decodeIfPresent([String].self, forKey: .industryTags) ?? []
+        if let tags = try c.decodeIfPresent([String].self, forKey: .industryTags), !tags.isEmpty {
+            industryTags = tags
+        } else {
+            let alt = try decoder.container(keyedBy: DeskSQLKeys.self)
+            industryTags = try alt.decodeIfPresent([String].self, forKey: .industries) ?? []
+        }
         region = try c.decodeIfPresent(String.self, forKey: .region) ?? "HK"
-        languagePreference = try c.decodeIfPresent([String].self, forKey: .languagePreference) ?? []
+        if let lp = try c.decodeIfPresent([String].self, forKey: .languagePreference), !lp.isEmpty {
+            languagePreference = lp
+        } else {
+            let alt = try decoder.container(keyedBy: DeskSQLKeys.self)
+            languagePreference = try alt.decodeIfPresent([String].self, forKey: .languages) ?? []
+        }
         recruitingRoles = try c.decodeIfPresent([DeskRole].self, forKey: .recruitingRoles) ?? []
         status = try c.decodeIfPresent(DeskStatus.self, forKey: .status) ?? .recruiting
-        detailedDescription = try c.decodeIfPresent(String.self, forKey: .detailedDescription)
+        if let d = try c.decodeIfPresent(String.self, forKey: .detailedDescription) {
+            detailedDescription = d
+        } else {
+            let alt = try decoder.container(keyedBy: DeskSQLKeys.self)
+            detailedDescription = try alt.decodeIfPresent(String.self, forKey: .description)
+        }
         fundingNeeds = try c.decodeIfPresent(String.self, forKey: .fundingNeeds)
         expectations = try c.decodeIfPresent(String.self, forKey: .expectations)
-        currentMemberCount = try c.decodeIfPresent(Int.self, forKey: .currentMemberCount) ?? 1
+        if let cm = try c.decodeIfPresent(Int.self, forKey: .currentMemberCount) {
+            currentMemberCount = cm
+        } else {
+            let alt = try decoder.container(keyedBy: DeskSQLKeys.self)
+            currentMemberCount = try alt.decodeIfPresent(Int.self, forKey: .member_limit) ?? 1
+        }
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(founderId, forKey: .founderId)
+        try c.encode(name, forKey: .name)
+        try c.encode(pitch, forKey: .pitch)
+        try c.encode(industryTags, forKey: .industryTags)
+        try c.encode(region, forKey: .region)
+        try c.encode(languagePreference, forKey: .languagePreference)
+        try c.encode(recruitingRoles, forKey: .recruitingRoles)
+        try c.encode(status, forKey: .status)
+        try c.encodeIfPresent(detailedDescription, forKey: .detailedDescription)
+        try c.encodeIfPresent(fundingNeeds, forKey: .fundingNeeds)
+        try c.encodeIfPresent(expectations, forKey: .expectations)
+        try c.encode(currentMemberCount, forKey: .currentMemberCount)
+        try c.encodeIfPresent(createdAt, forKey: .createdAt)
     }
 }
 
