@@ -33,32 +33,75 @@ struct WelcomeView: View {
                 .ignoresSafeArea()
 
             LinearGradient(
-                colors: [Color.black.opacity(0.12), Color.clear, Color.black.opacity(0.22)],
+                colors: [Color.black.opacity(0.18), Color.clear, Color.black.opacity(0.28)],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
 
+            WelcomeLuxuryBackdrop()
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
             VStack(spacing: 0) {
+                if !SupabaseManager.shared.isConfigured {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Supabase 未配置 - 請聯繫開發者")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red.opacity(0.82))
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusSmall, style: .continuous))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+                }
+
                 Spacer()
 
-                VStack(spacing: 20) {
-                    Image(systemName: "building.2.crop.circle.fill")
-                        .font(.system(size: 88))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, AppColor.gold.opacity(0.95))
-                        .shadow(color: Color.black.opacity(0.15), radius: 18, y: 8)
+                VStack(spacing: 22) {
+                    ZStack {
+                        ForEach(0..<3, id: \.self) { ring in
+                            Circle()
+                                .stroke(
+                                    AngularGradient(
+                                        colors: [
+                                            AppColor.gold.opacity(0.9),
+                                            AppColor.platinum.opacity(0.5),
+                                            AppColor.gold.opacity(0.85),
+                                        ],
+                                        center: .center
+                                    ),
+                                    lineWidth: ring == 0 ? 2.5 : 1.5
+                                )
+                                .frame(width: 108 + CGFloat(ring) * 22, height: 108 + CGFloat(ring) * 22)
+                                .opacity(1.0 - Double(ring) * 0.12)
+                        }
+
+                        Image(systemName: "building.2.crop.circle.fill")
+                            .font(.system(size: 88))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, AppColor.gold.opacity(0.98))
+                            .shadow(color: Color.black.opacity(0.35), radius: 24, y: 10)
+                            .shadow(color: AppColor.gold.opacity(0.35), radius: 16, y: 0)
+                    }
 
                     Text("Desker HK")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(AppColor.gold)
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .tracking(0.6)
+                        .foregroundStyle(AppColor.goldAccentGradient)
 
                     Text("遇見你的下一個Desk")
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(.white)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.95))
                         .multilineTextAlignment(.center)
+                        .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 36)
 
                 Spacer()
 
@@ -76,10 +119,14 @@ struct WelcomeView: View {
                         }
                     )
                     .signInWithAppleButtonStyle(.black)
-                    .frame(height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .frame(height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
                     .accessibilityLabel("使用 Apple 登入")
-                    .deskerButtonShadow()
+                    .shadow(color: Color.black.opacity(0.25), radius: 16, x: 0, y: 8)
                     .disabled(isLoading)
 
                     Button {
@@ -89,18 +136,22 @@ struct WelcomeView: View {
                             Image(systemName: "phone.fill")
                             Text("使用手機號碼登入")
                         }
-                        .font(.headline)
+                        .font(.headline.weight(.semibold))
                         .foregroundStyle(AppColor.primary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 52)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.white)
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .fill(.regularMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .stroke(Color.white.opacity(0.55), lineWidth: 1)
                         )
                     }
                     .buttonStyle(DeskerButtonPressStyle())
                     .accessibilityLabel("使用手機號碼登入")
-                    .deskerButtonShadow()
+                    .shadow(color: Color.black.opacity(0.2), radius: 14, x: 0, y: 6)
                     .disabled(isLoading)
 
                     Button {
@@ -112,27 +163,40 @@ struct WelcomeView: View {
                             Spacer()
                             Image(systemName: "chevron.right")
                         }
-                        .font(.headline)
+                        .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppColor.cardBackground.opacity(0.22))
-                        .cornerRadius(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [AppColor.gold.opacity(0.55), Color.white.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
                     }
                     .buttonStyle(DeskerButtonPressStyle())
                     .accessibilityLabel("使用 Email 登入")
-                    .deskerButtonShadow()
+                    .shadow(color: Color.black.opacity(0.22), radius: 14, x: 0, y: 6)
                     .disabled(isLoading)
 
                     if let errorText {
                         Text(errorText)
-                            .font(.footnote)
+                            .font(.footnote.weight(.medium))
                             .foregroundStyle(.white)
                             .padding(.horizontal)
                             .multilineTextAlignment(.center)
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 28)
                 .padding(.bottom, 20)
 
                 legalFooter
@@ -141,11 +205,11 @@ struct WelcomeView: View {
             }
 
             if isLoading {
-                Color.black.opacity(0.4)
+                Color.black.opacity(0.45)
                     .ignoresSafeArea()
                 ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(.white)
+                    .scaleEffect(1.45)
+                    .tint(AppColor.gold)
             }
         }
         .sheet(isPresented: $showPhoneLogin, onDismiss: {}) {
@@ -247,6 +311,46 @@ struct WelcomeView: View {
     }
 }
 
+/// Soft light drift + speckle behind the welcome hero (non-interactive).
+private struct WelcomeLuxuryBackdrop: View {
+    var body: some View {
+        GeometryReader { geo in
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: false)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let drift = sin(t * 0.35) * 0.5 + 0.5
+                ZStack {
+                    RadialGradient(
+                        colors: [AppColor.secondary.opacity(0.22), Color.clear],
+                        center: UnitPoint(x: 0.15 + drift * 0.1, y: 0.2),
+                        startRadius: 4,
+                        endRadius: geo.size.width * 0.85
+                    )
+                    RadialGradient(
+                        colors: [AppColor.gold.opacity(0.12), Color.clear],
+                        center: UnitPoint(x: 0.85 - drift * 0.08, y: 0.35),
+                        startRadius: 2,
+                        endRadius: geo.size.height * 0.55
+                    )
+                    Canvas { context, size in
+                        let sparkle = CGFloat(sin(t * 1.1) * 0.5 + 0.5)
+                        for i in 0..<32 {
+                            let px = CGFloat((i * 47) % Int(max(size.width, 1))) / max(size.width, 1)
+                            let py = CGFloat((i * 91) % Int(max(size.height * 0.5, 1))) / max(size.height, 1)
+                            let x = px * size.width
+                            let y = py * size.height * 0.55 + CGFloat(i % 3) * 6
+                            let r = 1.2 + sparkle * CGFloat(i % 3) * 0.35
+                            context.fill(
+                                Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
+                                with: .color(Color.white.opacity(0.04 + sparkle * 0.03))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #if os(iOS)
 struct PhoneLoginView: View {
     @EnvironmentObject private var auth: AuthRepository
@@ -286,7 +390,7 @@ struct PhoneLoginView: View {
                     Color.black.opacity(0.3)
                         .ignoresSafeArea()
                     ProgressView()
-                        .tint(AppColor.primary)
+                        .tint(AppColor.gold)
                 }
             }
             .navigationTitle(step == .phoneEntry ? "手機登入" : "驗證碼")

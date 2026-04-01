@@ -31,7 +31,7 @@ struct SkillsAndNeedsView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "tag.fill")
                         .font(.system(size: 48))
-                        .foregroundStyle(AppColor.secondary)
+                        .foregroundStyle(AppColor.brandGradient)
 
                     Text("標籤設定")
                         .font(.title.bold())

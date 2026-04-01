@@ -9,42 +9,44 @@ import AppKit
 
 // MARK: - App colors (premium indigo / gold)
 
-/// Brand and surface colors. Indigo / gold stay fixed for brand; surfaces follow system appearance (dark mode).
+/// Brand and surface colors — rich indigo, royal purple, champagne gold.
 enum AppColor {
-    /// Deep indigo — main brand.
-    static let primary = Color(hex: "2D346D")
-    /// Purple — CTAs, links.
-    static let secondary = Color(hex: "5856D6")
-    /// Warm gold — premium accents, badges, highlights.
-    static let gold = Color(hex: "E8C07A")
+    /// Rich deep indigo — main brand.
+    static let primary = Color(hex: "1E2642")
+    /// Royal purple — CTAs, links.
+    static let secondary = Color(hex: "4A3AFF")
+    /// Warm champagne gold — premium accents, badges, highlights.
+    static let gold = Color(hex: "D4AF37")
+    /// Platinum — premium chrome and highlights.
+    static let platinum = Color(hex: "E5E4E2")
     /// Soft teal — secondary accents.
     static let teal = Color(hex: "7ECBC0")
 
     #if os(iOS)
-    /// App canvas — fixed cream (#F5F5F7) for brand consistency (cards stay white).
-    static let background = Color(hex: "F5F5F7")
+    /// Warm off-white canvas.
+    static let background = Color(hex: "F8F6F3")
     static let cardBackground = Color.white
-    static var surfaceElevated: Color { Color(uiColor: .tertiarySystemBackground) }
-    static var textPrimary: Color { Color(uiColor: .label) }
-    static var textSecondary: Color { Color(uiColor: .secondaryLabel) }
-    static var textTertiary: Color { Color(uiColor: .tertiaryLabel) }
+    static var surfaceElevated: Color { Color(hex: "EEEDEA") }
+    static let textPrimary = Color(hex: "1A1A2E")
+    static let textSecondary = Color(hex: "5C5C6E")
+    static let textTertiary = Color(hex: "9898A6")
     /// Grouped list chips / bubbles.
     static var secondaryGroupedSurface: Color { Color(uiColor: .secondarySystemFill) }
     #elseif os(macOS)
-    static let background = Color(hex: "F5F5F7")
+    static let background = Color(hex: "F8F6F3")
     static let cardBackground = Color.white
-    static var surfaceElevated: Color { Color(nsColor: .underPageBackgroundColor) }
-    static var textPrimary: Color { Color(nsColor: .labelColor) }
-    static var textSecondary: Color { Color(nsColor: .secondaryLabelColor) }
-    static var textTertiary: Color { Color(nsColor: .tertiaryLabelColor) }
+    static var surfaceElevated: Color { Color(hex: "EEEDEA") }
+    static let textPrimary = Color(hex: "1A1A2E")
+    static let textSecondary = Color(hex: "5C5C6E")
+    static let textTertiary = Color(hex: "9898A6")
     static var secondaryGroupedSurface: Color { Color(nsColor: .controlBackgroundColor) }
     #else
-    static let background = Color(hex: "F5F5F7")
+    static let background = Color(hex: "F8F6F3")
     static let cardBackground = Color.white
-    static let surfaceElevated = Color(hex: "FAFAFA")
+    static let surfaceElevated = Color(hex: "EEEDEA")
     static let textPrimary = Color(hex: "1A1A2E")
-    static let textSecondary = Color(hex: "6B7280")
-    static let textTertiary = Color(hex: "9CA3AF")
+    static let textSecondary = Color(hex: "5C5C6E")
+    static let textTertiary = Color(hex: "9898A6")
     static let secondaryGroupedSurface = surfaceElevated
     #endif
 
@@ -52,8 +54,8 @@ enum AppColor {
     static let success = Color(hex: "059669")
     static let warning = Color(hex: "D97706")
 
-    /// Dark indigo tab bar surface.
-    static let tabBarBackground = Color(hex: "1C1C2E")
+    /// Rich dark navy tab bar.
+    static let tabBarBackground = Color(hex: "14172A")
     /// Tab bar — selected icon/label (white on dark bar).
     static let tabBarSelected = Color.white
     /// Tab bar — unselected (#6B7280).
@@ -71,20 +73,20 @@ enum AppColor {
     static let expertBadge = teal
 
     static let brandGradient = LinearGradient(
-        colors: [Color(hex: "2D346D"), Color(hex: "5856D6")],
+        colors: [Color(hex: "1E2642"), Color(hex: "4A3AFF")],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    /// Full-screen welcome / auth — indigo → purple.
+    /// Full-screen welcome / auth — dark navy → indigo.
     static let welcomeGradient = LinearGradient(
         colors: [
-            Color(hex: "3730A3"),
-            Color(hex: "4C1D95"),
-            Color(hex: "7C3AED"),
+            Color(hex: "0F1420"),
+            Color(hex: "1E2642"),
+            Color(hex: "2A3654"),
         ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
+        startPoint: .top,
+        endPoint: .bottom
     )
 
     static var headerGradient: LinearGradient {
@@ -95,9 +97,9 @@ enum AppColor {
         )
     }
 
-    /// Gold shimmer for premium CTAs.
+    /// Gold shimmer for premium CTAs and headline accents.
     static let goldAccentGradient = LinearGradient(
-        colors: [Color(hex: "E8C07A"), Color(hex: "D4A84B")],
+        colors: [Color(hex: "D4AF37"), Color(hex: "F4E4BA"), Color(hex: "D4AF37")],
         startPoint: .leading,
         endPoint: .trailing
     )
@@ -106,9 +108,11 @@ enum AppColor {
 // MARK: - Card chrome & shadows
 
 enum CardChrome {
-    static let cornerRadiusLarge: CGFloat = 20
-    static let cornerRadiusMedium: CGFloat = 12
-    static let cornerRadiusChip: CGFloat = 8
+    static let cornerRadiusSmall: CGFloat = 10
+    static let cornerRadiusMedium: CGFloat = 16
+    static let cornerRadiusLarge: CGFloat = 24
+    static let cornerRadiusXLarge: CGFloat = 32
+    static let cornerRadiusChip: CGFloat = 10
 
     /// Backward-compatible default for inline surfaces (medium).
     static let cornerRadius: CGFloat = cornerRadiusMedium
@@ -121,28 +125,34 @@ enum CardChrome {
     /// List rows — vertical rhythm between items.
     static let listItemSpacing: CGFloat = 12
 
-    /// Elevated cards — opacity 0.06, radius 16, y 6.
-    static let shadowColor = Color.black.opacity(0.06)
+    /// Default card shadow tint (legacy helper).
+    static let shadowColor = Color.black.opacity(0.12)
+
+    /// Primary elevated cards — luxurious depth.
+    static let shadowRadiusCard: CGFloat = 24
+    static let shadowYCard: CGFloat = 8
+    static let shadowOpacityCard: Double = 0.12
+
+    /// Stronger elevated surfaces (modals, hero cards).
+    static let shadowRadiusElevated: CGFloat = 32
+    static let shadowYElevated: CGFloat = 12
+    static let shadowOpacityElevated: Double = 0.16
 
     /// Buttons — opacity 0.08, radius 8, y 3.
     static let buttonShadowColor = Color.black.opacity(0.08)
-
-    /// Elevated cards (main surfaces).
-    static let shadowRadiusElevated: CGFloat = 16
-    static let shadowYElevated: CGFloat = 6
 
     /// Buttons & compact controls.
     static let shadowRadiusButton: CGFloat = 8
     static let shadowYButton: CGFloat = 3
 
-    /// Legacy single shadow — maps to elevated (for any remaining references).
-    static let shadowRadius: CGFloat = shadowRadiusElevated
-    static let shadowY: CGFloat = shadowYElevated
+    /// Legacy single shadow — maps to card tier.
+    static let shadowRadius: CGFloat = shadowRadiusCard
+    static let shadowY: CGFloat = shadowYCard
 
     /// Floating controls (FAB, overlay back affordances).
     static let shadowRadiusFloating: CGFloat = 14
     static let shadowYFloating: CGFloat = 8
-    static let shadowColorFloating = Color.black.opacity(0.12)
+    static let shadowColorFloating = Color.black.opacity(0.14)
 }
 
 // MARK: - Animation timing (micro-interactions)
@@ -171,7 +181,12 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    .shadow(
+                        color: Color.black.opacity(CardChrome.shadowOpacityCard),
+                        radius: CardChrome.shadowRadiusCard,
+                        x: 0,
+                        y: CardChrome.shadowYCard
+                    )
             )
     }
 
@@ -181,7 +196,12 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    .shadow(
+                        color: Color.black.opacity(CardChrome.shadowOpacityCard),
+                        radius: CardChrome.shadowRadiusCard,
+                        x: 0,
+                        y: CardChrome.shadowYCard
+                    )
             )
     }
 
@@ -414,16 +434,16 @@ private struct DeskerSkeletonShimmerModifier: ViewModifier {
                         let w = geo.size.width
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0),
-                                Color.white.opacity(0.55),
-                                Color.white.opacity(0),
+                                Color.clear,
+                                AppColor.gold.opacity(0.42),
+                                Color.clear,
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                         .frame(width: w * 0.42)
                         .offset(x: phase * (w + w * 0.42))
-                        .blendMode(.overlay)
+                        .blendMode(.plusLighter)
                     }
                     .allowsHitTesting(false)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
@@ -603,7 +623,7 @@ struct ExploreCardSkeleton: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                    .fill(AppColor.secondaryGroupedSurface)
+                    .fill(AppColor.platinum.opacity(0.65))
                     .frame(width: 60, height: 60)
                     .deskerSkeletonShimmer(active: true)
                 VStack(alignment: .leading, spacing: 8) {

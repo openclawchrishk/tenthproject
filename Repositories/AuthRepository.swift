@@ -1,6 +1,18 @@
 import Foundation
 import Supabase
 
+/// App-level auth configuration errors (distinct from Supabase `Auth.AuthError`).
+enum DeskerAuthConfigurationError: LocalizedError {
+    case notConfigured
+
+    var errorDescription: String? {
+        switch self {
+        case .notConfigured:
+            return "請聯繫開發者配置 Supabase"
+        }
+    }
+}
+
 private struct CheckEmailRegisteredParams: Encodable {
     let p_email: String
 }
@@ -36,7 +48,14 @@ final class AuthRepository: ObservableObject {
         authListenerTask?.cancel()
     }
 
+    private func ensureConfigured() throws {
+        guard SupabaseManager.shared.isConfigured else {
+            throw DeskerAuthConfigurationError.notConfigured
+        }
+    }
+
     func fetchUserProfile(userId: UUID) async throws {
+        try ensureConfigured()
         do {
             let profile: UserProfile = try await client
                 .from("users")
@@ -61,6 +80,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func signInWithApple(idToken: String, nonce: String) async throws {
+        try ensureConfigured()
         do {
             _ = try await client.auth.signInWithIdToken(
                 credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
@@ -71,6 +91,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func signInWithPhone(phone: String) async throws {
+        try ensureConfigured()
         do {
             try await client.auth.signInWithOTP(phone: phone)
         } catch {
@@ -79,6 +100,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func verifyOTP(phone: String, token: String) async throws {
+        try ensureConfigured()
         do {
             _ = try await client.auth.verifyOTP(
                 phone: phone,
@@ -91,6 +113,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func signInWithEmailOTP(email: String) async throws {
+        try ensureConfigured()
         do {
             try await client.auth.signInWithOTP(email: email)
         } catch {
@@ -99,6 +122,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func verifyEmailOTP(email: String, token: String) async throws {
+        try ensureConfigured()
         do {
             _ = try await client.auth.verifyOTP(
                 email: email,
@@ -112,6 +136,7 @@ final class AuthRepository: ObservableObject {
 
     /// Email/password sign-in using Supabase `auth.users` (GoTrue).
     func signInWithEmail(email: String, password: String) async throws -> AuthResponse {
+        try ensureConfigured()
         do {
             let session = try await client.auth.signIn(email: email, password: password)
             return .session(session)
@@ -122,6 +147,7 @@ final class AuthRepository: ObservableObject {
 
     /// Registers a new email user; `display_name` is stored in user metadata.
     func signUpWithEmail(email: String, password: String, displayName: String) async throws -> AuthResponse {
+        try ensureConfigured()
         let data: [String: AnyJSON] = ["display_name": .string(displayName)]
         do {
             return try await client.auth.signUp(email: email, password: password, data: data)
@@ -131,6 +157,7 @@ final class AuthRepository: ObservableObject {
     }
 
     func resetPassword(email: String) async throws {
+        try ensureConfigured()
         do {
             try await client.auth.resetPasswordForEmail(email)
         } catch {
@@ -146,6 +173,7 @@ final class AuthRepository: ObservableObject {
 
     /// Requires `public.check_email_registered` in the database (see `SUPABASE_SCHEMA.sql`).
     func checkEmailRegistered(email: String) async throws -> Bool {
+        try ensureConfigured()
         do {
             return try await client
                 .rpc("check_email_registered", params: CheckEmailRegisteredParams(p_email: email))
@@ -157,6 +185,12 @@ final class AuthRepository: ObservableObject {
     }
 
     func signOut() async throws {
+        guard SupabaseManager.shared.isConfigured else {
+            currentUser = nil
+            session = nil
+            Task { await ImageCache.shared.removeAll() }
+            return
+        }
         do {
             try await client.auth.signOut()
         } catch {

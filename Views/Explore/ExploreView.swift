@@ -66,7 +66,7 @@ struct ExploreView: View {
                         Color.black.opacity(0.3)
                             .ignoresSafeArea()
                         ProgressView()
-                            .tint(AppColor.primary)
+                            .tint(AppColor.gold)
                     }
                 }
             }
@@ -346,19 +346,34 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.footnote)
-                    .foregroundStyle(AppColor.textSecondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppColor.gold.opacity(0.9))
                 TextField("搜尋創業者或Desk", text: $viewModel.searchText)
                     .font(.body)
                     .foregroundStyle(AppColor.textPrimary)
                     .deskerTextFieldNoAutocaps()
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                    .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                            .fill(AppColor.cardBackground.opacity(0.35))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.65), AppColor.gold.opacity(0.22)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             )
             .padding(.horizontal, CardChrome.padding)
 
@@ -372,14 +387,21 @@ struct ExploreView: View {
                         } label: {
                             Text(chip)
                                 .font(.subheadline.weight(on ? .semibold : .regular))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
+                                .tracking(-0.1)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
                                 .background(
                                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
                                         .fill(on ? AppColor.primary : AppColor.primary.opacity(0.1))
                                 )
                                 .foregroundStyle(on ? Color.white : AppColor.primary)
-                                .shadow(color: on ? CardChrome.buttonShadowColor : Color.clear, radius: 4, x: 0, y: 1)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
+                                        .stroke(on ? AppColor.gold.opacity(0.45) : Color.clear, lineWidth: 1)
+                                )
+                                .shadow(color: on ? AppColor.gold.opacity(0.22) : Color.clear, radius: 8, x: 0, y: 2)
+                                .scaleEffect(on ? 1.04 : 1)
+                                .animation(.spring(response: 0.32, dampingFraction: 0.72), value: on)
                         }
                         .buttonStyle(DeskerChipPressStyle())
                     }

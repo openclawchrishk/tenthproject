@@ -60,12 +60,14 @@ struct OnboardingContainerView: View {
                 let current = min(currentStepIndex, 2)
                 let isCurrent = index == current
                 Circle()
-                    .fill(isCurrent ? AppColor.primary : Color.clear)
-                    .frame(width: 8, height: 8)
+                    .fill(isCurrent ? AppColor.gold : Color.clear)
+                    .frame(width: isCurrent ? 10 : 8, height: isCurrent ? 10 : 8)
                     .overlay(
                         Circle()
-                            .stroke(AppColor.primary.opacity(isCurrent ? 0 : 0.4), lineWidth: 2)
+                            .stroke(AppColor.gold.opacity(isCurrent ? 0.15 : 0.5), lineWidth: 2)
                     )
+                    .shadow(color: isCurrent ? AppColor.gold.opacity(0.45) : .clear, radius: 6, y: 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.72), value: isCurrent)
             }
         }
     }
@@ -113,7 +115,8 @@ struct CompletionView: View {
 
                 Text("歡迎加入 Desker HK！")
                     .font(.title.bold())
-                    .foregroundStyle(AppColor.textPrimary)
+                    .tracking(-0.3)
+                    .foregroundStyle(AppColor.goldAccentGradient)
 
                 Text("你已完成設定，可以開始探索創業社群了")
                     .font(.subheadline)
@@ -392,12 +395,14 @@ struct OnboardingFlowView: View {
                 let current = min(currentStepIndex, 2)
                 let isCurrent = index == current
                 Circle()
-                    .fill(isCurrent ? AppColor.primary : Color.clear)
-                    .frame(width: 8, height: 8)
+                    .fill(isCurrent ? AppColor.gold : Color.clear)
+                    .frame(width: isCurrent ? 10 : 8, height: isCurrent ? 10 : 8)
                     .overlay(
                         Circle()
-                            .stroke(AppColor.primary.opacity(isCurrent ? 0 : 0.4), lineWidth: 2)
+                            .stroke(AppColor.gold.opacity(isCurrent ? 0.15 : 0.5), lineWidth: 2)
                     )
+                    .shadow(color: isCurrent ? AppColor.gold.opacity(0.45) : .clear, radius: 6, y: 0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.72), value: isCurrent)
             }
         }
     }

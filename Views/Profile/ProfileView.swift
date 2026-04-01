@@ -106,7 +106,7 @@ struct ProfileView: View {
                                 Color.black.opacity(0.3)
                                     .ignoresSafeArea()
                                 ProgressView()
-                                    .tint(AppColor.primary)
+                                    .tint(AppColor.gold)
                             }
                         }
                     }
@@ -211,13 +211,29 @@ struct ProfileView: View {
         VStack(spacing: 16) {
             ZStack {
                 LinearGradient(
-                    colors: [AppColor.primary.opacity(0.22), AppColor.secondary.opacity(0.12), AppColor.background],
+                    colors: [
+                        Color(hex: "0F1420").opacity(0.92),
+                        AppColor.primary.opacity(0.78),
+                        AppColor.secondary.opacity(0.42),
+                        AppColor.background,
+                    ],
                     startPoint: .topLeading,
-                    endPoint: .bottom
+                    endPoint: .bottomTrailing
                 )
-                .frame(height: 120)
+                .frame(height: 128)
                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
                 .allowsHitTesting(false)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [AppColor.gold.opacity(0.35), Color.clear, AppColor.platinum.opacity(0.25)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
             }
             .frame(maxWidth: .infinity)
             .overlay(alignment: .bottom) {
@@ -509,10 +525,24 @@ struct ProfileView: View {
 
     private func completenessStatColumn(user: UserProfile) -> some View {
         let pct = Int(round(user.profileCompleteness * 100))
-        return VStack(spacing: 4) {
-            Text("\(pct)%")
-                .font(.headline.weight(.bold))
-                .foregroundStyle(AppColor.primary)
+        let p = user.profileCompleteness
+        return VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .stroke(AppColor.textTertiary.opacity(0.22), lineWidth: 5)
+                    .frame(width: 58, height: 58)
+                Circle()
+                    .trim(from: 0, to: CGFloat(max(0.02, p)))
+                    .stroke(
+                        AppColor.brandGradient,
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    )
+                    .frame(width: 58, height: 58)
+                    .rotationEffect(.degrees(-90))
+                Text("\(pct)%")
+                    .font(.caption.weight(.bold).monospacedDigit())
+                    .foregroundStyle(AppColor.primary)
+            }
             Text("完整度")
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppColor.textSecondary)
@@ -537,21 +567,29 @@ struct ProfileView: View {
                             placeholderAvatar(for: user)
                         case .empty:
                             ProgressView()
-                                .tint(AppColor.primary)
+                                .tint(AppColor.gold)
                         }
                     }
                     .frame(width: 112, height: 112)
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
+                            .stroke(
+                                user.isPremium ? AppColor.gold : AppColor.platinum.opacity(0.95),
+                                lineWidth: user.isPremium ? 4 : 3
+                            )
                     )
+                    .shadow(color: Color.black.opacity(0.12), radius: 12, y: 6)
                 } else {
                     placeholderAvatar(for: user)
                         .overlay(
                             Circle()
-                                .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
+                                .stroke(
+                                    user.isPremium ? AppColor.gold : AppColor.platinum.opacity(0.95),
+                                    lineWidth: user.isPremium ? 4 : 3
+                                )
                         )
+                        .shadow(color: Color.black.opacity(0.12), radius: 12, y: 6)
                 }
         }
     }

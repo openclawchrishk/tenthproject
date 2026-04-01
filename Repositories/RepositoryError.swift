@@ -10,6 +10,9 @@ let repositoryLogger = Logger(subsystem: "com.desker.deskerhk", category: "Repos
 enum APIErrorMessages {
     /// Maps transport and API errors to actionable Chinese messages.
     static func userFacingMessage(for error: Error) -> String {
+        if let cfg = error as? DeskerAuthConfigurationError, case .notConfigured = cfg {
+            return cfg.errorDescription ?? "請聯繫開發者配置 Supabase"
+        }
         if let repo = error as? RepositoryError {
             switch repo {
             case .networkError(let underlying):

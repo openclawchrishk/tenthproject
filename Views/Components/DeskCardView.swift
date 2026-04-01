@@ -30,6 +30,12 @@ struct DeskCardView: View {
                                 Text((founder.displayName.isEmpty ? "—" : founder.displayName).deskerTruncated(maxLength: 20))
                                     .font(.headline)
                                     .foregroundStyle(AppColor.textPrimary)
+                                if founder.verificationBadgeStyle != nil {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(AppColor.gold)
+                                        .shadow(color: AppColor.gold.opacity(0.45), radius: 3, y: 0)
+                                }
                                 if let v = founder.verificationBadgeStyle {
                                     VerificationBadgeView(style: v)
                                 }
@@ -141,7 +147,12 @@ struct DeskCardView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                .shadow(
+                    color: Color.black.opacity(CardChrome.shadowOpacityElevated),
+                    radius: CardChrome.shadowRadiusElevated,
+                    x: 0,
+                    y: CardChrome.shadowYElevated
+                )
         )
     }
 
@@ -169,13 +180,31 @@ struct DeskCardView: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                HStack {
+                HStack(spacing: 10) {
                     Image(systemName: "briefcase.fill")
                         .font(.title3)
-                        .foregroundStyle(.white)
-                    Text("Desk")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(AppColor.gold.opacity(0.95))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, AppColor.platinum.opacity(0.95)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    Text("DESK")
+                        .font(.caption.weight(.heavy))
+                        .tracking(1.6)
+                        .foregroundStyle(AppColor.goldAccentGradient)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.14))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(AppColor.gold.opacity(0.75), lineWidth: 1)
+                                )
+                        )
+                        .shadow(color: AppColor.gold.opacity(0.35), radius: 8, y: 2)
                     Spacer()
                 }
 
@@ -235,10 +264,10 @@ struct DeskCardView: View {
 
     private var heroGradientColors: [Color] {
         let palettes: [[Color]] = [
-            [AppColor.primary, Color(hex: "5B4B9A"), AppColor.secondary],
-            [Color(hex: "312E81"), Color(hex: "6D28D9"), Color(hex: "7C3AED")],
+            [Color(hex: "0F1420"), AppColor.primary, Color(hex: "3D2E8C")],
+            [AppColor.primary, AppColor.secondary, Color(hex: "2A3654")],
+            [Color(hex: "1A2744"), Color(hex: "4A3AFF"), AppColor.secondary],
             [Color(hex: "134E4A"), Color(hex: "0F766E"), AppColor.teal],
-            [Color(hex: "1E3A5F"), Color(hex: "3730A3"), AppColor.secondary],
         ]
         let i = abs(desk.id.hashValue) % palettes.count
         return palettes[i]

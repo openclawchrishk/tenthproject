@@ -52,7 +52,7 @@ struct DeskHubView: View {
                         Color.black.opacity(0.3)
                             .ignoresSafeArea()
                         ProgressView()
-                            .tint(AppColor.primary)
+                            .tint(AppColor.gold)
                     }
                 }
             }
@@ -112,7 +112,7 @@ struct DeskHubView: View {
         if isLoading && myDesks.isEmpty && applications.isEmpty {
             VStack(spacing: 16) {
                 ProgressView()
-                    .tint(AppColor.primary)
+                    .tint(AppColor.gold)
                 Text("載入中...")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
@@ -380,7 +380,7 @@ struct DeskHubView: View {
                         placeholderPerson
                     case .empty:
                         ProgressView()
-                            .tint(AppColor.primary)
+                            .tint(AppColor.gold)
                     }
                 }
                 .frame(width: 52, height: 52)

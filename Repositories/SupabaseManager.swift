@@ -82,4 +82,9 @@ extension SupabaseManager {
     var auth: AuthClient {
         client.auth
     }
+
+    /// `true` only when real Supabase URL + anon key are set (not the localhost placeholder).
+    var isConfigured: Bool {
+        supabaseUrl.host != "127.0.0.1" && !supabaseAnonKey.isEmpty
+    }
 }

@@ -9,10 +9,11 @@ struct RoleSelectionView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "person.crop.rectangle.stack.fill")
                         .font(.system(size: 52))
-                        .foregroundStyle(AppColor.primary)
+                        .foregroundStyle(AppColor.brandGradient)
 
                     Text("選擇你嘅角色")
                         .font(.title.bold())
+                        .tracking(-0.4)
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text("呢個會影響你喺社群嘅身份顯示")
@@ -74,17 +75,19 @@ struct RoleCard: View {
             HStack(spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(AppColor.primary.opacity(0.1))
-                        .frame(width: 52, height: 52)
+                        .fill(AppColor.brandGradient)
+                        .frame(width: 56, height: 56)
+                        .shadow(color: AppColor.gold.opacity(0.22), radius: 10, x: 0, y: 4)
 
                     Image(systemName: roleIcon)
-                        .font(.title2)
-                        .foregroundStyle(AppColor.primary)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(role.localizedName)
-                        .font(.headline)
+                        .font(.headline.weight(.semibold))
+                        .tracking(-0.2)
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text(role.description)
@@ -95,29 +98,40 @@ struct RoleCard: View {
 
                 Spacer()
 
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(AppColor.gold)
-                } else {
-                    Circle()
-                        .stroke(AppColor.textTertiary.opacity(0.45), lineWidth: 2)
-                        .frame(width: 28, height: 28)
+                ZStack {
+                    if !isSelected {
+                        Circle()
+                            .stroke(AppColor.textTertiary.opacity(0.45), lineWidth: 2)
+                            .frame(width: 28, height: 28)
+                    }
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(AppColor.gold)
+                            .shadow(color: AppColor.gold.opacity(0.45), radius: 6, y: 0)
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
+                .frame(width: 32, height: 32)
             }
-            .padding(16)
+            .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    .shadow(
+                        color: Color.black.opacity(CardChrome.shadowOpacityCard),
+                        radius: CardChrome.shadowRadiusCard,
+                        x: 0,
+                        y: CardChrome.shadowYCard
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                    .stroke(isSelected ? AppColor.gold.opacity(0.85) : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? AppColor.gold : Color.clear, lineWidth: 2.5)
             )
             .contentShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
             .scaleEffect(isSelected ? 1.02 : 1)
-            .animation(.spring(response: 0.34, dampingFraction: 0.62), value: isSelected)
+            .animation(.spring(response: 0.36, dampingFraction: 0.68), value: isSelected)
         }
         .buttonStyle(DeskerCardPressStyle())
     }

@@ -172,14 +172,25 @@ struct MainTabView: View {
     }
 
     private var iosCustomTabBar: some View {
-        HStack(spacing: 0) {
-            iosTabButton(0, "探索", "person.2.fill", badge: nil)
-            iosTabButton(1, "Desk", "briefcase.fill", badge: deskTabBadgeCount > 0 ? deskTabBadgeCount : nil)
-            iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill", badge: inboxBadgeCount > 0 ? inboxBadgeCount : nil)
-            iosTabButton(3, "我的", "person.fill", badge: nil)
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [AppColor.gold.opacity(0.65), AppColor.gold.opacity(0.2)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+            HStack(spacing: 0) {
+                iosTabButton(0, "探索", "person.2.fill", badge: nil)
+                iosTabButton(1, "Desk", "briefcase.fill", badge: deskTabBadgeCount > 0 ? deskTabBadgeCount : nil)
+                iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill", badge: inboxBadgeCount > 0 ? inboxBadgeCount : nil)
+                iosTabButton(3, "我的", "person.fill", badge: nil)
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 6)
         }
-        .padding(.top, 10)
-        .padding(.bottom, 6)
         .background(AppColor.tabBarBackground.ignoresSafeArea(edges: .bottom))
     }
 
@@ -238,7 +249,9 @@ struct MainTabView: View {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 4) {
                     Image(systemName: systemImage)
-                        .scaleEffect(on ? 1.1 : 1.0)
+                        .scaleEffect(on ? 1.12 : 1.0)
+                        .shadow(color: on ? AppColor.gold.opacity(0.55) : .clear, radius: on ? 12 : 0, y: 0)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.78), value: on)
                     Text(title)
                         .font(.caption2.weight(on ? .semibold : .medium))
                 }

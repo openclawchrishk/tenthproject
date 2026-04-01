@@ -24,6 +24,45 @@ struct BasicInfoView: View {
         case displayName
     }
 
+    private var premiumStepBar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("步驟 2 / 3")
+                    .font(.caption.weight(.semibold))
+                    .tracking(1.0)
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer()
+                Text("基本資料")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.gold)
+            }
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(AppColor.textTertiary.opacity(0.2))
+                    Capsule()
+                        .fill(AppColor.goldAccentGradient)
+                        .frame(width: max(10, g.size.width * (2.0 / 3.0)))
+                }
+            }
+            .frame(height: 5)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+    }
+
+    private var nameFieldBorderColor: Color {
+        if nameError != nil { return AppColor.error.opacity(0.88) }
+        if focusedField == .displayName { return AppColor.gold.opacity(0.92) }
+        return Color.clear
+    }
+
+    private var nameFieldBorderWidth: CGFloat {
+        if nameError != nil { return 1.5 }
+        if focusedField == .displayName { return 2 }
+        return 0
+    }
+
     private let regionOptions = ["HK", "深圳", "廣州", "澳門", "珠海", "東莞", "海外港人", "其他"]
     private let commitmentOptions = [
         ("全職", "全情投入創業", "flame.fill"),
@@ -35,21 +74,24 @@ struct BasicInfoView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 28) {
+                premiumStepBar
+
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "person.fill")
                         .font(.system(size: 48))
-                        .foregroundStyle(AppColor.primary)
+                        .foregroundStyle(AppColor.brandGradient)
 
                     Text("基本資料")
                         .font(.title.bold())
+                        .tracking(-0.35)
                         .foregroundStyle(AppColor.textPrimary)
 
                     Text("之後隨時喺「我的」修改；真實資料有助配對同信任。")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
                 }
-                .padding(.top, 24)
+                .padding(.top, 8)
 
                 avatarSection
                     .padding(.horizontal, 24)
@@ -79,7 +121,7 @@ struct BasicInfoView: View {
                     .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
                     .overlay(
                         RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium)
-                            .stroke(nameError != nil ? AppColor.error.opacity(0.85) : Color.clear, lineWidth: 1.5)
+                            .stroke(nameFieldBorderColor, lineWidth: nameFieldBorderWidth)
                     )
                     .deskerShake(trigger: validationShakeTrigger)
                     .deskerErrorBorderPulse(trigger: nameFieldErrorPulseTrigger, cornerRadius: CardChrome.cornerRadiusMedium)

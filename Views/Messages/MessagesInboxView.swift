@@ -40,7 +40,7 @@ struct MessagesInboxView: View {
                 if isLoading && (segment == 0 || segment == 2) {
                     VStack(spacing: 16) {
                         ProgressView()
-                            .tint(AppColor.primary)
+                            .tint(AppColor.gold)
                         Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
