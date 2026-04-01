@@ -3,7 +3,9 @@ import AuthenticationServices
 
 struct WelcomeView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @Environment(\.openURL) private var openURL
     @State private var showPhoneLogin = false
+    @State private var showingEmailLogin = false
     @State private var isLoading = false
     @State private var errorText: String?
 
@@ -12,9 +14,8 @@ struct WelcomeView: View {
             AppColor.welcomeGradient
                 .ignoresSafeArea()
 
-            // Subtle vignette for depth
             LinearGradient(
-                colors: [Color.black.opacity(0.15), Color.clear, Color.black.opacity(0.25)],
+                colors: [Color.black.opacity(0.12), Color.clear, Color.black.opacity(0.22)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -23,32 +24,27 @@ struct WelcomeView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                VStack(spacing: 16) {
-                    Image(systemName: "briefcase.fill")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.white)
-                        .shadow(color: Color.black.opacity(0.1), radius: 16, y: 6)
+                VStack(spacing: 20) {
+                    Image(systemName: "building.2.crop.circle.fill")
+                        .font(.system(size: 88))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, AppColor.gold.opacity(0.95))
+                        .shadow(color: Color.black.opacity(0.15), radius: 18, y: 8)
 
                     Text("Desker HK")
                         .font(.largeTitle.bold())
+                        .foregroundStyle(AppColor.gold)
+
+                    Text("遇見你的下一個Desk")
+                        .font(.title3.weight(.medium))
                         .foregroundStyle(.white)
-
-                    Text("香港創業社群")
-                        .font(.title3)
-                        .foregroundStyle(.white.opacity(0.92))
-                        .tracking(2)
-
-                    Text("連接創辦人、投資者、創業家")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.75))
                         .multilineTextAlignment(.center)
-                        .padding(.top, 4)
                 }
-                .padding(.bottom, 56)
+                .padding(.bottom, 40)
 
                 Spacer()
 
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     SignInWithAppleButton(
                         .signIn,
                         onRequest: { request in
@@ -58,9 +54,9 @@ struct WelcomeView: View {
                             handleAppleSignIn(result)
                         }
                     )
-                    .signInWithAppleButtonStyle(.white)
+                    .signInWithAppleButtonStyle(.black)
                     .frame(height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .deskerButtonShadow()
 
                     Button {
@@ -75,14 +71,29 @@ struct WelcomeView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(
-                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(Color.white)
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                                .stroke(AppColor.gold, lineWidth: 2)
-                        )
                     }
+                    .buttonStyle(DeskerButtonPressStyle())
+                    .deskerButtonShadow()
+
+                    Button {
+                        showingEmailLogin = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "envelope.fill")
+                            Text("使用 Email")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding()
+                        .background(AppColor.cardBackground.opacity(0.22))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(DeskerButtonPressStyle())
                     .deskerButtonShadow()
 
                     if let errorText {
@@ -94,11 +105,10 @@ struct WelcomeView: View {
                     }
                 }
                 .padding(.horizontal, 32)
-                .padding(.bottom, 36)
+                .padding(.bottom, 20)
 
-                Text("登入即表示你同意我們的條款")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.5))
+                legalFooter
+                    .padding(.horizontal, 24)
                     .padding(.bottom, 28)
             }
 
@@ -114,6 +124,63 @@ struct WelcomeView: View {
             PhoneLoginView()
                 .environmentObject(auth)
         }
+        .sheet(isPresented: $showingEmailLogin) {
+            EmailLoginView(auth: auth)
+                .environmentObject(auth)
+        }
+    }
+
+    private var legalFooter: some View {
+        ViewThatFits(in: .vertical) {
+            legalLine
+            legalStacked
+        }
+    }
+
+    private var legalLine: some View {
+        HStack(spacing: 0) {
+            Text("登入即表示你同意我們的 ")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.55))
+            Button("服務條款") {
+                openURL(PublicLinks.termsURL)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.92))
+            Text(" 和 ")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.55))
+            Button("私隱政策") {
+                openURL(PublicLinks.privacyURL)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.92))
+        }
+        .multilineTextAlignment(.center)
+    }
+
+    private var legalStacked: some View {
+        VStack(spacing: 6) {
+            Text("登入即表示你同意我們的")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.55))
+            HStack(spacing: 8) {
+                Button("服務條款") {
+                    openURL(PublicLinks.termsURL)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.92))
+                Text("和")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.55))
+                Button("私隱政策") {
+                    openURL(PublicLinks.privacyURL)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.92))
+            }
+        }
+        .multilineTextAlignment(.center)
     }
 
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
@@ -241,9 +308,14 @@ struct PhoneLoginView: View {
                 }
 
                 if let errorText {
-                    Text(errorText)
-                        .font(.footnote)
-                        .foregroundStyle(AppColor.error)
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColor.error)
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(AppColor.error)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 Button {
@@ -261,6 +333,7 @@ struct PhoneLoginView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
+                .buttonStyle(DeskerButtonPressStyle())
                 .disabled(phoneNumber.count < 8)
                 .deskerButtonShadow()
             }
@@ -301,9 +374,14 @@ struct PhoneLoginView: View {
                     )
 
                 if let errorText {
-                    Text(errorText)
-                        .font(.footnote)
-                        .foregroundStyle(AppColor.error)
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColor.error)
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(AppColor.error)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 Button {
@@ -321,6 +399,7 @@ struct PhoneLoginView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
+                .buttonStyle(DeskerButtonPressStyle())
                 .disabled(otpCode.count < 6)
                 .deskerButtonShadow()
 

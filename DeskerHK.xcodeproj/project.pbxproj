@@ -46,6 +46,10 @@
 		A308E42B1D42D42A84BADC74 /* AppHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B261C2A4843E9C043A8E0A4 /* AppHeaderView.swift */; };
 		A5544A9FA1FF0AEE557E8516 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108F09C9BAF758522FD3B832 /* Message.swift */; };
 		AE0A4CB110CA4040E5002A08 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 985C4B544CF54478FCF20BDC /* ExploreViewModel.swift */; };
+		A1B2C3D4E5F6789012345602 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345601 /* AuthViewModel.swift */; };
+		A1B2C3D4E5F6789012345604 /* EmailLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345603 /* EmailLoginView.swift */; };
+		A1B2C3D4E5F6789012345606 /* EmailRegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345605 /* EmailRegisterView.swift */; };
+		A1B2C3D4E5F6789012345608 /* ForgotPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345607 /* ForgotPasswordView.swift */; };
 		B00379266ADEC4A421C3788C /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57659DF32EDAB7F29D7FC742 /* ToastView.swift */; };
 		B3FED0B504072D47EFAF3ABF /* MyConnectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8685DEB7C6D094A6E6C9BD6 /* MyConnectionsView.swift */; };
 		C00BA172A41E48E31F16E093 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEA3B7667C005032DD1D775 /* NotificationsView.swift */; };
@@ -101,6 +105,10 @@
 		8CAF0AC8996E97FECFC38448 /* AuthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthRepository.swift; sourceTree = "<group>"; };
 		8DEA3B7667C005032DD1D775 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		985C4B544CF54478FCF20BDC /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345601 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345603 /* EmailLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailLoginView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345605 /* EmailRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailRegisterView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6789012345607 /* ForgotPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPasswordView.swift; sourceTree = "<group>"; };
 		98F384A201B7AC6E5CD5A962 /* DeskGroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeskGroupChatView.swift; sourceTree = "<group>"; };
 		993C7F7EF8BE206A4A00DF5F /* SkillsAndNeedsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsAndNeedsView.swift; sourceTree = "<group>"; };
 		A0F84537FD04013ED346D1AD /* CreateDeskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateDeskView.swift; sourceTree = "<group>"; };
@@ -156,6 +164,7 @@
 		1B758EC992580739C3DFDDAA /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6789012345601 /* AuthViewModel.swift */,
 				985C4B544CF54478FCF20BDC /* ExploreViewModel.swift */,
 				4854C843299AC9173F7BB236 /* OnboardingViewModel.swift */,
 			);
@@ -191,6 +200,9 @@
 			isa = PBXGroup;
 			children = (
 				F866D41A3A3BD71D1B76B6F5 /* BasicInfoView.swift */,
+				A1B2C3D4E5F6789012345603 /* EmailLoginView.swift */,
+				A1B2C3D4E5F6789012345605 /* EmailRegisterView.swift */,
+				A1B2C3D4E5F6789012345607 /* ForgotPasswordView.swift */,
 				4F5BA13C793FB656A1E04BCA /* OnboardingContainerView.swift */,
 				37DF41D941CE548D94C99E64 /* RoleSelectionView.swift */,
 				993C7F7EF8BE206A4A00DF5F /* SkillsAndNeedsView.swift */,
@@ -384,6 +396,7 @@
 				A308E42B1D42D42A84BADC74 /* AppHeaderView.swift in Sources */,
 				7B0E4FA5F3DFDC243CA1D658 /* AppNotification.swift in Sources */,
 				8E1B642945AB9C1B7B93E0E5 /* AuthRepository.swift in Sources */,
+				A1B2C3D4E5F6789012345602 /* AuthViewModel.swift in Sources */,
 				12C8A54DE5C8555ACD2F2BF5 /* BasicInfoView.swift in Sources */,
 				4E9FE02DE09C99A25C0E106A /* Connection.swift in Sources */,
 				7CF047827B5EBE63E0708E62 /* ConnectionRepository.swift in Sources */,
@@ -403,7 +416,10 @@
 				950F9DE4ADF1EECA5390CACB /* DeskRepository.swift in Sources */,
 				5817A244057FC21D4D6DB290 /* DeskerHKApp.swift in Sources */,
 				CB3CFC713FFA673CD7FF470A /* ExploreView.swift in Sources */,
+				A1B2C3D4E5F6789012345604 /* EmailLoginView.swift in Sources */,
+				A1B2C3D4E5F6789012345606 /* EmailRegisterView.swift in Sources */,
 				AE0A4CB110CA4040E5002A08 /* ExploreViewModel.swift in Sources */,
+				A1B2C3D4E5F6789012345608 /* ForgotPasswordView.swift in Sources */,
 				6794A6D72947B170503C2F82 /* HapticFeedback.swift in Sources */,
 				331E20F3CE39E7CCA2258E97 /* IGCardExportService.swift in Sources */,
 				453AC1370601761D9A7AEAF5 /* Invite.swift in Sources */,

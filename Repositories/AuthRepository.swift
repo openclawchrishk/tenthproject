@@ -1,6 +1,10 @@
 import Foundation
 import Supabase
 
+private struct CheckEmailRegisteredParams: Encodable {
+    let p_email: String
+}
+
 @MainActor
 final class AuthRepository: ObservableObject {
     @Published var currentUser: UserProfile?
@@ -62,6 +66,48 @@ final class AuthRepository: ObservableObject {
             token: token,
             type: .sms
         )
+    }
+
+    func signInWithEmailOTP(email: String) async throws {
+        try await client.auth.signInWithOTP(email: email)
+    }
+
+    func verifyEmailOTP(email: String, token: String) async throws {
+        _ = try await client.auth.verifyOTP(
+            email: email,
+            token: token,
+            type: .email
+        )
+    }
+
+    /// Email/password sign-in using Supabase `auth.users` (GoTrue).
+    func signInWithEmail(email: String, password: String) async throws -> AuthResponse {
+        let session = try await client.auth.signIn(email: email, password: password)
+        return .session(session)
+    }
+
+    /// Registers a new email user; `display_name` is stored in user metadata.
+    func signUpWithEmail(email: String, password: String, displayName: String) async throws -> AuthResponse {
+        let data: [String: AnyJSON] = ["display_name": .string(displayName)]
+        return try await client.auth.signUp(email: email, password: password, data: data)
+    }
+
+    func resetPassword(email: String) async throws {
+        try await client.auth.resetPasswordForEmail(email)
+    }
+
+    /// Current Supabase session wrapped as ``AuthResponse``, if any.
+    func getCurrentUser() -> AuthResponse? {
+        guard let session = client.auth.currentSession else { return nil }
+        return .session(session)
+    }
+
+    /// Requires `public.check_email_registered` in the database (see `SUPABASE_SCHEMA.sql`).
+    func checkEmailRegistered(email: String) async throws -> Bool {
+        try await client
+            .rpc("check_email_registered", params: CheckEmailRegisteredParams(p_email: email))
+            .execute()
+            .value
     }
 
     func signOut() async throws {

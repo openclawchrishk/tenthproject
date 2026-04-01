@@ -468,3 +468,36 @@ CREATE TRIGGER desk_applications_updated_at BEFORE UPDATE ON public.desk_applica
 
 CREATE TRIGGER connection_invites_updated_at BEFORE UPDATE ON public.connection_invites
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ============================================================
+-- EMAIL AUTHENTICATION (Supabase Auth + optional RPC)
+-- ============================================================
+-- Email/password sign-in uses the built-in `auth.users` table managed by
+-- Supabase GoTrue. Password hashing and validation are handled by Supabase;
+-- you do NOT store passwords in `public.users`.
+--
+-- Dashboard checklist (Authentication):
+-- 1. Enable **Email** provider (Authentication > Providers > Email).
+-- 2. Configure **Site URL** and **Redirect URLs** for password recovery links.
+-- 3. Optional: toggle "Confirm email" for stricter signups.
+--
+-- The function below lets the mobile app distinguish "wrong password" vs
+-- "email not registered" when login returns `invalid_credentials`.
+-- Run this in the SQL Editor after the main schema exists.
+
+CREATE OR REPLACE FUNCTION public.check_email_registered(p_email text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = auth, public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM auth.users
+    WHERE lower(trim(email)) = lower(trim(p_email))
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.check_email_registered(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.check_email_registered(text) TO anon;
+GRANT EXECUTE ON FUNCTION public.check_email_registered(text) TO authenticated;
