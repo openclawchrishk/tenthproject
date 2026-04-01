@@ -7,53 +7,17 @@ struct ContentView: View {
     var body: some View {
         Group {
             if authRepository.session == nil {
-                OnboardingFlowView(viewModel: onboardingViewModel)
+                // No session - show welcome/login screen
+                WelcomeView()
                     .environmentObject(authRepository)
             } else if authRepository.currentUser == nil {
+                // Has session but no profile - run onboarding
                 OnboardingFlowView(viewModel: onboardingViewModel)
                     .environmentObject(authRepository)
             } else {
+                // Has session and profile - show main app
                 MainTabView()
                     .environmentObject(authRepository)
-            }
-        }
-    }
-}
-
-struct OnboardingFlowView: View {
-    @ObservedObject var viewModel: OnboardingViewModel
-    @EnvironmentObject private var auth: AuthRepository
-
-    var body: some View {
-        NavigationStack {
-            switch viewModel.currentStep {
-            case .roleSelection:
-                RoleSelectionView(viewModel: viewModel)
-            case .basicInfo:
-                BasicInfoView(viewModel: viewModel)
-            case .skillsAndNeeds:
-                SkillsAndNeedsView(viewModel: viewModel)
-            case .completed:
-                VStack(spacing: 20) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 56))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(AppColor.primary, AppColor.secondary)
-                    Text("設定完成")
-                        .font(.title.bold())
-                    Text("你的產業標籤、技能與需求已儲存。")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(AppColor.background)
-                .onAppear {
-                    Task {
-                        await viewModel.finalizeOnboarding(auth: auth)
-                    }
-                }
             }
         }
     }
@@ -109,7 +73,6 @@ struct MainTabView: View {
                 }
         }
         #if os(iOS)
-        // Tab bar colors: selected = AppColor.primary, unselected = AppColor.textSecondary via `TabBarAppearanceConfigurator` (avoid `.tint` on TabView).
         .toolbarBackground(AppColor.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarColorScheme(.dark, for: .tabBar)

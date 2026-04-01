@@ -6,70 +6,187 @@ struct SkillsAndNeedsView: View {
     @State private var isSaving = false
     @State private var saveError: String?
 
+    private let industryIcons: [String: String] = [
+        "金融科技": "banknote.fill", "教育": "book.fill", "醫療健康": "heart.fill",
+        "電商": "cart.fill", "SaaS": "cloud.fill", "AI / 數據": "brain.head.profile",
+        "區塊鏈": "bitcoinsign.circle.fill", "消費品牌": "bag.fill"
+    ]
+
+    private let skillIcons: [String: String] = [
+        "產品": "cube.fill", "設計": "paintbrush.fill", "前端": "chevron.left.forwardslash.chevron.right",
+        "後端": "server.rack", "市場": "megaphone.fill", "營運": "gearshape.fill",
+        "投資": "chart.line.uptrend.xyaxis", "法律": "scale.3d"
+    ]
+
+    private let needIcons: [String: String] = [
+        "技術合夥人": "wrench.and.screwdriver.fill", "資金": "banknote.fill",
+        "導師": "person.badge.clock.fill", "市場渠道": "arrow.triangle.branch",
+        "招聘": "person.badge.plus", "辦公空間": "building.2.fill"
+    ]
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("產業與技能")
-                    .font(.largeTitle.bold())
-                    .padding(.top, 24)
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "tag.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(AppColor.secondary)
 
-                TagSection(
+                    Text("標籤設定")
+                        .font(.title.bold())
+                        .foregroundStyle(AppColor.textPrimary)
+
+                    Text("選擇你嘅產業、技能同需求")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 24)
+
+                // Industry tags
+                tagSection(
                     title: "產業標籤",
-                    subtitle: "選擇你關注或從事的產業",
+                    subtitle: "你關注或從事的產業",
+                    icon: "building.2.fill",
                     options: OnboardingViewModel.industryOptions,
+                    icons: industryIcons,
                     selection: $viewModel.industryTags,
                     accent: AppColor.primary
                 )
 
-                TagSection(
-                    title: "技能",
+                // Skills
+                tagSection(
+                    title: "我的技能",
                     subtitle: "你擅長的能力",
+                    icon: "star.fill",
                     options: OnboardingViewModel.skillOptions,
+                    icons: skillIcons,
                     selection: $viewModel.skills,
                     accent: AppColor.secondary
                 )
 
-                TagSection(
-                    title: "需求",
-                    subtitle: "你希望配對到的協助",
+                // Needs
+                tagSection(
+                    title: "我需要",
+                    subtitle: "希望獲得的支援",
+                    icon: "hand.raised.fill",
                     options: OnboardingViewModel.needOptions,
+                    icons: needIcons,
                     selection: $viewModel.needs,
                     accent: AppColor.accentOrange
                 )
 
+                // Error
                 if let saveError {
-                    Text(saveError)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColor.error)
+                        Text(saveError)
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.error)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(AppColor.error.opacity(0.1))
+                    .cornerRadius(12)
                 }
 
-                Button(action: {
+                // Save button
+                Button {
                     Task { await saveAndContinue() }
-                }) {
-                    if isSaving {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("完成並儲存")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(AppColor.brandGradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                } label: {
+                    HStack {
+                        if isSaving {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("完成設定")
+                        }
                     }
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColor.primary, AppColor.secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(14)
                 }
                 .disabled(isSaving)
-                .padding(.top, 8)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.horizontal, 24)
+        }
+        .background(AppColor.background.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private func tagSection(
+        title: String,
+        subtitle: String,
+        icon: String,
+        options: [String],
+        icons: [String: String],
+        selection: Binding<Set<String>>,
+        accent: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundStyle(accent)
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+            }
+
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(AppColor.textSecondary)
+
+            FlowLayout(spacing: 8) {
+                ForEach(options, id: \.self) { option in
+                    let isSelected = selection.wrappedValue.contains(option)
+                    Button {
+                        if isSelected {
+                            selection.wrappedValue.remove(option)
+                        } else {
+                            selection.wrappedValue.insert(option)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let iconName = icons[option] {
+                                Image(systemName: iconName)
+                                    .font(.caption)
+                            }
+                            Text(option)
+                                .font(.subheadline)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(isSelected ? accent : AppColor.cardBackground)
+                        .foregroundStyle(isSelected ? .white : AppColor.textPrimary)
+                        .cornerRadius(22)
+                        .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: 3, x: 0, y: 1)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 22)
+                                .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
         }
     }
 
     private func saveAndContinue() async {
         guard auth.session != nil else {
-            saveError = "尚未登入，無法儲存。請先完成登入，再填寫產業與技能。"
+            saveError = "尚未登入，無法儲存。請返回重新登入。"
             return
         }
         isSaving = true
@@ -79,48 +196,14 @@ struct SkillsAndNeedsView: View {
             try await viewModel.persistSkillsAndNeeds(auth: auth)
             viewModel.proceedToNextStep()
         } catch {
-            saveError = error.localizedDescription
+            saveError = "儲存失敗：\(error.localizedDescription)"
         }
     }
 }
 
-private struct TagSection: View {
-    let title: String
-    let subtitle: String
-    let options: [String]
-    @Binding var selection: Set<String>
-    let accent: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.title3.bold())
-            Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 8)], spacing: 8) {
-                ForEach(options, id: \.self) { option in
-                    let on = selection.contains(option)
-                    Button {
-                        if on { selection.remove(option) } else { selection.insert(option) }
-                    } label: {
-                        Text(option)
-                            .font(.caption)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                            .background(on ? accent.opacity(0.2) : AppColor.secondaryGroupedSurface)
-                            .foregroundStyle(on ? accent : .primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .stroke(on ? accent : Color.clear, lineWidth: 2)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
+struct SkillsAndNeedsView_Previews: PreviewProvider {
+    static var previews: some View {
+        SkillsAndNeedsView(viewModel: OnboardingViewModel())
+            .environmentObject(AuthRepository())
     }
 }

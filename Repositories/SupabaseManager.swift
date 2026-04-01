@@ -23,9 +23,9 @@ final class SupabaseManager {
             supabaseUrl = url
             supabaseAnonKey = key
         } else {
-            // Placeholder — see FATAL block at top of file.
-            supabaseUrl = URL(string: "https://your-project.supabase.co")!
-            supabaseAnonKey = "your-anon-key"
+            // Chris Lau's Supabase project
+            supabaseUrl = URL(string: "https://dxihaspyxzocrnxyhbhow.supabase.co")!
+            supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWhhc3B5eHpvY3JueHloYm93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODUwNjQsImV4cCI6MjA5MDI2MTA2NH0.NzJj0qKNjKigPZ-Gp_rxQPG0_3h6QUwcLAXok4yhwsw"
         }
         client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey)
     }
