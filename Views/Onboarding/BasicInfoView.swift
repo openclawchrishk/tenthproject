@@ -114,6 +114,7 @@ struct BasicInfoView: View {
                         ForEach(OnboardingViewModel.languageOptions, id: \.self) { lang in
                             let isSelected = viewModel.selectedLanguages.contains(lang)
                             Button {
+                                HapticFeedback.light()
                                 if isSelected {
                                     viewModel.selectedLanguages.remove(lang)
                                 } else {
@@ -136,7 +137,7 @@ struct BasicInfoView: View {
                                         .stroke(isSelected ? AppColor.primary : AppColor.textSecondary.opacity(0.3), lineWidth: 1)
                                 )
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(DeskerChipPressStyle())
                         }
                     }
                 }
@@ -152,6 +153,7 @@ struct BasicInfoView: View {
                         ForEach(commitmentOptions, id: \.0) { option in
                             let isSelected = viewModel.commitmentLevel == option.0
                             Button {
+                                HapticFeedback.light()
                                 viewModel.commitmentLevel = option.0
                             } label: {
                                 HStack(spacing: 12) {
@@ -184,7 +186,7 @@ struct BasicInfoView: View {
                                         .stroke(isSelected ? AppColor.primary : Color.clear, lineWidth: 2)
                                 )
                             }
-                            .buttonStyle(PlainButtonStyle())
+                            .buttonStyle(DeskerChipPressStyle())
                         }
                     }
                 }

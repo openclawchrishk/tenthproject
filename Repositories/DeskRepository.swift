@@ -63,6 +63,7 @@ final class DeskRepository {
         var items: [DeskApplicationItem] = []
         for app in apps {
             let name: String
+            var avatar: String?
             do {
                 let applicant: UserProfile = try await client
                     .from("users")
@@ -72,11 +73,13 @@ final class DeskRepository {
                     .execute()
                     .value
                 name = applicant.displayName.isEmpty ? "使用者" : applicant.displayName
+                avatar = applicant.avatarUrl
             } catch {
                 name = "使用者"
+                avatar = nil
             }
             let deskName = deskMap[app.deskId] ?? "專案"
-            items.append(DeskApplicationItem(application: app, applicantDisplayName: name, deskName: deskName))
+            items.append(DeskApplicationItem(application: app, applicantDisplayName: name, deskName: deskName, applicantAvatarUrl: avatar))
         }
         return items
     }

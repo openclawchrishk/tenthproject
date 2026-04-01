@@ -38,6 +38,7 @@ struct DeskDetailView: View {
             if isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
+                        .tint(AppColor.primary)
                     Text("載入中…")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
@@ -115,60 +116,32 @@ struct DeskDetailView: View {
     @ViewBuilder
     private func detailScroll(_ desk: Desk) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerBlock(desk)
+            VStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+                detailHero(desk)
                 if let deskExportBanner {
                     Text(deskExportBanner)
                         .font(.footnote)
-                        .foregroundStyle(deskExportBanner.contains("失敗") ? .red : .secondary)
-                        .padding(.horizontal)
+                        .foregroundStyle(deskExportBanner.contains("失敗") ? AppColor.error : AppColor.textSecondary)
+                        .padding(.horizontal, CardChrome.padding)
                 }
                 if let founder {
                     founderBlock(founder)
                 }
+                aboutProjectSection(desk)
+                fundingHighlightBox(desk)
                 cardParitySummary(desk)
                 skillsNeededTagsSection(desk)
-                section(title: "簡介", icon: "text.alignleft", color: AppColor.primary) {
-                    Text(desk.pitch)
-                        .font(.body)
-                }
                 section(title: "詳細描述", icon: "doc.text", color: AppColor.secondary) {
                     Text(desk.detailedDescription ?? "—")
                         .font(.body)
+                        .foregroundStyle(AppColor.textPrimary)
                 }
-                section(title: "需求與期望", icon: "checklist", color: AppColor.accentOrange) {
+                section(title: "需求與期望", icon: "checklist", color: AppColor.gold) {
                     Text(desk.expectations ?? "—")
                         .font(.body)
+                        .foregroundStyle(AppColor.textPrimary)
                 }
-                section(title: "期望資助", icon: "dollarsign.circle", color: AppColor.accentPurple) {
-                    Text(desk.fundingNeeds ?? "—")
-                        .font(.body)
-                }
-                section(title: "招募角色與技能", icon: "person.3.fill", color: AppColor.secondary) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(desk.recruitingRoles) { role in
-                            HStack(alignment: .top) {
-                                Image(systemName: "person.badge.plus")
-                                    .foregroundStyle(AppColor.primary)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(role.title)
-                                        .font(.headline)
-                                    Text("名額：\(role.count)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    if let s = role.skillDescription {
-                                        Text(s)
-                                            .font(.subheadline)
-                                    }
-                                }
-                            }
-                        }
-                        if desk.recruitingRoles.isEmpty {
-                            Text(desk.skillsSummary)
-                                .font(.body)
-                        }
-                    }
-                }
+                recruitingRolesCards(desk)
                 section(title: "產業標籤", icon: "tag.fill", color: AppColor.primary) {
                     FlowTags(tags: desk.industryTags)
                 }
@@ -178,13 +151,13 @@ struct DeskDetailView: View {
                         DeskGroupChatView(desk: desk)
                     } label: {
                         Label("群組聊天", systemImage: "bubble.left.and.bubble.right.fill")
-                            .font(.headline)
+                            .font(.headline.weight(.semibold))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
                             .background(
-                                RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+                                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                                     .fill(AppColor.cardBackground)
-                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                             )
                     }
                     .buttonStyle(.plain)
@@ -193,12 +166,138 @@ struct DeskDetailView: View {
                     inviteBlock(desk)
                 }
             }
-            .padding()
+            .padding(.horizontal, CardChrome.padding)
             .padding(.bottom, visitorBottomPadding(desk))
         }
         .background(AppColor.background.ignoresSafeArea())
         .safeAreaInset(edge: .bottom) {
             bottomActionBar(desk)
+        }
+    }
+
+    private func detailHero(_ desk: Desk) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [
+                    AppColor.primary,
+                    Color(hex: "4A3F8C"),
+                    AppColor.secondary,
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 200)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    statusText(desk.status)
+                    Spacer()
+                    Text(desk.region)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+                Text(desk.name)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                Text(desk.pitch)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(CardChrome.padding)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
+        .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+    }
+
+    private func aboutProjectSection(_ desk: Desk) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("關於此專案", systemImage: "text.alignleft")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+            Text(desk.pitch)
+                .font(.body)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineSpacing(4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CardChrome.padding)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+        )
+    }
+
+    private func fundingHighlightBox(_ desk: Desk) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("資金需求", systemImage: "dollarsign.circle.fill")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppColor.gold)
+            Text(desk.fundingNeeds ?? "—")
+                .font(.body)
+                .foregroundStyle(AppColor.textPrimary)
+                .lineSpacing(3)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(CardChrome.padding)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(AppColor.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .stroke(AppColor.gold, lineWidth: 2)
+        )
+        .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+    }
+
+    private func recruitingRolesCards(_ desk: Desk) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("招募角色", systemImage: "person.3.fill")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(AppColor.primary)
+            if desk.recruitingRoles.isEmpty {
+                Text(desk.skillsSummary)
+                    .font(.body)
+                    .foregroundStyle(AppColor.textSecondary)
+            } else {
+                ForEach(desk.recruitingRoles) { role in
+                    HStack(alignment: .top, spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                .fill(AppColor.primary.opacity(0.1))
+                                .frame(width: 48, height: 48)
+                            Image(systemName: "person.badge.plus")
+                                .font(.title2)
+                                .foregroundStyle(AppColor.primary)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(role.title)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(AppColor.textPrimary)
+                            Text("名額：\(role.count)")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColor.textSecondary)
+                            if let s = role.skillDescription {
+                                Text(s)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.textPrimary)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(CardChrome.padding)
+                    .background(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                            .fill(AppColor.cardBackground)
+                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    )
+                }
+            }
         }
     }
 
@@ -219,27 +318,33 @@ struct DeskDetailView: View {
                         showApplySheet = true
                     } label: {
                         Label("已申請 · 點擊查看狀態", systemImage: "checkmark.seal.fill")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(AppColor.secondary)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
+                            .background(AppColor.secondary.opacity(0.85))
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .padding(.horizontal)
+                    .padding(.horizontal, CardChrome.padding)
                 } else {
                     Button {
                         prepareApplySheet(desk)
                         showApplySheet = true
+                        HapticFeedback.light()
                     } label: {
                         Label("申請加入", systemImage: "paperplane.fill")
-                            .font(.headline)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 16)
+                            .background(AppColor.brandGradient)
+                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppColor.primary)
-                    .padding(.horizontal)
-                    .padding(.vertical, 10)
+                    .buttonStyle(.plain)
+                    .deskerButtonShadow()
+                    .padding(.horizontal, CardChrome.padding)
+                    .padding(.vertical, 12)
                 }
                 Spacer().frame(height: 0)
             }
@@ -301,6 +406,7 @@ struct DeskDetailView: View {
                                 HStack {
                                     Spacer()
                                     ProgressView()
+                                        .tint(AppColor.primary)
                                     Spacer()
                                 }
                             } else {
@@ -359,15 +465,21 @@ struct DeskDetailView: View {
     }
 
     private func founderBlock(_ founder: UserProfile) -> some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
             founderAvatar(avatarUrl: founder.avatarUrl)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("創辦人")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppColor.gold)
                 HStack(spacing: 8) {
                     Text(founder.displayName.isEmpty ? "—" : founder.displayName)
-                        .font(.headline)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    if founder.verificationBadgeStyle != nil {
+                        Image(systemName: "star.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppColor.gold)
+                    }
                     if let v = founder.verificationBadgeStyle {
                         VerificationBadgeView(style: v)
                     }
@@ -375,12 +487,12 @@ struct DeskDetailView: View {
             }
             Spacer()
         }
-        .padding()
+        .padding(CardChrome.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -405,13 +517,15 @@ struct DeskDetailView: View {
                             .foregroundStyle(AppColor.primary)
                     }
                 }
-                .frame(width: 56, height: 56)
+                .frame(width: 64, height: 64)
                 .clipShape(Circle())
+                .overlay(Circle().stroke(AppColor.gold.opacity(0.55), lineWidth: 2))
             } else {
                 Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 56))
+                    .font(.system(size: 64))
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(AppColor.primary, AppColor.secondary)
+                    .overlay(Circle().stroke(AppColor.gold.opacity(0.45), lineWidth: 2))
             }
         }
     }
@@ -434,24 +548,6 @@ struct DeskDetailView: View {
             if let s = r.skillDescription, !s.isEmpty { tags.append(s) }
         }
         return Array(Set(tags)).sorted()
-    }
-
-    private func headerBlock(_ desk: Desk) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(desk.name)
-                    .font(.title.bold())
-                Spacer()
-                statusText(desk.status)
-            }
-            Text(desk.pitch)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("\(desk.region) · \(desk.languagePreference.joined(separator: ", "))")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
     }
 
     /// One block that mirrors the Explore card: expectations line + skills + team + date.
@@ -483,12 +579,12 @@ struct DeskDetailView: View {
                 }
             }
         }
-        .padding()
+        .padding(CardChrome.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -510,18 +606,18 @@ struct DeskDetailView: View {
     }
 
     private func section<Content: View>(title: String, icon: String, color: Color, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Label(title, systemImage: icon)
-                .font(.headline)
+                .font(.title3.weight(.bold))
                 .foregroundStyle(color)
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
+        .padding(CardChrome.padding)
         .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -544,12 +640,12 @@ struct DeskDetailView: View {
                 .font(.subheadline)
             }
         }
-        .padding()
+        .padding(CardChrome.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -585,11 +681,11 @@ struct DeskDetailView: View {
             .tint(AppColor.primary)
             .disabled(inviteInFlight || inviteeIdText.count < 32)
         }
-        .padding()
+        .padding(CardChrome.padding)
         .background(
-            RoundedRectangle(cornerRadius: CardChrome.cornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadius, x: 0, y: CardChrome.shadowY)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -675,15 +771,21 @@ struct DeskDetailView: View {
 
 private struct FlowTags: View {
     let tags: [String]
+
+    private let chipColors: [Color] = [
+        AppColor.primary, AppColor.secondary, AppColor.teal, AppColor.gold,
+    ]
+
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), alignment: .leading)], alignment: .leading, spacing: 8) {
-            ForEach(tags, id: \.self) { tag in
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), alignment: .leading)], alignment: .leading, spacing: 10) {
+            ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
+                let c = chipColors[index % chipColors.count]
                 Text(tag)
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(AppColor.primary.opacity(0.12))
-                    .foregroundStyle(AppColor.primary)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(c.opacity(0.16))
+                    .foregroundStyle(c)
                     .clipShape(Capsule())
             }
         }

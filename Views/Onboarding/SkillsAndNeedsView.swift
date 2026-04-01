@@ -153,6 +153,7 @@ struct SkillsAndNeedsView: View {
                 ForEach(options, id: \.self) { option in
                     let isSelected = selection.wrappedValue.contains(option)
                     Button {
+                        HapticFeedback.light()
                         if isSelected {
                             selection.wrappedValue.remove(option)
                         } else {
@@ -178,7 +179,7 @@ struct SkillsAndNeedsView: View {
                                 .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)
                         )
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(DeskerChipPressStyle())
                 }
             }
         }

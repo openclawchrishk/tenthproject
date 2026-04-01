@@ -1,34 +1,34 @@
 import SwiftUI
 
-/// Swipe-style card for Explore: hero, pitch, industry, founder, roles, member count.
+/// Swipe-style card for Explore: hero gradient, pitch, founder, industry chips, recruitment progress, Apply.
 struct DeskCardView: View {
     let desk: Desk
     let founder: UserProfile?
     let onViewAgain: () -> Void
 
+    private var memberCap: Int {
+        max(1, desk.memberLimit)
+    }
+
+    private var filledSlots: Int {
+        min(desk.currentMemberCount, memberCap)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             deskHero
 
-            VStack(alignment: .leading, spacing: CardChrome.sectionSpacing / 2) {
-                HStack(alignment: .top) {
-                    Text(desk.name)
-                        .font(.title2.bold())
-                        .foregroundStyle(AppColor.textPrimary)
-                    Spacer(minLength: 8)
-                    StatusPill(status: desk.status)
-                }
-
+            VStack(alignment: .leading, spacing: CardChrome.padding) {
                 if let founder {
-                    HStack(alignment: .center, spacing: 12) {
+                    HStack(alignment: .center, spacing: 14) {
                         FounderAvatar(urlString: founder.avatarUrl)
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("創辦人")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(AppColor.gold)
                             HStack(spacing: 6) {
                                 Text(founder.displayName.isEmpty ? "—" : founder.displayName)
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.headline)
                                     .foregroundStyle(AppColor.textPrimary)
                                 if let v = founder.verificationBadgeStyle {
                                     VerificationBadgeView(style: v)
@@ -39,71 +39,95 @@ struct DeskCardView: View {
                     }
                 }
 
-                Text(desk.pitch)
-                    .font(.body)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if !desk.industryTags.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("產業", systemImage: "tag.fill")
-                            .font(.caption.bold())
-                            .foregroundStyle(AppColor.secondary)
-                        DeskCardTagFlow(tags: desk.industryTags)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("招募進度", systemImage: "person.3.sequence")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppColor.primary)
+                        Spacer()
+                        StatusPill(status: desk.status)
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("招募角色", systemImage: "person.badge.plus")
-                        .font(.caption.bold())
-                        .foregroundStyle(AppColor.gold)
-                    if desk.recruitingRoles.isEmpty {
-                        Text("—")
-                            .font(.caption)
-                            .foregroundStyle(AppColor.textSecondary)
-                    } else {
-                        ForEach(desk.recruitingRoles) { role in
-                            HStack {
-                                Text(role.title)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(AppColor.textPrimary)
-                                Spacer()
-                                Text("×\(role.count)")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(AppColor.textSecondary)
+                    recruitmentDots
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("\(desk.currentMemberCount)/\(memberCap) 人")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppColor.textPrimary)
+                            Spacer()
+                            if let created = desk.createdAt {
+                                Text(Self.dateFormatter.string(from: created))
+                                    .font(.caption)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                        }
+                        GeometryReader { geo in
+                            let w = geo.size.width
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(AppColor.surfaceElevated)
+                                Capsule()
+                                    .fill(AppColor.brandGradient)
+                                    .frame(width: max(8, w * CGFloat(filledSlots) / CGFloat(memberCap)))
+                            }
+                        }
+                        .frame(height: 8)
+                    }
+
+                    if !desk.recruitingRoles.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("招募角色")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(AppColor.gold)
+                            ForEach(desk.recruitingRoles) { role in
+                                HStack {
+                                    Text(role.title)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(AppColor.textPrimary)
+                                    Spacer()
+                                    Text("×\(role.count)")
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(AppColor.textSecondary)
+                                }
                             }
                         }
                     }
                 }
 
-                HStack {
-                    Label("\(desk.currentMemberCount)/\(desk.memberLimit) 人", systemImage: "person.2.fill")
-                        .font(.caption)
-                        .foregroundStyle(AppColor.primary)
-                    Spacer()
-                    if let created = desk.createdAt {
-                        Text(Self.dateFormatter.string(from: created))
-                            .font(.caption2)
-                            .foregroundStyle(AppColor.textTertiary)
+                VStack(spacing: 12) {
+                    NavigationLink {
+                        DeskDetailView(deskId: desk.id)
+                    } label: {
+                        Text("申請加入")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppColor.brandGradient)
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
                     }
-                }
+                    .buttonStyle(.plain)
+                    .deskerButtonShadow()
 
-                Button(action: onViewAgain) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.clockwise.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(AppColor.primary, AppColor.gold)
-                        Text("再看一次")
-                            .fontWeight(.semibold)
+                    Button(action: onViewAgain) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.clockwise.circle.fill")
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(AppColor.primary, AppColor.gold)
+                            Text("換一張")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .foregroundStyle(AppColor.primary)
+                        .background(
+                            Capsule()
+                                .stroke(AppColor.primary.opacity(0.35), lineWidth: 1.5)
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(AppColor.brandGradient)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .deskerButtonShadow()
             }
             .padding(CardChrome.padding)
         }
@@ -124,8 +148,8 @@ struct DeskCardView: View {
             LinearGradient(
                 colors: [
                     AppColor.primary,
+                    Color(hex: "5B4B9A"),
                     AppColor.secondary,
-                    AppColor.primary.opacity(0.85),
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -146,18 +170,48 @@ struct DeskCardView: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                Image(systemName: "briefcase.fill")
-                    .font(.title2.weight(.semibold))
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "briefcase.fill")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("Desk")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppColor.gold.opacity(0.95))
+                    Spacer()
+                }
+
+                Text(desk.name)
+                    .font(.title.bold())
                     .foregroundStyle(.white)
-                Text("Desk")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppColor.gold.opacity(0.95))
+                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+
+                Text(desk.pitch)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !desk.industryTags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(desk.industryTags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption.weight(.medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(.white.opacity(0.22))
+                                    .foregroundStyle(.white)
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
             }
-            .padding(.horizontal, CardChrome.padding)
-            .padding(.vertical, 12)
+            .padding(CardChrome.padding)
+            .padding(.bottom, 4)
         }
-        .frame(height: 108)
+        .frame(minHeight: 168)
         .frame(maxWidth: .infinity)
         .clipShape(
             UnevenRoundedRectangle(
@@ -168,6 +222,27 @@ struct DeskCardView: View {
                 style: .continuous
             )
         )
+    }
+
+    private var recruitmentDots: some View {
+        let show = min(memberCap, 10)
+        let filled = min(filledSlots, show)
+        return HStack(spacing: 6) {
+            ForEach(0..<show, id: \.self) { i in
+                Circle()
+                    .fill(i < filled ? AppColor.primary : AppColor.surfaceElevated)
+                    .frame(width: 10, height: 10)
+                    .overlay(
+                        Circle()
+                            .stroke(AppColor.textTertiary.opacity(0.4), lineWidth: i < filled ? 0 : 1)
+                    )
+            }
+            if memberCap > 10 {
+                Text("…")
+                    .font(.caption.bold())
+                    .foregroundStyle(AppColor.textSecondary)
+            }
+        }
     }
 
     private static let dateFormatter: DateFormatter = {
@@ -196,13 +271,14 @@ private struct FounderAvatar: View {
                         placeholder
                     case .empty:
                         ProgressView()
+                            .tint(AppColor.primary)
                     @unknown default:
                         placeholder
                     }
                 }
-                .frame(width: 44, height: 44)
+                .frame(width: 52, height: 52)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(AppColor.gold.opacity(0.5), lineWidth: 1.5))
+                .overlay(Circle().stroke(AppColor.gold.opacity(0.55), lineWidth: 2))
             } else {
                 placeholder
             }
@@ -211,26 +287,9 @@ private struct FounderAvatar: View {
 
     private var placeholder: some View {
         Image(systemName: "person.crop.circle.fill")
-            .font(.system(size: 44))
+            .font(.system(size: 52))
             .symbolRenderingMode(.palette)
             .foregroundStyle(AppColor.primary, AppColor.gold.opacity(0.6))
-    }
-}
-
-private struct DeskCardTagFlow: View {
-    let tags: [String]
-    var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), alignment: .leading)], alignment: .leading, spacing: 8) {
-            ForEach(tags, id: \.self) { tag in
-                Text(tag)
-                    .font(.caption)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(AppColor.secondary.opacity(0.12))
-                    .foregroundStyle(AppColor.secondary)
-                    .clipShape(Capsule())
-            }
-        }
     }
 }
 

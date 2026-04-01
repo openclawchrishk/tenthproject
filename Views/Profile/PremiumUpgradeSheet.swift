@@ -6,53 +6,83 @@ struct PremiumUpgradeSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 56))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(AppColor.gold, AppColor.primary)
-                Text("升級至 Level 3")
-                    .font(.title.bold())
-                Text("解鎖 Premium 標章、更多 Desk 成員額度與進階功能。正式上線時將透過 Apple In-App Purchase 付款。")
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Level 3：最多 8 位成員", systemImage: "person.3.fill")
-                    Label("Premium 標章顯示", systemImage: "star.circle.fill")
-                    Label("即將支援：Apple IAP", systemImage: "applelogo")
-                }
-                .font(.subheadline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
-                        .fill(AppColor.cardBackground)
-                        .shadow(
-                            color: CardChrome.shadowColor,
-                            radius: CardChrome.shadowRadiusElevated,
-                            x: 0,
-                            y: CardChrome.shadowYElevated
+            ScrollView {
+                VStack(spacing: 28) {
+                    ZStack {
+                        LinearGradient(
+                            colors: [
+                                Color(hex: "2D346D"),
+                                Color(hex: "4A3F7A"),
+                                Color(hex: "C9A227"),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                )
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
 
-                Button {
-                    HapticFeedback.light()
-                    // Placeholder: real purchase flow would start here.
-                } label: {
-                    Text("使用 Apple 內購（示範）")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        VStack(spacing: 14) {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+                            Text("Level 3 Premium")
+                                .font(.title.bold())
+                                .foregroundStyle(.white)
+                            Text("解鎖更高成員額度、Premium 標章與進階功能")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.9))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(28)
+                    }
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        benefitRow("Desk 成員上限提升至 8 人", icon: "person.3.fill")
+                        benefitRow("個人檔案 Premium 標章", icon: "star.circle.fill")
+                        benefitRow("優先曝光與配對（即將推出）", icon: "sparkles")
+                        benefitRow("正式上線時支援 Apple In-App Purchase", icon: "applelogo")
+                    }
+                    .padding(CardChrome.padding)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                            .fill(AppColor.cardBackground)
+                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    )
+
+                    VStack(spacing: 8) {
+                        Text("HK$ 98 / 月")
+                            .font(.title2.bold())
+                            .foregroundStyle(AppColor.textPrimary)
+                        Text("示範價格 · 正式上線前不會收費")
+                            .font(.footnote)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+
+                    Button {
+                        HapticFeedback.light()
+                    } label: {
+                        Text("使用 Apple 內購升級（示範）")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(hex: "C9A227"), AppColor.primary],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .deskerButtonShadow()
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.primary)
-
-                Spacer()
+                .padding(CardChrome.padding)
+                .padding(.bottom, 24)
             }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppColor.background.ignoresSafeArea())
             .navigationTitle("Premium")
             .deskerInlineNavigationTitle()
@@ -61,6 +91,21 @@ struct PremiumUpgradeSheet: View {
                     Button("關閉") { dismiss() }
                 }
             }
+        }
+    }
+
+    private func benefitRow(_ text: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .foregroundStyle(AppColor.teal)
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundStyle(AppColor.primary)
+                .frame(width: 24)
+            Text(text)
+                .font(.body)
+                .foregroundStyle(AppColor.textPrimary)
         }
     }
 }

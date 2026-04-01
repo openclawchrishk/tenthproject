@@ -180,6 +180,30 @@ extension View {
     }
 }
 
+// MARK: - Role badge colors (Explore / Profile)
+
+enum RoleBadgePalette {
+    static func color(for role: UserRole) -> Color {
+        switch role {
+        case .founder: return AppColor.primary
+        case .investor: return AppColor.gold
+        case .mentor: return AppColor.teal
+        case .aspiringFounder: return AppColor.secondary
+        }
+    }
+}
+
+// MARK: - Chip / pill press feedback (onboarding & filters)
+
+struct DeskerChipPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

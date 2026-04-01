@@ -28,6 +28,7 @@ struct DeskHubView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showCreateDesk = true
+                    HapticFeedback.light()
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.title3)
@@ -47,8 +48,9 @@ struct DeskHubView: View {
     @ViewBuilder
     private var content: some View {
         if isLoading && myDesks.isEmpty && applications.isEmpty {
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 ProgressView()
+                    .tint(AppColor.primary)
                 Text("載入中…")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
@@ -57,7 +59,7 @@ struct DeskHubView: View {
         } else if let errorText {
             VStack(spacing: 16) {
                 Text(errorText)
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(AppColor.error)
                     .multilineTextAlignment(.center)
                 Button("重試") {
@@ -66,12 +68,14 @@ struct DeskHubView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(AppColor.primary)
             }
-            .padding()
+            .padding(CardChrome.padding)
         } else {
-            List {
-                Section {
+            ScrollView {
+                VStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
+                    sectionTitle("我創建的專案", icon: "folder.fill", tint: AppColor.primary)
+
                     if myDesks.isEmpty {
-                        emptyRow(
+                        emptyCard(
                             icon: "folder.badge.plus",
                             message: "你還沒有建立 Desk，立即創建你的第一個項目"
                         )
@@ -80,145 +84,206 @@ struct DeskHubView: View {
                             NavigationLink {
                                 DeskDetailView(deskId: desk.id)
                             } label: {
-                                deskFounderRow(desk)
+                                deskFounderCard(desk)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
-                } header: {
-                    Label("我創建的專案", systemImage: "folder.fill")
-                        .foregroundStyle(AppColor.primary)
-                }
 
-                Section {
+                    sectionTitle("收到的申請", icon: "tray.full.fill", tint: AppColor.secondary)
+
                     if applications.isEmpty {
-                        emptyRow(icon: "tray", message: "還沒有收到申請")
+                        emptyCard(icon: "tray", message: "還沒有收到申請")
                     } else {
                         ForEach(applications) { item in
-                            applicationRow(item)
+                            applicationCard(item)
                         }
                     }
-                } header: {
-                    Label("收到的申請", systemImage: "tray.full.fill")
-                        .foregroundStyle(AppColor.secondary)
                 }
+                .padding(.horizontal, CardChrome.padding)
+                .padding(.bottom, 28)
             }
-            .deskerInsetGroupedListStyle()
         }
     }
 
-    private func emptyRow(icon: String, message: String) -> some View {
-        VStack(spacing: 10) {
+    private func sectionTitle(_ title: String, icon: String, tint: Color) -> some View {
+        Label(title, systemImage: icon)
+            .font(.title3.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.top, 8)
+    }
+
+    private func emptyCard(icon: String, message: String) -> some View {
+        VStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.system(size: 36))
                 .foregroundStyle(AppColor.textSecondary)
             Text(message)
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .listRowBackground(Color.clear)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
     }
 
-    private func deskFounderRow(_ desk: Desk) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func deskFounderCard(_ desk: Desk) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(desk.name)
-                    .font(.headline)
+                    .font(.title3.bold())
                     .foregroundStyle(AppColor.textPrimary)
                 Spacer()
                 deskStatusPill(desk.status)
             }
             Text(desk.pitch)
-                .font(.caption)
+                .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(2)
-            HStack(spacing: 12) {
+                .lineLimit(3)
+            HStack(spacing: 14) {
                 Label("\(desk.currentMemberCount)/\(desk.memberLimit) 人", systemImage: "person.2.fill")
-                    .font(.caption)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(AppColor.primary)
                 if !desk.skillsSummary.isEmpty {
                     Text(desk.skillsSummary)
-                        .font(.caption2)
-                        .foregroundStyle(AppColor.textSecondary)
+                        .font(.footnote)
+                        .foregroundStyle(AppColor.textTertiary)
                         .lineLimit(1)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
     }
 
     private func deskStatusPill(_ status: DeskStatus) -> some View {
         let (t, c): (String, Color) = {
             switch status {
-            case .recruiting: return ("招募中", AppColor.secondary)
-            case .full: return ("已滿", AppColor.accentOrange)
+            case .recruiting: return ("招募中", AppColor.primary)
+            case .full: return ("已滿", AppColor.gold)
             case .archived: return ("已歸檔", AppColor.textSecondary)
             }
         }()
         return Text(t)
-            .font(.caption2.bold())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(c.opacity(0.15))
+            .font(.caption.weight(.bold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(c.opacity(0.18))
             .foregroundStyle(c)
             .clipShape(Capsule())
     }
 
-    private func applicationRow(_ item: DeskApplicationItem) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.title2)
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(AppColor.primary, AppColor.secondary)
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(item.deskName)
-                        .font(.caption.bold())
-                        .foregroundStyle(AppColor.secondary)
-                    Spacer()
-                    Text(statusLabel(item.application.status))
-                        .font(.caption2)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusColor(item.application.status).opacity(0.15))
-                        .foregroundStyle(statusColor(item.application.status))
-                        .clipShape(Capsule())
-                }
-                Text(item.applicantDisplayName)
-                    .font(.headline)
-                Text("應徵角色：\(item.application.selectedRole)")
-                    .font(.subheadline)
-                Text(item.application.statement)
-                    .font(.footnote)
-                    .foregroundStyle(AppColor.textSecondary)
-                if item.application.status == .pending {
-                    HStack(spacing: 12) {
-                        Button {
-                            Task { await setStatus(item, to: .accepted) }
-                        } label: {
-                            Label("批准", systemImage: "checkmark.circle.fill")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColor.secondary)
-                        .disabled(processingId != nil)
-
-                        Button {
-                            Task { await setStatus(item, to: .declined) }
-                        } label: {
-                            Label("拒絕", systemImage: "xmark.circle.fill")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(AppColor.error)
-                        .disabled(processingId != nil)
+    private func applicationCard(_ item: DeskApplicationItem) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                applicantAvatar(url: item.applicantAvatarUrl)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(item.deskName)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(AppColor.secondary)
+                        Spacer()
+                        Text(statusLabel(item.application.status))
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(statusColor(item.application.status).opacity(0.15))
+                            .foregroundStyle(statusColor(item.application.status))
+                            .clipShape(Capsule())
                     }
-                    .padding(.top, 4)
+                    Text(item.applicantDisplayName)
+                        .font(.title3.bold())
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text("應徵角色：\(item.application.selectedRole)")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                    Text(item.application.statement)
+                        .font(.body)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            }
+
+            if item.application.status == .pending {
+                HStack(spacing: 12) {
+                    Button {
+                        Task { await setStatus(item, to: .accepted) }
+                    } label: {
+                        Label("批准", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(
+                                    colors: [AppColor.success, AppColor.gold.opacity(0.92)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(processingId != nil)
+
+                    Button {
+                        Task { await setStatus(item, to: .declined) }
+                    } label: {
+                        Label("拒絕", systemImage: "xmark.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(AppColor.error.opacity(0.12))
+                            .foregroundStyle(AppColor.error)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppColor.error.opacity(0.45), lineWidth: 1.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(processingId != nil)
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(CardChrome.padding)
+        .deskerElevatedCard()
         .opacity(processingId == item.application.id ? 0.5 : 1)
+    }
+
+    private func applicantAvatar(url: String?) -> some View {
+        Group {
+            if let s = url?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+               let u = URL(string: s) {
+                AsyncImage(url: u) { phase in
+                    switch phase {
+                    case .success(let img):
+                        img
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        placeholderPerson
+                    case .empty:
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    @unknown default:
+                        placeholderPerson
+                    }
+                }
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(AppColor.primary.opacity(0.25), lineWidth: 1.5))
+            } else {
+                placeholderPerson
+            }
+        }
+    }
+
+    private var placeholderPerson: some View {
+        Image(systemName: "person.crop.circle.fill")
+            .font(.system(size: 52))
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(AppColor.primary, AppColor.secondary)
     }
 
     private func statusLabel(_ s: ApplicationStatus) -> String {
@@ -232,7 +297,7 @@ struct DeskHubView: View {
 
     private func statusColor(_ s: ApplicationStatus) -> Color {
         switch s {
-        case .pending: return AppColor.accentOrange
+        case .pending: return AppColor.gold
         case .accepted: return AppColor.success
         case .declined: return AppColor.error
         case .hold: return AppColor.textSecondary
@@ -244,9 +309,11 @@ struct DeskHubView: View {
         defer { processingId = nil }
         do {
             try await deskRepository.updateApplicationStatus(applicationId: item.application.id, status: status)
+            HapticFeedback.success()
             await reload()
         } catch {
             errorText = error.localizedDescription
+            HapticFeedback.error()
         }
     }
 

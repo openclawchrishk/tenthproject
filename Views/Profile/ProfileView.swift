@@ -24,6 +24,9 @@ struct ProfileView: View {
                     subtitle: auth.currentUser?.displayName ?? ""
                 )
                 if let user = auth.currentUser {
+                    profileHero(user)
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 12)
                     Form {
                         profileCompletenessSection(user)
                         levelAndBadgesSection(user)
@@ -95,6 +98,98 @@ struct ProfileView: View {
                 ShareSheetView(items: [url])
             }
         }
+    }
+
+    @ViewBuilder
+    private func profileHero(_ user: UserProfile) -> some View {
+        VStack(spacing: 16) {
+            ZStack {
+                if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+                   let url = URL(string: s) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img
+                                .resizable()
+                                .scaledToFill()
+                        case .failure:
+                            placeholderAvatar
+                        case .empty:
+                            ProgressView()
+                                .tint(AppColor.primary)
+                        @unknown default:
+                            placeholderAvatar
+                        }
+                    }
+                    .frame(width: 112, height: 112)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
+                    )
+                } else {
+                    placeholderAvatar
+                        .overlay(
+                            Circle()
+                                .stroke(user.isPremium ? AppColor.gold : AppColor.textTertiary.opacity(0.4), lineWidth: user.isPremium ? 4 : 2)
+                        )
+                }
+            }
+
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(user.displayName.isEmpty ? "—" : user.displayName)
+                        .font(.title2.bold())
+                        .foregroundStyle(AppColor.textPrimary)
+                    if user.verificationBadgeStyle != nil {
+                        Image(systemName: "star.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppColor.gold)
+                    }
+                    if let v = user.verificationBadgeStyle {
+                        VerificationBadgeView(style: v)
+                    }
+                }
+                Text(user.role.localizedName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(RoleBadgePalette.color(for: user.role))
+            }
+
+            HStack(spacing: 0) {
+                statCell(title: "Level", value: "\(user.level.rawValue)")
+                Divider().frame(height: 36)
+                statCell(title: "推薦", value: "\(referralCount)")
+                Divider().frame(height: 36)
+                statCell(title: "完整度", value: "\(Int(round(user.profileCompleteness * 100)))%")
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.cardBackground)
+                    .shadow(color: CardChrome.shadowColor, radius: 10, x: 0, y: 4)
+            )
+        }
+    }
+
+    private func statCell(title: String, value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(AppColor.textPrimary)
+            Text(title)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var placeholderAvatar: some View {
+        Image(systemName: "person.crop.circle.fill")
+            .font(.system(size: 80))
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(AppColor.primary, AppColor.secondary)
+            .frame(width: 112, height: 112)
     }
 
     @ViewBuilder

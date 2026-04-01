@@ -204,6 +204,8 @@ struct DeskApplicationItem: Identifiable, Equatable {
     let application: DeskApplication
     let applicantDisplayName: String
     let deskName: String
+    /// Resolved from `users.avatar_url` when available.
+    let applicantAvatarUrl: String?
 
     var id: UUID { application.id }
 }

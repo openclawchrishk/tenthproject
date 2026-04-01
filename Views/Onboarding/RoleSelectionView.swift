@@ -27,7 +27,10 @@ struct RoleSelectionView: View {
                         RoleCard(
                             role: role,
                             isSelected: viewModel.selectedRole == role,
-                            onSelect: { viewModel.selectedRole = role }
+                            onSelect: {
+                                HapticFeedback.light()
+                                viewModel.selectedRole = role
+                            }
                         )
                     }
                 }

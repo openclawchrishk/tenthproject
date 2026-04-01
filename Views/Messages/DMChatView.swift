@@ -20,8 +20,11 @@ struct DMChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             if isLoading {
-                ProgressView("載入對話…")
-                    .frame(maxHeight: .infinity)
+                VStack(spacing: 16) {
+                    ProgressView("載入對話…")
+                        .tint(AppColor.primary)
+                }
+                .frame(maxHeight: .infinity)
             } else if let errorText {
                 ContentUnavailableView("無法載入", systemImage: "exclamationmark.triangle", description: Text(errorText))
                     .toolbar {
@@ -48,22 +51,29 @@ struct DMChatView: View {
                         }
                     }
                 }
-                HStack(spacing: 12) {
+                HStack(alignment: .bottom, spacing: 12) {
                     TextField("傳送訊息…", text: $inputText, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(1...4)
+                        .lineLimit(1...5)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                                .fill(AppColor.cardBackground)
+                                .shadow(color: CardChrome.shadowColor.opacity(0.4), radius: 6, x: 0, y: 2)
+                        )
                     Button {
                         Task { await send() }
                     } label: {
                         Image(systemName: "paperplane.fill")
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, AppColor.secondary)
-                            .padding(10)
-                            .background(AppColor.primary, in: Circle())
+                            .foregroundStyle(.white, AppColor.secondary.opacity(0.9))
+                            .padding(12)
+                            .background(AppColor.brandGradient, in: Circle())
                     }
                     .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .opacity(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
                 }
-                .padding()
+                .padding(CardChrome.padding)
                 .background(AppColor.background)
             }
         }
@@ -109,9 +119,17 @@ struct DMChatView: View {
         return HStack {
             if mine { Spacer(minLength: 40) }
             Text(msg.content)
-                .padding(12)
-                .background(mine ? AppColor.primary.opacity(0.2) : AppColor.secondaryGroupedSurface)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(14)
+                .foregroundStyle(AppColor.textPrimary)
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .fill(mine ? AppColor.primary.opacity(0.18) : AppColor.cardBackground)
+                        .shadow(color: CardChrome.shadowColor.opacity(0.3), radius: 5, x: 0, y: 2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .stroke(mine ? AppColor.primary.opacity(0.35) : AppColor.textTertiary.opacity(0.18), lineWidth: 1)
+                )
             if !mine { Spacer(minLength: 40) }
         }
     }

@@ -22,28 +22,24 @@ struct MessagesInboxView: View {
                     title: "訊息",
                     subtitle: "私訊、通知與邀請"
                 )
-                Picker("", selection: $segment) {
-                    Text("私訊").tag(0)
-                    Text("通知").tag(1)
-                    Text("Desk 邀請").tag(2)
-                    Text("人脈").tag(3)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
 
-                if isLoading && segment != 1 && segment != 3 {
-                    VStack(spacing: 12) {
+                inboxSegmentPicker
+                    .padding(.horizontal, CardChrome.padding)
+                    .padding(.bottom, 12)
+
+                if isLoading && (segment == 0 || segment == 2) {
+                    VStack(spacing: 16) {
                         ProgressView()
+                            .tint(AppColor.primary)
                         Text("載入中…")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
                     }
-                    .padding(.top, 32)
+                    .padding(.top, 40)
                 } else if let errorText, segment == 0 || segment == 2 {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         Text(errorText)
-                            .font(.footnote)
+                            .font(.subheadline)
                             .foregroundStyle(AppColor.error)
                             .multilineTextAlignment(.center)
                         Button("重試") {
@@ -52,7 +48,7 @@ struct MessagesInboxView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(AppColor.primary)
                     }
-                    .padding()
+                    .padding(CardChrome.padding)
                 } else {
                     switch segment {
                     case 0:
@@ -76,51 +72,104 @@ struct MessagesInboxView: View {
         .refreshable { await loadAll() }
     }
 
+    private var inboxSegmentPicker: some View {
+        Picker("", selection: $segment) {
+            Text("私訊").tag(0)
+            Text("通知").tag(1)
+            Text("Desk邀請").tag(2)
+            Text("人脈").tag(3)
+        }
+        .pickerStyle(.segmented)
+        .tint(AppColor.primary)
+    }
+
     @ViewBuilder
     private var dmSegment: some View {
         if messages.isEmpty {
-            ContentUnavailableView(
-                "暫時沒有訊息",
-                systemImage: "bubble.left.and.bubble.right",
-                description: Text("與已連接的用戶開始對話")
-            )
-            .padding(.top, 24)
+            VStack(spacing: 20) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 56))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(AppColor.primary.opacity(0.85), AppColor.secondary.opacity(0.75))
+                Text("暫時沒有訊息")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("與已連接的用戶開始對話")
+                    .font(.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(CardChrome.padding)
+            .padding(.top, 32)
         } else {
-            List(messages) { item in
-                if let uid = auth.currentUser?.id {
-                    let peerId = item.conversation.otherUser(than: uid)
-                    NavigationLink {
-                        DMChatView(peerId: peerId, peerDisplayName: item.peerDisplayName)
-                    } label: {
-                        dmRow(item)
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(messages) { item in
+                        if let uid = auth.currentUser?.id {
+                            let peerId = item.conversation.otherUser(than: uid)
+                            NavigationLink {
+                                DMChatView(peerId: peerId, peerDisplayName: item.peerDisplayName)
+                            } label: {
+                                dmRow(item, currentUserId: uid)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
+                .padding(.horizontal, CardChrome.padding)
+                .padding(.bottom, 24)
             }
-            .deskerInsetGroupedListStyle()
         }
     }
 
-    private func dmRow(_ item: MessageListItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "person.circle.fill")
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(AppColor.primary, AppColor.secondary)
-                Text(item.peerDisplayName)
-                    .font(.headline)
-                Spacer()
-                if let d = item.message.createdAt {
-                    Text(Self.shortDate.string(from: d))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+    private func dmRow(_ item: MessageListItem, currentUserId: UUID) -> some View {
+        let unread = item.message.senderId != currentUserId
+        return HStack(alignment: .top, spacing: 14) {
+            ZStack(alignment: .topTrailing) {
+                dmAvatar(for: item.peerDisplayName)
+                if unread {
+                    Circle()
+                        .fill(AppColor.primary)
+                        .frame(width: 10, height: 10)
+                        .offset(x: 4, y: -4)
                 }
             }
-            Text(item.message.body)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.peerDisplayName)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Spacer()
+                    if let d = item.message.createdAt {
+                        Text(Self.shortDate.string(from: d))
+                            .font(.caption)
+                            .foregroundStyle(AppColor.textTertiary)
+                    }
+                }
+                Text(item.message.body)
+                    .font(.subheadline)
+                    .foregroundStyle(unread ? AppColor.textPrimary : AppColor.textSecondary)
+                    .lineLimit(2)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(CardChrome.padding)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+        )
+    }
+
+    private func dmAvatar(for name: String) -> some View {
+        let initial = name.trimmingCharacters(in: .whitespacesAndNewlines).first.map(String.init) ?? "?"
+        return ZStack {
+            Circle()
+                .fill(AppColor.brandGradient)
+                .frame(width: 52, height: 52)
+            Text(initial)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+        }
     }
 
     private var inviteList: some View {
@@ -129,52 +178,71 @@ struct MessagesInboxView: View {
                 ContentUnavailableView("沒有邀請", systemImage: "envelope.open", description: Text("發送或收到的 Desk 邀請會顯示於此"))
                     .padding(.top, 24)
             } else {
-                List(invites) { inv in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(deskNames[inv.deskId] ?? "Desk")
-                                .font(.headline)
-                            Spacer()
-                            Text(statusLabel(inv.status))
-                                .font(.caption.bold())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(AppColor.primary.opacity(0.12))
-                                .foregroundStyle(AppColor.primary)
-                                .clipShape(Capsule())
-                        }
-                        Text(inv.inviteeId == auth.currentUser?.id ? "你收到邀請" : "你發出的邀請")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if inv.status == .pending,
-                           inv.inviteeId == auth.currentUser?.id,
-                           let uid = auth.currentUser?.id {
-                            HStack(spacing: 12) {
-                                Button {
-                                    Task { await respondToDeskInvite(inv, as: uid, accept: true) }
-                                } label: {
-                                    Text("接受")
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(invites) { inv in
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text(deskNames[inv.deskId] ?? "Desk")
+                                        .font(.headline.weight(.semibold))
+                                    Spacer()
+                                    Text(statusLabel(inv.status))
+                                        .font(.caption.weight(.bold))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(AppColor.primary.opacity(0.12))
+                                        .foregroundStyle(AppColor.primary)
+                                        .clipShape(Capsule())
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(AppColor.primary)
-                                .disabled(processingInviteId != nil)
+                                Text(inv.inviteeId == auth.currentUser?.id ? "你收到邀請" : "你發出的邀請")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                if inv.status == .pending,
+                                   inv.inviteeId == auth.currentUser?.id,
+                                   let uid = auth.currentUser?.id {
+                                    HStack(spacing: 12) {
+                                        Button {
+                                            Task { await respondToDeskInvite(inv, as: uid, accept: true) }
+                                        } label: {
+                                            Text("接受")
+                                                .font(.subheadline.weight(.semibold))
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .background(AppColor.brandGradient)
+                                                .foregroundStyle(.white)
+                                                .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(processingInviteId != nil)
 
-                                Button {
-                                    Task { await respondToDeskInvite(inv, as: uid, accept: false) }
-                                } label: {
-                                    Text("拒絕")
+                                        Button {
+                                            Task { await respondToDeskInvite(inv, as: uid, accept: false) }
+                                        } label: {
+                                            Text("拒絕")
+                                                .font(.subheadline.weight(.semibold))
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .background(AppColor.error.opacity(0.12))
+                                                .foregroundStyle(AppColor.error)
+                                                .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(processingInviteId != nil)
+                                    }
+                                    .opacity(processingInviteId == inv.id ? 0.5 : 1)
                                 }
-                                .buttonStyle(.bordered)
-                                .tint(AppColor.error)
-                                .disabled(processingInviteId != nil)
                             }
-                            .padding(.top, 4)
-                            .opacity(processingInviteId == inv.id ? 0.5 : 1)
+                            .padding(CardChrome.padding)
+                            .background(
+                                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                                    .fill(AppColor.cardBackground)
+                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                            )
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, CardChrome.padding)
+                    .padding(.bottom, 24)
                 }
-                .deskerInsetGroupedListStyle()
             }
         }
     }
