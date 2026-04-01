@@ -266,9 +266,9 @@ struct CreateDeskView: View {
     private var canProceedFromCurrentStep: Bool {
         switch step {
         case 0:
-            return !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+            return ProfileFieldValidation.isValidDeskName(name) &&
                 !pitch.trimmingCharacters(in: .whitespaces).isEmpty &&
-                name.count <= 60 && pitch.count <= 150
+                pitch.count <= 150
         case 1:
             return recruitingRoles.contains { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
         case 2:
@@ -279,9 +279,8 @@ struct CreateDeskView: View {
     }
 
     private var isValid: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
+        ProfileFieldValidation.isValidDeskName(name) &&
             !pitch.trimmingCharacters(in: .whitespaces).isEmpty &&
-            name.count <= 60 &&
             pitch.count <= 150 &&
             !selectedIndustries.isEmpty &&
             recruitingRoles.contains { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }

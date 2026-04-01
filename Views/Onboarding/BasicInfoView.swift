@@ -376,6 +376,13 @@ struct BasicInfoView: View {
             validationShakeTrigger += 1
             HapticFeedback.error()
             ok = false
+        } else if name.count > ProfileFieldValidation.displayNameMaxLength {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                nameError = "顯示名稱最多 \(ProfileFieldValidation.displayNameMaxLength) 字"
+            }
+            validationShakeTrigger += 1
+            HapticFeedback.error()
+            ok = false
         }
         if viewModel.selectedLanguages.isEmpty {
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
