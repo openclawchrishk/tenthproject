@@ -201,6 +201,7 @@ struct DMChatView: View {
         inputText = ""
         do {
             try await dmRepo.sendMessage(conversationId: c.id, senderId: uid, content: text)
+            DeskerAnalytics.track(.userSendMessage)
             HapticFeedback.light()
             await loadMessages()
         } catch {

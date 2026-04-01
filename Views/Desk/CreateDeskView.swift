@@ -19,6 +19,8 @@ struct CreateDeskView: View {
     @State private var isSubmitting = false
     @State private var errorText: String?
     @State private var formShakeTick = 0
+    @State private var showFirstDeskCelebration = false
+    @State private var firstDeskShareItems: [Any] = []
 
     private let deskRepository = DeskRepository()
 
@@ -116,6 +118,28 @@ struct CreateDeskView: View {
                         }
                 }
             }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showFirstDeskCelebration) {
+                FirstDeskCelebrationView(
+                    shareItems: firstDeskShareItems,
+                    onContinue: {
+                        showFirstDeskCelebration = false
+                        dismiss()
+                    }
+                )
+            }
+            #elseif os(macOS)
+            .sheet(isPresented: $showFirstDeskCelebration) {
+                FirstDeskCelebrationView(
+                    shareItems: firstDeskShareItems,
+                    onContinue: {
+                        showFirstDeskCelebration = false
+                        dismiss()
+                    }
+                )
+                .frame(minWidth: 420, minHeight: 480)
+            }
+            #endif
             .onAppear {
                 loadDraftIfNeeded()
             }
@@ -388,6 +412,7 @@ struct CreateDeskView: View {
         errorText = nil
 
         do {
+            let priorDeskCount = (try? await deskRepository.fetchDesksForFounder(founderId: founderId).count) ?? 0
             let roles = recruitingRoles
                 .filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
                 .map { DeskRole(title: $0.title, count: $0.count, skillDescription: $0.skillsDescription.isEmpty ? nil : $0.skillsDescription) }
@@ -405,14 +430,102 @@ struct CreateDeskView: View {
             )
 
             DeskerUXPreferences.saveDeskDraft(nil)
-            toast.show(.success, "Desk 已建立")
+            DeskerAnalytics.track(.userCreateDesk)
             HapticFeedback.success()
             isSubmitting = false
-            dismiss()
+            if priorDeskCount == 0 {
+                // Fetch created desk list to resolve share URL (newest first).
+                if let desks = try? await deskRepository.fetchDesksForFounder(founderId: founderId),
+                   let created = desks.first {
+                    firstDeskShareItems = [PublicLinks.deskURL(deskId: created.id)]
+                } else if let fallback = URL(string: PublicLinks.baseURLString) {
+                    firstDeskShareItems = [fallback]
+                } else {
+                    firstDeskShareItems = []
+                }
+                showFirstDeskCelebration = true
+            } else {
+                toast.show(.success, "Desk 已建立")
+                dismiss()
+            }
         } catch {
             errorText = APIErrorMessages.userFacingMessage(for: error)
             formShakeTick += 1
             isSubmitting = false
+        }
+    }
+}
+
+private struct FirstDeskCelebrationView: View {
+    let shareItems: [Any]
+    let onContinue: () -> Void
+
+    @State private var showShare = false
+    @State private var iconBounce: CGFloat = 1
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [AppColor.primary.opacity(0.15), AppColor.background],
+                startPoint: .topLeading,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 28) {
+                Spacer()
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 72))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(AppColor.success, AppColor.gold)
+                    .scaleEffect(iconBounce)
+                    .shadow(color: Color.black.opacity(0.12), radius: 12, y: 4)
+                Text("你的第一個Desk！")
+                    .font(.title.bold())
+                    .foregroundStyle(AppColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text("已成功發佈，招募志同道合的夥伴加入。")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Button {
+                    HapticFeedback.light()
+                    showShare = true
+                } label: {
+                    Label("分享 Desk", systemImage: "square.and.arrow.up")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(AppColor.brandGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(DeskerButtonPressStyle())
+                .padding(.horizontal, CardChrome.padding)
+
+                Button {
+                    HapticFeedback.medium()
+                    onContinue()
+                } label: {
+                    Text("完成")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(AppColor.primary)
+                }
+                .padding(.top, 4)
+                Spacer()
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.65)) {
+                iconBounce = 1.08
+            }
+        }
+        .sheet(isPresented: $showShare) {
+            if !shareItems.isEmpty {
+                ShareSheetView(items: shareItems)
+            }
         }
     }
 }

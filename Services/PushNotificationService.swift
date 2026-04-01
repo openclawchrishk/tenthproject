@@ -7,6 +7,14 @@ import UIKit
 #endif
 
 /// Local + remote notification routing (tabs / segments). Call `configure` from the main shell when the user session is active.
+///
+/// **Expected `userInfo` keys for rich pushes (server / marketing reference):**
+/// - `type` or `notification_type`: `connection_request` | `desk_application` | `new_message` | `desk_invite` | `desk_milestone`
+/// - `conversation_id` / `conversationId` — DM deep link
+/// - For connection requests: include `sender_avatar_url`, `sender_name` (displayed in in-app notification list when mapped in payload `data`)
+/// - For desk applications: `applicant_name`, `desk_name`
+/// - For messages: `sender_name`, `preview` (message body preview)
+/// - For desk milestones: `desk_id`, `member_count` (e.g. 5), celebration tone in `title`/`body`
 final class PushNotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = PushNotificationService()
 

@@ -54,13 +54,22 @@ struct PremiumUpgradeSheet: View {
                             .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                     )
 
-                    VStack(spacing: 8) {
-                        Text("HK$ 98 / 月")
-                            .font(.title2.bold())
-                            .foregroundStyle(AppColor.textPrimary)
-                        Text("示範價格 · 正式上線前不會收費")
-                            .font(.footnote)
-                            .foregroundStyle(AppColor.textSecondary)
+                    VStack(spacing: 10) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("HK$ 128")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                                .strikethrough(true, color: AppColor.textTertiary)
+                            Text("HK$ 98 / 月")
+                                .font(.title2.bold())
+                                .foregroundStyle(AppColor.textPrimary)
+                        }
+                        Text("限時早鳥 · 示範價格 · 正式上線前不會收費")
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(AppColor.gold)
+                        Text("對比標價突顯 Premium 價值（價格錨定示意）")
+                            .font(.caption2)
+                            .foregroundStyle(AppColor.textTertiary)
                     }
 
                     Button {

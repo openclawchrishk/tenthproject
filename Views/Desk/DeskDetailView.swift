@@ -570,6 +570,7 @@ struct DeskDetailView: View {
             myApplication = try await deskRepository.fetchMyApplication(deskId: desk.id, applicantId: uid)
             showApplySheet = false
             toast.show(.success, "申請已送出")
+            DeskerAnalytics.track(.userApplyToDesk, parameters: ["desk_id": desk.id.uuidString])
             HapticFeedback.success()
         } catch {
             applyError = error.localizedDescription

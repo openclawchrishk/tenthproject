@@ -268,6 +268,7 @@ struct ExploreView: View {
                 #if os(iOS)
                 shareItems = [PublicLinks.profilePublicURL(for: founder)]
                 showShareSheet = true
+                DeskerAnalytics.track(.userShareProfile, parameters: ["context": "explore_long_press"])
                 HapticFeedback.medium()
                 #endif
             }

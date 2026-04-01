@@ -150,6 +150,7 @@ final class AuthViewModel: ObservableObject {
             )
             if response.session != nil {
                 await authRepository.refreshProfile()
+                DeskerAnalytics.track(.userSignUp)
             } else {
                 needsEmailConfirmation = true
             }

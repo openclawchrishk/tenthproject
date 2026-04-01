@@ -235,7 +235,7 @@ struct ProfileView: View {
             HStack(spacing: 0) {
                 deskStatColumn
                 Divider().frame(height: 52)
-                connectionStatColumn
+                connectionMilestoneColumn()
                 Divider().frame(height: 52)
                 completenessStatColumn(user: user)
             }
@@ -321,7 +321,7 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var connectionStatColumn: some View {
+    private func connectionMilestoneColumn() -> some View {
         let next = ConnectionMilestone.next(after: connectionCount)
         return VStack(spacing: 4) {
             Text("\(connectionCount)")

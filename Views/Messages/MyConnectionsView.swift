@@ -3,6 +3,7 @@ import SwiftUI
 struct MyConnectionsView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var tabRouter: MainTabRouter
+    @EnvironmentObject private var toast: ToastCenter
     @State private var connections: [Connection] = []
     @State private var pending: [ConnectionInvite] = []
     @State private var isLoading = true
@@ -11,6 +12,9 @@ struct MyConnectionsView: View {
     @State private var banner: String?
     @State private var peerNames: [UUID: String] = [:]
     @State private var peerAvatars: [UUID: String?] = [:]
+    @State private var showConnectionShare = false
+    @State private var connectionShareItems: [Any] = []
+    @State private var offerShareAfterConnection = false
 
     private let connectionsRepo = ConnectionRepository()
     private let userRepo = UserRepository()
@@ -72,6 +76,22 @@ struct MyConnectionsView: View {
         .background(AppColor.background.ignoresSafeArea())
         .task { await load() }
         .refreshable { await load() }
+        .confirmationDialog("連接成功", isPresented: $offerShareAfterConnection, titleVisibility: .visible) {
+            Button("分享個人檔案") {
+                if let me = auth.currentUser {
+                    connectionShareItems = [PublicLinks.profilePublicURL(for: me)]
+                    showConnectionShare = true
+                }
+            }
+            Button("稍後再說", role: .cancel) {}
+        } message: {
+            Text("你們已成為連接，可以開始私訊。要分享你的檔案給朋友嗎？")
+        }
+        .sheet(isPresented: $showConnectionShare) {
+            if !connectionShareItems.isEmpty {
+                ShareSheetView(items: connectionShareItems)
+            }
+        }
     }
 
     private var connectionsEmptyHero: some View {
@@ -376,10 +396,19 @@ private extension MyConnectionsView {
 
     func accept(_ inv: ConnectionInvite) async {
         guard let uid = auth.currentUser?.id else { return }
+        let countBefore = connections.count
         do {
             try await connectionsRepo.acceptConnectionInvite(inviteId: inv.id, currentUserId: uid)
+            DeskerAnalytics.track(.userMakeConnection)
             HapticFeedback.success()
             await load()
+            let newCount = connections.count
+            if let milestone = ConnectionMilestone.milestoneMessageIfReached(newCount: newCount, previousCount: countBefore) {
+                toast.show(.success, milestone)
+            } else {
+                toast.show(.success, "你們已成為連接！可以開始私訊了")
+            }
+            offerShareAfterConnection = true
         } catch {
             banner = "接受失敗：\(error.localizedDescription)"
             HapticFeedback.error()

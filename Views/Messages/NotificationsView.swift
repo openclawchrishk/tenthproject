@@ -223,15 +223,16 @@ struct NotificationsView: View {
     }
 
     private func notificationCard(_ n: AppNotification) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+        let lines = polishedNotificationLines(n)
+        return HStack(alignment: .top, spacing: 14) {
             NotificationAvatarChrome(iconName: iconName(for: n.type))
             VStack(alignment: .leading, spacing: 6) {
-                Text(n.title)
+                Text(lines.title)
                     .font(.subheadline.bold())
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(3)
                     .frame(maxWidth: 520, alignment: .leading)
-                Text(n.body)
+                Text(lines.body)
                     .font(.caption)
                     .foregroundStyle(AppColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -273,7 +274,57 @@ struct NotificationsView: View {
         case AppNotificationType.deskApplicationReceived, AppNotificationType.deskApplicationAccepted, AppNotificationType.deskApplicationRejected:
             return "briefcase.fill"
         case AppNotificationType.connectionInvite, AppNotificationType.connectionAccepted: return "person.2.fill"
+        case AppNotificationType.deskMilestone: return "sparkles"
         default: return "bell.fill"
+        }
+    }
+
+    /// Preferred in-app copy when payload is sparse; server can still override via `title`/`body`.
+    private func polishedNotificationLines(_ n: AppNotification) -> (title: String, body: String) {
+        let data = n.dataObject
+        let senderName = data?["sender_name"] as? String ?? data?["from_name"] as? String
+        let preview = data?["preview"] as? String ?? data?["message_preview"] as? String
+        let applicantName = data?["applicant_name"] as? String ?? data?["name"] as? String
+
+        switch n.type {
+        case AppNotificationType.connectionInvite:
+            let title = n.title.isEmpty ? "有人想連接你！" : n.title
+            let body: String = {
+                if let senderName, !senderName.isEmpty {
+                    return n.body.isEmpty ? "查看並接受 \(senderName) 的邀請" : n.body
+                }
+                return n.body.isEmpty ? "查看並接受連接邀請" : n.body
+            }()
+            return (title, body)
+        case AppNotificationType.deskApplicationReceived:
+            let title = n.title.isEmpty ? "你的Desk有新申請！" : n.title
+            let body: String = {
+                if let applicantName, !applicantName.isEmpty {
+                    return n.body.isEmpty ? "申請者：\(applicantName)。查看並決定是否批准。" : n.body
+                }
+                return n.body.isEmpty ? "查看並決定是否批准" : n.body
+            }()
+            return (title, body)
+        case AppNotificationType.dmReceived:
+            let title: String = {
+                if let senderName, !senderName.isEmpty {
+                    return n.title.isEmpty ? senderName : n.title
+                }
+                return n.title.isEmpty ? "新訊息" : n.title
+            }()
+            let body: String = {
+                if let preview, !preview.isEmpty {
+                    return preview
+                }
+                return n.body
+            }()
+            return (title, body)
+        case AppNotificationType.deskMilestone:
+            let title = n.title.isEmpty ? "Desk 里程碑" : n.title
+            let body = n.body.isEmpty ? "你的Desk已招募到多位成員，繼續加油！" : n.body
+            return (title, body)
+        default:
+            return (n.title, n.body)
         }
     }
 

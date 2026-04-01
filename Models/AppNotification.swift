@@ -85,4 +85,6 @@ enum AppNotificationType {
     static let dmReceived = "dm_received"
     static let connectionInvite = "connection_invite"
     static let connectionAccepted = "connection_accepted"
+    /// Desk reached a member count milestone (payload may include `desk_id`, `member_count`).
+    static let deskMilestone = "desk_milestone"
 }

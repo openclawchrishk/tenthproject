@@ -181,6 +181,16 @@ struct CompletionView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background)
+        .sheet(isPresented: $showShareCompletion) {
+            Group {
+                if let u = auth.currentUser {
+                    ShareSheetView(items: [PublicLinks.profilePublicURL(for: u)])
+                } else {
+                    ProgressView("載入中…")
+                        .padding()
+                }
+            }
+        }
         .onAppear {
             iconPulse = true
             withAnimation(.linear(duration: 2.2).repeatForever(autoreverses: false)) {
@@ -198,6 +208,21 @@ struct CompletionView: View {
             }
         }
     }
+
+    #if os(iOS)
+    private func scheduleWelcomeLocalNotification() async {
+        let center = UNUserNotificationCenter.current()
+        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        guard granted else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "歡迎加入 Desker HK！"
+        content.body = "開始探索你的下一個Desk"
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1.8, repeats: false)
+        let req = UNNotificationRequest(identifier: "desker.welcome.after_onboarding", content: content, trigger: trigger)
+        try? await center.add(req)
+    }
+    #endif
 
     private func featureRow(icon: String, color: Color, title: String, desc: String) -> some View {
         HStack(spacing: 16) {
