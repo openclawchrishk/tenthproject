@@ -15,27 +15,30 @@ struct DeskHubView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                AppHeaderView(
-                    title: "Desk",
-                    subtitle: "我創建的專案與申請管理"
-                )
-                content
-            }
-            .background(AppColor.background.ignoresSafeArea())
-            .deskerHiddenNavigationBar()
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 0) {
+                    AppHeaderView(
+                        title: "Desk",
+                        subtitle: "我創建的專案與申請管理"
+                    )
+                    content
+                }
+                .background(AppColor.background.ignoresSafeArea())
+                .deskerHiddenNavigationBar()
+
                 Button {
                     showCreateDesk = true
                     HapticFeedback.light()
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title3)
+                        .font(.title2)
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.primary, AppColor.secondary)
+                        .shadow(color: CardChrome.buttonShadowColor, radius: 4, x: 0, y: 2)
                 }
+                .accessibilityLabel("建立 Desk")
+                .padding(.trailing, CardChrome.padding)
+                .padding(.top, 12)
             }
         }
         .sheet(isPresented: $showCreateDesk, onDismiss: {

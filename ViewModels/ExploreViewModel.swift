@@ -10,6 +10,7 @@ enum ExploreInviteCTAState: Equatable {
     case connected
     case pendingConnectionInvite
     case ready
+    case error(String)
 }
 
 private let exploreVMLog = Logger(subsystem: "hk.desker", category: "Explore")
@@ -118,7 +119,8 @@ final class ExploreViewModel: ObservableObject {
             }
             inviteCTAState = .ready
         } catch {
-            inviteCTAState = .ready
+            exploreVMLog.error("refreshInviteCTAState failed: \(error.localizedDescription, privacy: .public)")
+            inviteCTAState = .error("無法檢查邀請狀態")
         }
     }
 

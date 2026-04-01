@@ -28,6 +28,19 @@ final class UserRepository {
         return response
     }
 
+    /// Batch-load profiles by id (deduped); empty `ids` returns `[]`.
+    func fetchUsersByIds(_ ids: [UUID]) async throws -> [UserProfile] {
+        let unique = Array(Set(ids))
+        guard !unique.isEmpty else { return [] }
+        let rows: [UserProfile] = try await client
+            .from("users")
+            .select()
+            .in("id", values: unique)
+            .execute()
+            .value
+        return rows
+    }
+
     /// Paginated list of profiles (e.g. discovery / admin). Ordered by display name.
     func fetchUsers(limit: Int = 200) async throws -> [UserProfile] {
         try await client

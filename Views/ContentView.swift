@@ -1,8 +1,14 @@
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 @MainActor
 final class MainTabRouter: ObservableObject {
     @Published var selectedTab: Int = 0
+    /// One-shot: open this segment in Messages (0 DM, 1 notifications, 2 desk invites, 3 connections).
+    @Published var messagesSegmentToSelect: Int?
 }
 
 struct ContentView: View {
@@ -24,6 +30,11 @@ struct ContentView: View {
                     .environmentObject(authRepository)
                     .environmentObject(toastCenter)
                     .environmentObject(tabRouter)
+                    .onReceive(authRepository.$currentUser) { u in
+                        if u != nil {
+                            Task { await MainTabBadgeCoordinator.refreshAppIconBadge(auth: authRepository) }
+                        }
+                    }
             }
         }
     }
@@ -34,9 +45,12 @@ struct MainTabView: View {
     @EnvironmentObject private var toast: ToastCenter
     @EnvironmentObject private var tabRouter: MainTabRouter
     @State private var inboxBadgeCount = 0
+    @State private var deskTabBadgeCount = 0
 
     private let messagesRepo = MessageRepository()
     private let invitesRepo = InviteRepository()
+    private let connectionsRepo = ConnectionRepository()
+    private let deskRepo = DeskRepository()
 
     var body: some View {
         Group {
@@ -53,12 +67,15 @@ struct MainTabView: View {
     private var iosTabContainer: some View {
         ZStack {
             ExploreView()
+                .environmentObject(tabRouter)
                 .opacity(tabRouter.selectedTab == 0 ? 1 : 0)
                 .allowsHitTesting(tabRouter.selectedTab == 0)
             DeskHubView()
+                .environmentObject(tabRouter)
                 .opacity(tabRouter.selectedTab == 1 ? 1 : 0)
                 .allowsHitTesting(tabRouter.selectedTab == 1)
             MessagesInboxView()
+                .environmentObject(tabRouter)
                 .opacity(tabRouter.selectedTab == 2 ? 1 : 0)
                 .allowsHitTesting(tabRouter.selectedTab == 2)
             ProfileView()
@@ -71,26 +88,38 @@ struct MainTabView: View {
         }
         .onAppear {
             TabBarAppearanceConfigurator.apply()
-            Task { await refreshInboxBadge() }
+            Task { await refreshAllTabBadges() }
+            if DeskerUXPreferences.pendingExploreAfterOnboarding {
+                DeskerUXPreferences.pendingExploreAfterOnboarding = false
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
+                    tabRouter.selectedTab = 0
+                }
+            }
         }
         .onChange(of: auth.currentUser?.id) { _, _ in
-            Task { await refreshInboxBadge() }
+            Task { await refreshAllTabBadges() }
         }
         .onChange(of: tabRouter.selectedTab) { _, new in
-            if new == 2 { Task { await refreshInboxBadge() } }
+            if new == 2 || new == 1 { Task { await refreshAllTabBadges() } }
         }
     }
 
     private var iosCustomTabBar: some View {
         HStack(spacing: 0) {
             iosTabButton(0, "探索", "person.2.fill", badge: nil)
-            iosTabButton(1, "Desk", "briefcase.fill", badge: nil)
+            iosTabButton(1, "Desk", "briefcase.fill", badge: deskTabBadgeCount > 0 ? deskTabBadgeCount : nil)
             iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill", badge: inboxBadgeCount > 0 ? inboxBadgeCount : nil)
             iosTabButton(3, "我的", "person.fill", badge: nil)
         }
         .padding(.top, 10)
         .padding(.bottom, 6)
         .background(AppColor.tabBarBackground.ignoresSafeArea(edges: .bottom))
+    }
+
+    private func refreshAllTabBadges() async {
+        await refreshInboxBadge()
+        await refreshDeskTabBadge()
+        await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth)
     }
 
     private func refreshInboxBadge() async {
@@ -105,7 +134,24 @@ struct MainTabView: View {
         if let inv = try? await invitesRepo.fetchInvitesForUser(userId: uid) {
             n += inv.filter { $0.status == .pending && $0.inviteeId == uid }.count
         }
+        if let pendingConn = try? await connectionsRepo.fetchPendingInvites(for: uid) {
+            n += pendingConn.count
+        }
         await MainActor.run { inboxBadgeCount = min(99, n) }
+    }
+
+    private func refreshDeskTabBadge() async {
+        guard let uid = auth.currentUser?.id else {
+            await MainActor.run { deskTabBadgeCount = 0 }
+            return
+        }
+        do {
+            let apps = try await deskRepo.fetchApplicationsForFounder(founderId: uid)
+            let pending = apps.filter { $0.application.status == .pending }.count
+            await MainActor.run { deskTabBadgeCount = min(99, pending) }
+        } catch {
+            await MainActor.run { deskTabBadgeCount = 0 }
+        }
     }
 
     private func iosTabButton(_ index: Int, _ title: String, _ systemImage: String, badge: Int?) -> some View {
@@ -124,7 +170,7 @@ struct MainTabView: View {
                         .font(.caption2.weight(on ? .semibold : .medium))
                 }
                 .foregroundStyle(on ? AppColor.tabBarSelected : AppColor.tabBarUnselected)
-                if let badge, badge > 0, index == 2 {
+                if let badge, badge > 0 {
                     Text(badge > 9 ? "9+" : "\(badge)")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
@@ -145,18 +191,21 @@ struct MainTabView: View {
     private var macTabContainer: some View {
         TabView(selection: $tabRouter.selectedTab) {
             ExploreView()
+                .environmentObject(tabRouter)
                 .tabItem {
                     Label("探索", systemImage: "person.2.fill")
                 }
                 .tag(0)
 
             DeskHubView()
+                .environmentObject(tabRouter)
                 .tabItem {
                     Label("Desk", systemImage: "briefcase.fill")
                 }
                 .tag(1)
 
             MessagesInboxView()
+                .environmentObject(tabRouter)
                 .tabItem {
                     Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
                 }
@@ -175,5 +224,21 @@ struct MainTabView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+enum MainTabBadgeCoordinator {
+    static func refreshAppIconBadge(auth: AuthRepository) async {
+        #if os(iOS)
+        guard let uid = auth.currentUser?.id else {
+            await MainActor.run { UIApplication.shared.applicationIconBadgeNumber = 0 }
+            return
+        }
+        let repo = NotificationRepository()
+        let n = (try? await repo.unreadCount(userId: uid)) ?? 0
+        await MainActor.run {
+            UIApplication.shared.applicationIconBadgeNumber = min(99, n)
+        }
+        #endif
     }
 }

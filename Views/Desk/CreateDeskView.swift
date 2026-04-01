@@ -32,10 +32,20 @@ struct CreateDeskView: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Desk 名稱（最多 60 字）", text: $name)
-                        .deskerTextFieldNoAutocaps()
-                    TextField("一句話 Pitch（最多 150 字）", text: $pitch)
-                        .deskerTextFieldNoAutocaps()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        TextField("Desk 名稱（最多 60 字）", text: $name)
+                            .deskerTextFieldNoAutocaps()
+                        Text("\(name.count)/60")
+                            .font(.caption2)
+                            .foregroundStyle(name.count > 60 ? AppColor.error : AppColor.textSecondary)
+                    }
+                    VStack(alignment: .trailing, spacing: 4) {
+                        TextField("一句話 Pitch（最多 150 字）", text: $pitch)
+                            .deskerTextFieldNoAutocaps()
+                        Text("\(pitch.count)/150")
+                            .font(.caption2)
+                            .foregroundStyle(pitch.count > 150 ? AppColor.error : AppColor.textSecondary)
+                    }
                 } header: {
                     Text("基本資訊")
                 }
@@ -146,6 +156,8 @@ struct CreateDeskView: View {
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         !pitch.trimmingCharacters(in: .whitespaces).isEmpty &&
+        name.count <= 60 &&
+        pitch.count <= 150 &&
         !selectedIndustries.isEmpty &&
         recruitingRoles.contains { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
     }

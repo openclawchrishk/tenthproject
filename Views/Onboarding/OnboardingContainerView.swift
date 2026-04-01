@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if os(iOS)
+import AudioToolbox
+#endif
+
 struct OnboardingContainerView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     @EnvironmentObject private var auth: AuthRepository
@@ -15,19 +19,18 @@ struct OnboardingContainerView: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .padding(.top, 8)
 
-            TabView(selection: $viewModel.currentStep) {
-                RoleSelectionView(viewModel: viewModel)
-                    .tag(OnboardingViewModel.OnboardingStep.roleSelection)
-
-                BasicInfoView(viewModel: viewModel)
-                    .tag(OnboardingViewModel.OnboardingStep.basicInfo)
-
-                SkillsAndNeedsView(viewModel: viewModel)
-                    .tag(OnboardingViewModel.OnboardingStep.skillsAndNeeds)
+            Group {
+                switch viewModel.currentStep {
+                case .roleSelection:
+                    RoleSelectionView(viewModel: viewModel)
+                case .basicInfo:
+                    BasicInfoView(viewModel: viewModel)
+                case .skillsAndNeeds:
+                    SkillsAndNeedsView(viewModel: viewModel)
+                case .completed:
+                    Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
-            #if os(iOS)
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            #endif
             .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
         }
         .background(AppColor.background)
@@ -110,6 +113,8 @@ struct CompletionView: View {
             Spacer()
 
             Button {
+                DeskerUXPreferences.pendingExploreAfterOnboarding = true
+                DeskerUXPreferences.showExploreSwipeTip = true
                 Task {
                     await auth.refreshProfile()
                 }
@@ -153,6 +158,9 @@ struct CompletionView: View {
             if !didCelebrate {
                 didCelebrate = true
                 HapticFeedback.success()
+                #if os(iOS)
+                AudioServicesPlaySystemSound(1025)
+                #endif
             }
         }
     }
@@ -228,22 +236,21 @@ struct OnboardingFlowView: View {
                             .foregroundStyle(AppColor.textSecondary)
                             .padding(.top, 8)
 
-                        TabView(selection: $viewModel.currentStep) {
-                            RoleSelectionView(viewModel: viewModel)
-                                .environmentObject(auth)
-                                .tag(OnboardingViewModel.OnboardingStep.roleSelection)
-
-                            BasicInfoView(viewModel: viewModel)
-                                .environmentObject(auth)
-                                .tag(OnboardingViewModel.OnboardingStep.basicInfo)
-
-                            SkillsAndNeedsView(viewModel: viewModel)
-                                .environmentObject(auth)
-                                .tag(OnboardingViewModel.OnboardingStep.skillsAndNeeds)
+                        Group {
+                            switch viewModel.currentStep {
+                            case .roleSelection:
+                                RoleSelectionView(viewModel: viewModel)
+                                    .environmentObject(auth)
+                            case .basicInfo:
+                                BasicInfoView(viewModel: viewModel)
+                                    .environmentObject(auth)
+                            case .skillsAndNeeds:
+                                SkillsAndNeedsView(viewModel: viewModel)
+                                    .environmentObject(auth)
+                            case .completed:
+                                Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
                         }
-                        #if os(iOS)
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        #endif
                         .animation(.easeInOut(duration: 0.35), value: viewModel.currentStep)
                     }
                     .background(AppColor.background)

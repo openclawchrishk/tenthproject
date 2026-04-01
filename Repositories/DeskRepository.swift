@@ -60,26 +60,41 @@ final class DeskRepository {
             .execute()
             .value
 
+        let applicantIds = Array(Set(apps.map(\.applicantId)))
+        var userById: [UUID: UserProfile] = [:]
+        if !applicantIds.isEmpty {
+            let users: [UserProfile] = try await client
+                .from("users")
+                .select()
+                .in("id", values: applicantIds)
+                .execute()
+                .value
+            userById = Dictionary(uniqueKeysWithValues: users.map { ($0.id, $0) })
+        }
+
         var items: [DeskApplicationItem] = []
         for app in apps {
             let name: String
             var avatar: String?
-            do {
-                let applicant: UserProfile = try await client
-                    .from("users")
-                    .select()
-                    .eq("id", value: app.applicantId)
-                    .single()
-                    .execute()
-                    .value
+            var skills: [String] = []
+            if let applicant = userById[app.applicantId] {
                 name = applicant.displayName.isEmpty ? "使用者" : applicant.displayName
                 avatar = applicant.avatarUrl
-            } catch {
+                skills = applicant.skills
+            } else {
                 name = "使用者"
                 avatar = nil
             }
             let deskName = deskMap[app.deskId] ?? "專案"
-            items.append(DeskApplicationItem(application: app, applicantDisplayName: name, deskName: deskName, applicantAvatarUrl: avatar))
+            items.append(
+                DeskApplicationItem(
+                    application: app,
+                    applicantDisplayName: name,
+                    deskName: deskName,
+                    applicantAvatarUrl: avatar,
+                    applicantSkills: skills
+                )
+            )
         }
         return items
     }

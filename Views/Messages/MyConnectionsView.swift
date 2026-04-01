@@ -330,20 +330,19 @@ private extension MyConnectionsView {
         do {
             connections = try await connectionsRepo.fetchConnections(for: uid)
             pending = try await connectionsRepo.fetchPendingInvites(for: uid)
-            var names: [UUID: String] = [:]
-            var avatars: [UUID: String?] = [:]
+            var peerIds = Set<UUID>()
             for c in connections {
-                let other = c.otherUser(than: uid)
-                if let u = try? await userRepo.fetchUser(id: other) {
-                    names[other] = u.displayName.isEmpty ? "用戶" : u.displayName
-                    avatars[other] = u.avatarUrl
-                }
+                peerIds.insert(c.otherUser(than: uid))
             }
             for inv in pending {
-                if names[inv.fromUserId] == nil, let u = try? await userRepo.fetchUser(id: inv.fromUserId) {
-                    names[inv.fromUserId] = u.displayName.isEmpty ? "用戶" : u.displayName
-                    avatars[inv.fromUserId] = u.avatarUrl
-                }
+                peerIds.insert(inv.fromUserId)
+            }
+            let profiles = try await userRepo.fetchUsersByIds(Array(peerIds))
+            var names: [UUID: String] = [:]
+            var avatars: [UUID: String?] = [:]
+            for u in profiles {
+                names[u.id] = u.displayName.isEmpty ? "用戶" : u.displayName
+                avatars[u.id] = u.avatarUrl
             }
             peerNames = names
             peerAvatars = avatars

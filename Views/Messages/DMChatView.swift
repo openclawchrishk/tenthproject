@@ -13,12 +13,22 @@ struct DMChatView: View {
     @State private var realtimeTask: Task<Void, Never>?
 
     @State private var showReportUser = false
+    @State private var blockActionError: String?
 
     private let dmRepo = DMRepository()
     private let moderation = ReportBlockRepository()
 
     var body: some View {
         VStack(spacing: 0) {
+            if let blockActionError {
+                Text(blockActionError)
+                    .font(.footnote)
+                    .foregroundStyle(AppColor.error)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, CardChrome.padding)
+                    .padding(.vertical, 10)
+                    .background(AppColor.error.opacity(0.1))
+            }
             if isLoading {
                 VStack(spacing: 16) {
                     ProgressView("載入對話…")
@@ -101,8 +111,10 @@ struct DMChatView: View {
         }
         .sheet(isPresented: $showReportUser) {
             ReportSheetView(targetType: .user, targetId: peerId) { draft in
-                guard let uid = auth.currentUser?.id else { return }
-                try? await moderation.submitReport(draft, reporterId: uid)
+                guard let uid = auth.currentUser?.id else {
+                    throw UserRepositoryError.notAuthenticated
+                }
+                try await moderation.submitReport(draft, reporterId: uid)
             }
         }
         .task {
@@ -179,11 +191,13 @@ struct DMChatView: View {
 
     private func blockPeer() async {
         guard let uid = auth.currentUser?.id else { return }
+        blockActionError = nil
         do {
             try await moderation.blockUser(blockerId: uid, blockedId: peerId)
             HapticFeedback.success()
         } catch {
             HapticFeedback.error()
+            blockActionError = "無法封鎖用戶，請稍後再試"
         }
     }
 

@@ -3,7 +3,7 @@ import SwiftUI
 struct ReportSheetView: View {
     let targetType: ReportTargetType
     let targetId: UUID
-    let onSubmit: (ReportDraft) async -> Void
+    let onSubmit: (ReportDraft) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var reason = ""
@@ -52,8 +52,13 @@ struct ReportSheetView: View {
         errorText = nil
         defer { isSending = false }
         let draft = ReportDraft(targetType: targetType, targetId: targetId, reason: r)
-        await onSubmit(draft)
-        HapticFeedback.success()
-        dismiss()
+        do {
+            try await onSubmit(draft)
+            HapticFeedback.success()
+            dismiss()
+        } catch {
+            HapticFeedback.error()
+            errorText = "提交失敗，請稍後再試"
+        }
     }
 }

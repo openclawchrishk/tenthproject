@@ -1,5 +1,6 @@
 import SwiftUI
 import AuthenticationServices
+import CryptoKit
 
 struct WelcomeView: View {
     @EnvironmentObject private var auth: AuthRepository
@@ -8,6 +9,23 @@ struct WelcomeView: View {
     @State private var showingEmailLogin = false
     @State private var isLoading = false
     @State private var errorText: String?
+    /// Raw nonce for the current Sign in with Apple request; must match `signInWithApple(idToken:nonce:)`.
+    @State private var currentAppleNonce = ""
+
+    private static func generateNonce() -> String {
+        let letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
+        var nonce = ""
+        for _ in 0..<32 {
+            nonce += String(letters.randomElement()!)
+        }
+        return nonce
+    }
+
+    private static func sha256Hex(_ input: String) -> String {
+        let data = Data(input.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
+    }
 
     var body: some View {
         ZStack {
@@ -48,7 +66,10 @@ struct WelcomeView: View {
                     SignInWithAppleButton(
                         .signIn,
                         onRequest: { request in
+                            let raw = Self.generateNonce()
+                            currentAppleNonce = raw
                             request.requestedScopes = [.email, .fullName]
+                            request.nonce = Self.sha256Hex(raw)
                         },
                         onCompletion: { result in
                             handleAppleSignIn(result)
@@ -201,7 +222,7 @@ struct WelcomeView: View {
 
             Task {
                 do {
-                    try await auth.signInWithApple(idToken: idTokenString, nonce: "")
+                    try await auth.signInWithApple(idToken: idTokenString, nonce: currentAppleNonce)
                     await MainActor.run { isLoading = false }
                 } catch {
                     await MainActor.run {
