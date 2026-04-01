@@ -145,7 +145,7 @@ struct DeskDetailView: View {
             }
         }
         .task { await load() }
-        .sheet(isPresented: $showDeskShareOptions) {
+        .sheet(isPresented: $showDeskShareOptions, onDismiss: {}) {
             Group {
                 if let desk {
                     DeskerShareOptionsSheet(
@@ -157,7 +157,7 @@ struct DeskDetailView: View {
             }
             .deskerSheetSpringContent()
         }
-        .sheet(isPresented: $showDeskReport) {
+        .sheet(isPresented: $showDeskReport, onDismiss: {}) {
             Group {
                 if let desk {
                     ReportSheetView(targetType: .desk, targetId: desk.id) { draft in
@@ -170,7 +170,7 @@ struct DeskDetailView: View {
             }
             .deskerSheetSpringContent()
         }
-        .sheet(isPresented: $showApplySheet) {
+        .sheet(isPresented: $showApplySheet, onDismiss: {}) {
             Group {
                 if let desk {
                     applySheet(desk)
@@ -178,7 +178,7 @@ struct DeskDetailView: View {
             }
             .deskerSheetSpringContent()
         }
-        .sheet(isPresented: $showDeskExportShare) {
+        .sheet(isPresented: $showDeskExportShare, onDismiss: {}) {
             ShareSheetView(items: deskExportShareItems)
         }
     }
@@ -212,10 +212,11 @@ struct DeskDetailView: View {
                         .foregroundStyle(deskExportBanner.contains("失敗") ? AppColor.error : AppColor.textSecondary)
                         .padding(.horizontal, CardChrome.padding)
                 }
+                memberRecruitmentSection(desk)
                 if let founder {
                     founderBlock(founder)
                 }
-                shareDeskButton(desk)
+                deskShareAndOutreachSection(desk)
                 NavigationLink {
                     DeskMembersView(desk: desk)
                 } label: {
@@ -573,7 +574,7 @@ struct DeskDetailView: View {
             DeskerAnalytics.track(.userApplyToDesk, parameters: ["desk_id": desk.id.uuidString])
             HapticFeedback.success()
         } catch {
-            applyError = error.localizedDescription
+            applyError = APIErrorMessages.userFacingMessage(for: error)
             HapticFeedback.error()
         }
     }
@@ -923,21 +924,104 @@ struct DeskDetailView: View {
         #endif
     }
 
-    private func shareDeskButton(_ desk: Desk) -> some View {
-        Button {
-            showDeskShareOptions = true
-            HapticFeedback.medium()
-        } label: {
-            Label("分享 Desk", systemImage: "square.and.arrow.up")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .foregroundStyle(.white)
-                .background(AppColor.brandGradient)
-                .clipShape(Capsule())
+    private func memberRecruitmentSection(_ desk: Desk) -> some View {
+        let cap = max(desk.memberLimit, 1)
+        let count = max(0, desk.currentMemberCount)
+        let filled = min(count, cap)
+        let progress = Double(filled) / Double(cap)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("團隊與招募", systemImage: "person.3.sequence.fill")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppColor.textPrimary)
+                Spacer()
+                Text("\(desk.currentMemberCount) / \(desk.memberLimit)")
+                    .font(.title2.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(AppColor.primary)
+            }
+            ProgressView(value: progress)
+                .tint(AppColor.primary)
+            Text(recruitmentProgressSubtitle(desk))
+                .font(.caption)
+                .foregroundStyle(AppColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .buttonStyle(.plain)
-        .deskerButtonShadow()
+        .padding(CardChrome.padding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(AppColor.cardBackground)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+        )
+    }
+
+    private func recruitmentProgressSubtitle(_ desk: Desk) -> String {
+        switch desk.status {
+        case .recruiting:
+            let left = max(0, desk.memberLimit - desk.currentMemberCount)
+            if left > 0 {
+                return "招募進度：尚餘約 \(left) 個名額（含創辦人與成員上限）"
+            }
+            return "招募進度：名額將滿"
+        case .full:
+            return "團隊已滿，暫停招募"
+        case .archived:
+            return "此 Desk 已歸檔"
+        }
+    }
+
+    private func deskShareAndOutreachSection(_ desk: Desk) -> some View {
+        VStack(spacing: 14) {
+            Button {
+                showDeskShareOptions = true
+                HapticFeedback.medium()
+            } label: {
+                Label("分享此 Desk", systemImage: "square.and.arrow.up")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .foregroundStyle(.white)
+                    .background(AppColor.brandGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .deskerButtonShadow()
+
+            HStack(spacing: 12) {
+                Button {
+                    copyDeskLink(desk)
+                } label: {
+                    Label("複製連結", systemImage: "doc.on.doc")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.primary)
+
+                Button {
+                    HapticFeedback.medium()
+                    Task { await exportDeskStoryCard() }
+                } label: {
+                    Label("IG 招募卡", systemImage: "photo.on.rectangle.angled")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.secondary)
+            }
+        }
+    }
+
+    private func copyDeskLink(_ desk: Desk) {
+        let url = PublicLinks.deskURL(deskId: desk.id)
+        #if os(iOS)
+        UIPasteboard.general.string = url.absoluteString
+        #endif
+        toast.show(.success, "連結已複製")
+        HapticFeedback.success()
     }
 
     private static let dateFormatter: DateFormatter = {

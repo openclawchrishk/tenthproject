@@ -58,6 +58,9 @@ struct ProfileView: View {
                     profileHero(user)
                         .padding(.horizontal, CardChrome.padding)
                         .padding(.bottom, 12)
+                    verificationStatusCallout(user)
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 10)
                     ScrollViewReader { proxy in
                         Form {
                             profileCompletenessSection(user)
@@ -95,22 +98,11 @@ struct ProfileView: View {
                     .overlay {
                         if isSaving {
                             ZStack {
-                                Color.black.opacity(0.06).ignoresSafeArea()
-                                VStack(spacing: 10) {
-                                    ProgressView()
-                                        .tint(AppColor.primary)
-                                    Text("儲存中...")
-                                        .font(.subheadline)
-                                        .foregroundStyle(AppColor.textSecondary)
-                                }
-                                .padding(28)
-                                .background(
-                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
-                                        .fill(.ultraThinMaterial)
-                                )
-                                .deskerButtonShadow()
+                                Color.black.opacity(0.3)
+                                    .ignoresSafeArea()
+                                ProgressView()
+                                    .tint(AppColor.primary)
                             }
-                            .allowsHitTesting(false)
                         }
                     }
                 } else {
@@ -130,15 +122,15 @@ struct ProfileView: View {
         .onChange(of: auth.currentUser?.id) { _, _ in
             syncFromProfile()
         }
-        .sheet(isPresented: $showPremium) {
+        .sheet(isPresented: $showPremium, onDismiss: {}) {
             PremiumUpgradeSheet()
         }
-        .sheet(isPresented: $showShareInvite) {
+        .sheet(isPresented: $showShareInvite, onDismiss: {}) {
             if let user = auth.currentUser {
                 ShareSheetView(items: [PublicLinks.inviteURL(invitationCode: user.invitationCode)])
             }
         }
-        .sheet(isPresented: $showProfileShareOptions) {
+        .sheet(isPresented: $showProfileShareOptions, onDismiss: {}) {
             if let user = auth.currentUser {
                 DeskerShareOptionsSheet(
                     title: "分享個人檔案",
@@ -148,7 +140,7 @@ struct ProfileView: View {
                 .deskerSheetSpringContent()
             }
         }
-        .sheet(isPresented: $showVerificationSheet) {
+        .sheet(isPresented: $showVerificationSheet, onDismiss: {}) {
             verificationRequestForm
                 .deskerSheetSpringContent()
         }
@@ -159,7 +151,7 @@ struct ProfileView: View {
         ) { result in
             verificationDocURL = try? result.get().first
         }
-        .sheet(isPresented: $showIGExportShare) {
+        .sheet(isPresented: $showIGExportShare, onDismiss: {}) {
             ShareSheetView(items: igExportShareItems)
         }
     }
@@ -245,6 +237,150 @@ struct ProfileView: View {
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
                     .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+            )
+
+            profileEditShortcutsRow()
+                .padding(.top, 6)
+        }
+    }
+
+    private func profileEditShortcutsRow() -> some View {
+        HStack(spacing: 10) {
+            Button {
+                HapticFeedback.light()
+                scrollToSection = "section_bio"
+            } label: {
+                Label("簡介", systemImage: "text.alignleft")
+                    .font(.caption.weight(.semibold))
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.bordered)
+            .tint(AppColor.primary)
+
+            Button {
+                HapticFeedback.light()
+                scrollToSection = "section_tags"
+            } label: {
+                Label("標籤", systemImage: "tag.fill")
+                    .font(.caption.weight(.semibold))
+            }
+            .buttonStyle(.bordered)
+            .tint(AppColor.secondary)
+
+            Button {
+                HapticFeedback.light()
+                scrollToSection = "section_completeness"
+            } label: {
+                Label("完整度", systemImage: "chart.bar.fill")
+                    .font(.caption.weight(.semibold))
+            }
+            .buttonStyle(.bordered)
+            .tint(AppColor.gold)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func verificationStatusCallout(_ user: UserProfile) -> some View {
+        switch user.verificationStatus {
+        case .verifiedInvestor, .verifiedExpert:
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.title2)
+                    .foregroundStyle(AppColor.teal)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("官方認證")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                    Text(user.verificationStatus == .verifiedInvestor ? "投資者認證" : "專家認證")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.teal.opacity(0.12))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .stroke(AppColor.teal.opacity(0.35), lineWidth: 1)
+            )
+        case .pending:
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "hourglass")
+                    .font(.title2)
+                    .foregroundStyle(AppColor.gold)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("認證審核中")
+                        .font(.subheadline.weight(.bold))
+                    Text("我們會盡快處理你的申請，請留意通知。")
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.gold.opacity(0.1))
+            )
+        case .rejected:
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColor.error)
+                    Text("認證未通過")
+                        .font(.subheadline.weight(.bold))
+                }
+                Text("可於下方「升級與認證」重新提交資料。")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Button {
+                    HapticFeedback.light()
+                    scrollToSection = "section_verification"
+                } label: {
+                    Text("前往認證區域")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppColor.primary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.error.opacity(0.08))
+            )
+        case .none:
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.shield")
+                        .foregroundStyle(AppColor.primary)
+                    Text("尚未申請官方認證")
+                        .font(.subheadline.weight(.bold))
+                }
+                Text("完成認證可提升信任度與曝光。")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.textSecondary)
+                Button {
+                    HapticFeedback.light()
+                    scrollToSection = "section_verification"
+                } label: {
+                    Text("了解認證")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.bordered)
+                .tint(AppColor.primary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                    .fill(AppColor.primary.opacity(0.08))
             )
         }
     }
@@ -619,6 +755,7 @@ struct ProfileView: View {
             PushNotificationPlaceholderView()
         }
         .listRowBackground(AppColor.cardBackground)
+        .id("section_verification")
     }
 
     @ViewBuilder

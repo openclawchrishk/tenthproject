@@ -222,14 +222,14 @@ final class AuthViewModel: ObservableObject {
             case .userNotFound:
                 return "此電郵未註冊"
             case .overRequestRateLimit, .overEmailSendRateLimit, .overSMSSendRateLimit:
-                return "操作太頻繁，請稍後再試"
+                return "請稍後再試"
             default:
                 break
             }
         }
         if error is URLError || (error as NSError).domain == NSURLErrorDomain {
-            return "網絡錯誤，請檢查連線後再試"
+            return "請檢查網絡連接"
         }
-        return "網絡錯誤，請稍後再試"
+        return "請檢查網絡連接"
     }
 }

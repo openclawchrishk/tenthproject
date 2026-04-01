@@ -80,6 +80,7 @@ struct WelcomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .accessibilityLabel("使用 Apple 登入")
                     .deskerButtonShadow()
+                    .disabled(isLoading)
 
                     Button {
                         showPhoneLogin = true
@@ -100,6 +101,7 @@ struct WelcomeView: View {
                     .buttonStyle(DeskerButtonPressStyle())
                     .accessibilityLabel("使用手機號碼登入")
                     .deskerButtonShadow()
+                    .disabled(isLoading)
 
                     Button {
                         showingEmailLogin = true
@@ -120,6 +122,7 @@ struct WelcomeView: View {
                     .buttonStyle(DeskerButtonPressStyle())
                     .accessibilityLabel("使用 Email 登入")
                     .deskerButtonShadow()
+                    .disabled(isLoading)
 
                     if let errorText {
                         Text(errorText)
@@ -145,12 +148,12 @@ struct WelcomeView: View {
                     .tint(.white)
             }
         }
-        .sheet(isPresented: $showPhoneLogin) {
+        .sheet(isPresented: $showPhoneLogin, onDismiss: {}) {
             PhoneLoginView()
                 .environmentObject(auth)
                 .deskerSheetSpringContent()
         }
-        .sheet(isPresented: $showingEmailLogin) {
+        .sheet(isPresented: $showingEmailLogin, onDismiss: {}) {
             EmailLoginView(auth: auth)
                 .environmentObject(auth)
                 .deskerSheetSpringContent()
@@ -361,7 +364,7 @@ struct PhoneLoginView: View {
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
                 .buttonStyle(DeskerButtonPressStyle())
-                .disabled(phoneNumber.count < 8)
+                .disabled(phoneNumber.count < 8 || isLoading)
                 .deskerButtonShadow()
             }
             .padding(.horizontal)
@@ -427,7 +430,7 @@ struct PhoneLoginView: View {
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
                 .buttonStyle(DeskerButtonPressStyle())
-                .disabled(otpCode.count < 6)
+                .disabled(otpCode.count < 6 || isLoading)
                 .deskerButtonShadow()
 
                 Button {

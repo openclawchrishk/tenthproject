@@ -1,6 +1,7 @@
 import Foundation
 import os
 import Supabase
+import Auth
 
 /// Shared logger for data-layer code (`Repositories/`).
 let repositoryLogger = Logger(subsystem: "com.desker.deskerhk", category: "Repository")
@@ -25,6 +26,9 @@ enum APIErrorMessages {
                 return "發生錯誤，請稍後再試"
             }
         }
+        if let mapped = mapAuthError(error) {
+            return mapped
+        }
         if let pg = error as? PostgrestError {
             return mapPostgrest(pg)
         }
@@ -33,11 +37,48 @@ enum APIErrorMessages {
         }
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain || error is URLError {
-            return "網絡錯誤，請檢查連線後再試"
+            return "請檢查網絡連接"
         }
         let desc = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         if !desc.isEmpty { return desc }
         return "發生錯誤，請稍後再試"
+    }
+
+    /// Maps GoTrue / ``AuthError`` (OTP、限流等) to friendly Chinese.
+    private static func mapAuthError(_ error: Error) -> String? {
+        let e: AuthError? = (error as? AuthError) ?? {
+            if let repo = error as? RepositoryError, case .networkError(let u) = repo {
+                return u as? AuthError
+            }
+            return nil
+        }()
+        guard let authErr = e else { return nil }
+        switch authErr {
+        case .sessionMissing:
+            return "尚未登入，請重新登入"
+        case .weakPassword(let message, _):
+            let t = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? "密碼強度不足，請加強後再試" : t
+        case .api(_, let code, _, _):
+            if code == .overRequestRateLimit || code == .overEmailSendRateLimit || code == .overSMSSendRateLimit {
+                return "請稍後再試"
+            }
+            if code == .otpExpired {
+                return "驗證碼已過期，請重新獲取"
+            }
+            if code == .invalidCredentials {
+                let m = authErr.message.lowercased()
+                if m.contains("otp") || m.contains("token") || m.contains("code") || m.contains("sms") || m.contains("phone") {
+                    return "驗證碼錯誤"
+                }
+                return "登入資料不正確，請檢查後再試"
+            }
+            return nil
+        case .pkceGrantCodeExchange, .implicitGrantRedirect, .jwtVerificationFailed:
+            return nil
+        case .missingExpClaim, .malformedJWT, .invalidRedirectScheme, .missingURL:
+            return nil
+        }
     }
 
     private static func mapHTTPStatus(_ code: Int, bodyData: Data) -> String {
@@ -56,7 +97,7 @@ enum APIErrorMessages {
         case 409:
             return "資料已存在或衝突，請修改後再試"
         case 429:
-            return "請求過於頻繁，請稍後再試"
+            return "請稍後再試"
         case 500...599:
             return "伺服器暫時無法處理，請稍後再試"
         default:

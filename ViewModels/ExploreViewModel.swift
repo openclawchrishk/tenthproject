@@ -25,6 +25,8 @@ final class ExploreViewModel: ObservableObject {
     @Published private(set) var myDesks: [Desk] = []
     @Published private(set) var inviteCTAState: ExploreInviteCTAState = .loading
     @Published private(set) var isLoading = false
+    /// True while re-resolving founder after search / filter changes.
+    @Published private(set) var isFilterBusy = false
     @Published var errorMessage: String?
     /// Changing this forces card content to refresh (再看一次).
     @Published private(set) var refreshGeneration = UUID()
@@ -151,18 +153,22 @@ final class ExploreViewModel: ObservableObject {
 
     /// Call when search or filter changes to keep `currentDesk` inside the filtered set.
     func applyFiltersReselectingIfNeeded() {
+        isFilterBusy = true
         let pool = filteredDesks
         guard !pool.isEmpty else {
             currentDesk = nil
             currentFounder = nil
+            isFilterBusy = false
             return
         }
         if let cur = currentDesk, pool.contains(where: { $0.id == cur.id }) {
+            isFilterBusy = false
             return
         }
         currentDesk = pool.randomElement()
         Task { [weak self] in
             await self?.refreshFounderForCurrentDesk()
+            await MainActor.run { self?.isFilterBusy = false }
         }
     }
 
@@ -219,7 +225,7 @@ final class ExploreViewModel: ObservableObject {
             switch ns.code {
             case NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorCannotConnectToHost,
                  NSURLErrorTimedOut, NSURLErrorDataNotAllowed:
-                return "無網絡連接"
+                return "請檢查網絡連接"
             default:
                 break
             }
@@ -227,7 +233,7 @@ final class ExploreViewModel: ObservableObject {
         if let u = error as? URLError {
             switch u.code {
             case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .timedOut, .dataNotAllowed:
-                return "無網絡連接"
+                return "請檢查網絡連接"
             default:
                 break
             }

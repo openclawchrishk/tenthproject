@@ -46,6 +46,15 @@ struct DeskHubView: View {
                 .accessibilityLabel("建立 Desk")
                 .padding(.trailing, CardChrome.padding)
                 .padding(.top, 12)
+
+                if isLoading && (!myDesks.isEmpty || !applications.isEmpty) {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    }
+                }
             }
             .navigationDestination(for: UUID.self) { id in
                 DeskDetailView(deskId: id)
@@ -442,8 +451,9 @@ struct DeskHubView: View {
             HapticFeedback.success()
             await reload()
         } catch {
-            errorText = error.localizedDescription
-            toast.show(.error, error.localizedDescription)
+            let msg = APIErrorMessages.userFacingMessage(for: error)
+            errorText = msg
+            toast.show(.error, msg)
             HapticFeedback.error()
         }
     }
@@ -462,7 +472,8 @@ struct DeskHubView: View {
             myDesks = try await d
             applications = try await a
         } catch {
-            errorText = error.localizedDescription
+            let msg = APIErrorMessages.userFacingMessage(for: error)
+            errorText = msg
             if !myDesks.isEmpty || !applications.isEmpty {
                 toast.show(.info, "更新失敗，顯示上次資料")
             }

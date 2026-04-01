@@ -128,6 +128,16 @@ struct ExploreView: View {
                 }
             }
             .background(AppColor.background.ignoresSafeArea())
+            .overlay {
+                if viewModel.isFilterBusy {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    }
+                }
+            }
             .overlay(alignment: .top) {
                 if showExploreSwipeTipBanner {
                     exploreSwipeTipBanner
@@ -197,16 +207,16 @@ struct ExploreView: View {
                 }
             }
             .deskerHiddenNavigationBar()
-            .sheet(isPresented: $showConnectionMessageSheet) {
+            .sheet(isPresented: $showConnectionMessageSheet, onDismiss: {}) {
                 connectionInviteMessageSheet
                     .deskerSheetSpringContent()
             }
             #if os(iOS)
-            .sheet(isPresented: $showShareSheet) {
+            .sheet(isPresented: $showShareSheet, onDismiss: {}) {
                 ShareSheetView(items: shareItems)
             }
             #endif
-            .sheet(item: $profileSheetUser) { founder in
+            .sheet(item: $profileSheetUser, onDismiss: {}) { founder in
                 ExplorePublicProfileSheet(
                     founder: founder,
                     desk: founder.id == viewModel.currentFounder?.id ? viewModel.currentDesk : nil
@@ -547,7 +557,7 @@ struct ExploreView: View {
             if desc.localizedCaseInsensitiveContains("duplicate") || desc.contains("23505") {
                 toast.show(.info, "已發送過邀請")
             } else {
-                toast.show(.error, desc)
+                toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
             }
             HapticFeedback.error()
         }

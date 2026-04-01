@@ -105,17 +105,12 @@ struct CreateDeskView: View {
             .deskerSheetSpringContent()
             .overlay {
                 if isSubmitting {
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .overlay {
-                            VStack(spacing: 12) {
-                                ProgressView()
-                                    .tint(AppColor.primary)
-                                Text("發佈中...")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.white)
-                            }
-                        }
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        ProgressView()
+                            .tint(AppColor.primary)
+                    }
                 }
             }
             #if os(iOS)
