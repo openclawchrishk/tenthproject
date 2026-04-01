@@ -20,6 +20,24 @@ final class UserRepository {
         }
     }
 
+    /// Exact match on `username` (for public profile URLs `/u/{handle}`).
+    func fetchUserByUsername(_ username: String) async throws -> UserProfile? {
+        let u = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !u.isEmpty else { return nil }
+        do {
+            let rows: [UserProfile] = try await client
+                .from("users")
+                .select()
+                .eq("username", value: u)
+                .limit(1)
+                .execute()
+                .value
+            return rows.first
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "UserRepository.fetchUserByUsername")
+        }
+    }
+
     /// Batch-load profiles by id (deduped); empty `ids` returns `[]`.
     func fetchUsersByIds(_ ids: [UUID]) async throws -> [UserProfile] {
         let unique = Array(Set(ids))

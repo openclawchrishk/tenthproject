@@ -196,6 +196,15 @@ extension View {
         self
         #endif
     }
+
+    /// Dismisses keyboard when the user scrolls (iOS).
+    func deskerScrollDismissesKeyboard() -> some View {
+        #if os(iOS)
+        self.scrollDismissesKeyboard(.interactively)
+        #else
+        self
+        #endif
+    }
 }
 
 // MARK: - Role badge colors (Explore / Profile)
@@ -220,7 +229,7 @@ struct DeskerChipPressStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.92 : 1)
             .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
-                if pressed { HapticFeedback.selection() }
+                if pressed { HapticFeedback.light() }
             }
     }
 }
@@ -313,6 +322,9 @@ private struct DeskerSheetSpringModifier: ViewModifier {
         content
             .offset(y: appeared ? 0 : 28)
             .opacity(appeared ? 1 : 0)
+            #if os(iOS)
+            .presentationDragIndicator(.visible)
+            #endif
             .onAppear {
                 withAnimation(.spring(response: 0.48, dampingFraction: 0.82)) {
                     appeared = true

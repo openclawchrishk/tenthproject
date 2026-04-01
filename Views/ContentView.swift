@@ -3,12 +3,23 @@ import SwiftUI
 #if canImport(UIKit)
 import UIKit
 #endif
+#if os(macOS)
+import AppKit
+#endif
 
 @MainActor
 final class MainTabRouter: ObservableObject {
     @Published var selectedTab: Int = 0
     /// One-shot: open this segment in Messages (0 DM, 1 notifications, 2 desk invites, 3 connections).
     @Published var messagesSegmentToSelect: Int?
+    /// Deep link: push `DeskDetailView` on Desk tab.
+    @Published var pendingOpenDeskId: UUID?
+    /// Deep link: show public profile sheet on Explore (by user id).
+    @Published var pendingExploreProfileUserId: UUID?
+    /// Deep link: resolve username then show profile on Explore (`/u/{username}`).
+    @Published var pendingExploreUsername: String?
+    /// Deep link: open DM for this conversation id (Messages → 私訊 → `DMChatView`).
+    @Published var pendingDMConversationId: UUID?
 }
 
 struct ContentView: View {
@@ -16,6 +27,7 @@ struct ContentView: View {
     @StateObject private var authRepository = AuthRepository()
     @StateObject private var toastCenter = ToastCenter()
     @StateObject private var tabRouter = MainTabRouter()
+    @StateObject private var deepLinkHandler = DeepLinkHandler()
 
     var body: some View {
         Group {
@@ -38,7 +50,7 @@ struct ContentView: View {
             }
         }
         .onOpenURL { url in
-            DeskerDeepLinks.handle(url, tabRouter: tabRouter)
+            deepLinkHandler.handle(url, tabRouter: tabRouter)
         }
     }
 }
@@ -115,6 +127,7 @@ struct MainTabView: View {
         .animation(.easeInOut(duration: 0.22), value: connectivity.isConnected)
         .onAppear {
             TabBarAppearanceConfigurator.apply()
+            PushNotificationService.shared.configure(tabRouter: tabRouter, auth: auth)
             Task { await refreshAllTabBadges() }
             if DeskerUXPreferences.pendingExploreAfterOnboarding {
                 DeskerUXPreferences.pendingExploreAfterOnboarding = false
@@ -247,6 +260,10 @@ struct MainTabView: View {
                 }
                 .tag(3)
         }
+        .onAppear {
+            PushNotificationService.shared.configure(tabRouter: tabRouter, auth: auth)
+            Task { await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth) }
+        }
     }
     #endif
 }
@@ -257,54 +274,24 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 
-// MARK: - Deep links (`desker://`, `https://desker.hk/...`)
-
-enum DeskerDeepLinks {
-    @MainActor
-    static func handle(_ url: URL, tabRouter: MainTabRouter) {
-        let scheme = url.scheme?.lowercased() ?? ""
-        let host = url.host?.lowercased() ?? ""
-        let isHTTPS = scheme == "https" && (host == "desker.hk" || host == "www.desker.hk")
-        let isCustom = scheme == "desker"
-        guard isHTTPS || isCustom else { return }
-
-        let path = url.path.lowercased()
-        if path.contains("/desk") {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
-                tabRouter.selectedTab = 1
-            }
-            return
-        }
-        if path.contains("/u/") {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
-                tabRouter.selectedTab = 0
-            }
-            return
-        }
-        if path.contains("message") || path.contains("dm") {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
-                tabRouter.selectedTab = 2
-                tabRouter.messagesSegmentToSelect = 0
-            }
-            return
-        }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
-            tabRouter.selectedTab = 0
-        }
-    }
-}
-
 enum MainTabBadgeCoordinator {
     @MainActor
     static func refreshAppIconBadge(auth: AuthRepository) async {
-        #if os(iOS)
         guard let uid = auth.currentUser?.id else {
+            #if os(iOS)
             UIApplication.shared.applicationIconBadgeNumber = 0
+            #elseif os(macOS)
+            NSApplication.shared.dockTile.badgeLabel = nil
+            #endif
             return
         }
         let repo = NotificationRepository()
         let n = (try? await repo.unreadCount(userId: uid)) ?? 0
+        let label = n > 0 ? (n > 99 ? "99+" : "\(n)") : nil
+        #if os(iOS)
         UIApplication.shared.applicationIconBadgeNumber = min(99, n)
+        #elseif os(macOS)
+        NSApplication.shared.dockTile.badgeLabel = label
         #endif
     }
 }

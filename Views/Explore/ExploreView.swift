@@ -18,6 +18,7 @@ struct ExploreView: View {
     @State private var searchDebounceTask: Task<Void, Never>?
 
     private let connectionsRepo = ConnectionRepository()
+    private let usersRepo = UserRepository()
 
     var body: some View {
         NavigationStack {
@@ -112,6 +113,9 @@ struct ExploreView: View {
                             isPullRefreshing = false
                         }
                     }
+                    #if os(iOS)
+                    .scrollDismissesKeyboard(.interactively)
+                    #endif
 
                     if isPullRefreshing {
                         DeskerCustomRefreshIndicator()
@@ -171,6 +175,24 @@ struct ExploreView: View {
                     )
                 }
             }
+            .onChange(of: tabRouter.pendingExploreProfileUserId) { _, uid in
+                guard let uid else { return }
+                Task {
+                    if let p = try? await usersRepo.fetchUser(id: uid) {
+                        await MainActor.run { profileSheetUser = p }
+                    }
+                    await MainActor.run { tabRouter.pendingExploreProfileUserId = nil }
+                }
+            }
+            .onChange(of: tabRouter.pendingExploreUsername) { _, name in
+                guard let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                Task {
+                    if let p = try? await usersRepo.fetchUserByUsername(name) {
+                        await MainActor.run { profileSheetUser = p }
+                    }
+                    await MainActor.run { tabRouter.pendingExploreUsername = nil }
+                }
+            }
             .deskerHiddenNavigationBar()
             .sheet(isPresented: $showConnectionMessageSheet) {
                 connectionInviteMessageSheet
@@ -183,7 +205,7 @@ struct ExploreView: View {
             .sheet(item: $profileSheetUser) { founder in
                 ExplorePublicProfileSheet(
                     founder: founder,
-                    desk: viewModel.currentDesk
+                    desk: founder.id == viewModel.currentFounder?.id ? viewModel.currentDesk : nil
                 )
             }
             .onAppear {

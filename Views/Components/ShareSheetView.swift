@@ -3,7 +3,7 @@ import SwiftUI
 #if os(iOS)
 import UIKit
 
-/// UIKit share sheet bridge — supports URL, `UIImage`, or both (PRD §10).
+/// UIKit share sheet bridge — pass `URL` (https, `file://` exports), `String`, or `UIImage`; combine for IG card + link.
 struct ShareSheetView: UIViewControllerRepresentable {
     let items: [Any]
 
@@ -88,6 +88,7 @@ struct DeskerShareOptionsSheet: View {
                     Button("完成") { dismiss() }
                 }
             }
+            .deskerSheetSpringContent()
         }
         .sheet(isPresented: $showSystemShare) {
             ShareSheetView(items: activityItems)

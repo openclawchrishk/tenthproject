@@ -61,6 +61,20 @@ final class DMRepository {
             .value
     }
 
+    func fetchConversation(id: UUID) async throws -> Conversation {
+        do {
+            return try await client
+                .from("conversations")
+                .select()
+                .eq("id", value: id)
+                .single()
+                .execute()
+                .value
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "DMRepository.fetchConversation id=\(id)")
+        }
+    }
+
     /// Opens or creates a DM conversation if the two users are connected.
     func getOrCreateConversation(currentUserId: UUID, peerId: UUID) async throws -> Conversation {
         guard try await connections.areConnected(currentUserId, peerId) else {

@@ -55,6 +55,9 @@ struct DMChatView: View {
                         }
                         .padding()
                     }
+                    #if os(iOS)
+                    .scrollDismissesKeyboard(.interactively)
+                    #endif
                     .onChange(of: messages.count) { _, _ in
                         if let last = messages.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -64,6 +67,10 @@ struct DMChatView: View {
                 HStack(alignment: .bottom, spacing: 12) {
                     TextField("傳送訊息…", text: $inputText, axis: .vertical)
                         .lineLimit(1...5)
+                        #if os(iOS)
+                        .submitLabel(.send)
+                        #endif
+                        .onSubmit { Task { await send() } }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .background(

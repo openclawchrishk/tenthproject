@@ -5,6 +5,7 @@ struct MessagesInboxView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var tabRouter: MainTabRouter
     @State private var segment = 0
+    @State private var dmNavPath = NavigationPath()
     @State private var messages: [MessageListItem] = []
     @State private var invites: [Invite] = []
     @State private var deskNames: [UUID: String] = [:]
@@ -15,6 +16,8 @@ struct MessagesInboxView: View {
     private let messagesRepo = MessageRepository()
     private let invitesRepo = InviteRepository()
     private let desksRepo = DeskRepository()
+    private let dmRepo = DMRepository()
+    private let usersRepo = UserRepository()
 
     var body: some View {
         NavigationStack {
@@ -86,6 +89,37 @@ struct MessagesInboxView: View {
                 tabRouter.messagesSegmentToSelect = nil
             }
         }
+        .onChange(of: tabRouter.pendingDMConversationId) { _, convId in
+            guard let convId else { return }
+            Task { await openDMFromConversationDeepLink(convId) }
+        }
+        .onChange(of: segment) { _, new in
+            HapticFeedback.selection()
+            if new == 1 {
+                Task { await MainTabBadgeCoordinator.refreshAppIconBadge(auth: auth) }
+            }
+        }
+    }
+
+    private func openDMFromConversationDeepLink(_ convId: UUID) async {
+        guard let uid = auth.currentUser?.id else {
+            await MainActor.run { tabRouter.pendingDMConversationId = nil }
+            return
+        }
+        guard let conv = try? await dmRepo.fetchConversation(id: convId) else {
+            await MainActor.run { tabRouter.pendingDMConversationId = nil }
+            return
+        }
+        let peer = conv.otherUser(than: uid)
+        let rawName = (try? await usersRepo.fetchUser(id: peer))?.displayName
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let display = rawName.isEmpty ? "聯絡人" : rawName
+        let target = DMNavigationTarget(peerId: peer, peerDisplayName: display)
+        await MainActor.run {
+            segment = 0
+            dmNavPath.append(target)
+            tabRouter.pendingDMConversationId = nil
+        }
     }
 
     private var messagesFirstVisitTip: some View {
@@ -131,58 +165,68 @@ struct MessagesInboxView: View {
 
     @ViewBuilder
     private var dmSegment: some View {
-        if messages.isEmpty {
-            VStack(spacing: 18) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(AppColor.secondary)
-                    .symbolRenderingMode(.hierarchical)
-                Text("暫時沒有訊息")
-                    .font(.headline)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .multilineTextAlignment(.center)
-                Text("去「探索」發掘創業者並發送連接邀請，建立對話後會顯示於此。")
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .frame(maxWidth: 520)
-                Button {
-                    HapticFeedback.medium()
-                    withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
-                        tabRouter.selectedTab = 0
-                    }
-                } label: {
-                    Text("前往探索")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(AppColor.brandGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-                }
-                .buttonStyle(DeskerButtonPressStyle())
-            }
-            .frame(maxWidth: .infinity)
-            .padding(CardChrome.padding)
-            .padding(.top, 32)
-        } else {
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(messages) { item in
-                        if let uid = auth.currentUser?.id {
-                            let peerId = item.conversation.otherUser(than: uid)
-                            NavigationLink {
-                                DMChatView(peerId: peerId, peerDisplayName: item.peerDisplayName)
-                            } label: {
-                                dmRow(item, currentUserId: uid)
+        NavigationStack(path: $dmNavPath) {
+            Group {
+                if messages.isEmpty {
+                    VStack(spacing: 18) {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                            .font(.system(size: 52))
+                            .foregroundStyle(AppColor.secondary)
+                            .symbolRenderingMode(.hierarchical)
+                        Text("暫時沒有訊息")
+                            .font(.headline)
+                            .foregroundStyle(AppColor.textPrimary)
+                            .multilineTextAlignment(.center)
+                        Text("去「探索」發掘創業者並發送連接邀請，建立對話後會顯示於此。")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                            .frame(maxWidth: 520)
+                        Button {
+                            HapticFeedback.medium()
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                                tabRouter.selectedTab = 0
                             }
-                            .buttonStyle(.plain)
+                        } label: {
+                            Text("前往探索")
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(AppColor.brandGradient)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                         }
+                        .buttonStyle(DeskerButtonPressStyle())
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(CardChrome.padding)
+                    .padding(.top, 32)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(messages) { item in
+                                if let uid = auth.currentUser?.id {
+                                    let peerId = item.conversation.otherUser(than: uid)
+                                    let target = DMNavigationTarget(peerId: peerId, peerDisplayName: item.peerDisplayName)
+                                    NavigationLink(value: target) {
+                                        dmRow(item, currentUserId: uid)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, CardChrome.padding)
+                        .padding(.bottom, 24)
+                    }
+                    #if os(iOS)
+                    .scrollDismissesKeyboard(.interactively)
+                    #endif
                 }
-                .padding(.horizontal, CardChrome.padding)
-                .padding(.bottom, 24)
+            }
+            .navigationDestination(for: DMNavigationTarget.self) { t in
+                DMChatView(peerId: t.peerId, peerDisplayName: t.peerDisplayName)
+                    .environmentObject(auth)
             }
         }
     }
@@ -387,4 +431,9 @@ struct MessagesInboxView: View {
         f.locale = Locale(identifier: "zh_Hant_HK")
         return f
     }()
+}
+
+private struct DMNavigationTarget: Hashable {
+    let peerId: UUID
+    let peerDisplayName: String
 }

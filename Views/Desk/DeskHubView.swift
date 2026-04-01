@@ -4,6 +4,8 @@ import SwiftUI
 struct DeskHubView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
+    @EnvironmentObject private var tabRouter: MainTabRouter
+    @State private var deskNavPath = NavigationPath()
     @State private var myDesks: [Desk] = []
     @State private var applications: [DeskApplicationItem] = []
     @State private var isLoading = false
@@ -14,7 +16,7 @@ struct DeskHubView: View {
     private let deskRepository = DeskRepository()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $deskNavPath) {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 0) {
                 AppHeaderView(
@@ -45,6 +47,14 @@ struct DeskHubView: View {
                 .padding(.trailing, CardChrome.padding)
                 .padding(.top, 12)
             }
+            .navigationDestination(for: UUID.self) { id in
+                DeskDetailView(deskId: id)
+            }
+        }
+        .onChange(of: tabRouter.pendingOpenDeskId) { _, id in
+            guard let id else { return }
+            deskNavPath.append(id)
+            tabRouter.pendingOpenDeskId = nil
         }
         .sheet(isPresented: $showCreateDesk, onDismiss: {
             Task { await reload() }
