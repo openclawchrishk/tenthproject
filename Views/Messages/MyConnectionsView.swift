@@ -229,6 +229,12 @@ struct MyConnectionsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("來自 \(peerNames[inv.fromUserId] ?? "用戶")")
                                 .font(.body.weight(.medium))
+                            if let msg = inv.message?.trimmingCharacters(in: .whitespacesAndNewlines), !msg.isEmpty {
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .lineLimit(2)
+                            }
                             Text(inv.id.uuidString)
                                 .font(.caption2)
                                 .foregroundStyle(AppColor.textTertiary)
@@ -273,34 +279,36 @@ struct MyConnectionsView: View {
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ForEach(connections) { c in
-                    if let uid = auth.currentUser?.id {
-                        let other = c.otherUser(than: uid)
-                        NavigationLink {
-                            DMChatView(peerId: other, peerDisplayName: peerNames[other] ?? "聯絡人")
-                        } label: {
-                            HStack(spacing: 14) {
-                                peerAvatar(userId: other, name: peerNames[other] ?? "?", size: 48)
-                                Text(peerNames[other] ?? "用戶")
-                                    .font(.body.weight(.medium))
-                                    .foregroundStyle(AppColor.textPrimary)
-                                Spacer()
-                                Menu {
-                                    Button(role: .destructive) {
-                                        Task { await remove(c) }
-                                    } label: {
-                                        Label("移除連接", systemImage: "trash")
-                                    }
+                List {
+                    ForEach(connections) { c in
+                        if let uid = auth.currentUser?.id {
+                            let other = c.otherUser(than: uid)
+                            NavigationLink {
+                                DMChatView(peerId: other, peerDisplayName: peerNames[other] ?? "聯絡人")
+                            } label: {
+                                HStack(spacing: 14) {
+                                    peerAvatar(userId: other, name: peerNames[other] ?? "?", size: 48)
+                                    Text(peerNames[other] ?? "用戶")
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(AppColor.textPrimary)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .listRowBackground(AppColor.cardBackground)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await remove(c) }
                                 } label: {
-                                    Image(systemName: "ellipsis.circle")
-                                        .font(.title3)
-                                        .foregroundStyle(AppColor.textSecondary)
+                                    Label("移除", systemImage: "trash")
                                 }
                             }
-                            .padding(.vertical, 8)
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: CGFloat(max(connections.count, 1) * 64))
             }
         }
         .padding(CardChrome.padding)
@@ -354,7 +362,7 @@ private extension MyConnectionsView {
         }
         banner = nil
         do {
-            try await connectionsRepo.sendConnectionInvite(from: from, to: to)
+            try await connectionsRepo.sendConnectionInvite(from: from, to: to, message: nil)
             inviteeUUID = ""
             banner = "邀請已送出"
             HapticFeedback.success()

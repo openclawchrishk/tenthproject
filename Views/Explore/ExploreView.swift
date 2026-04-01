@@ -5,9 +5,10 @@ struct ExploreView: View {
     @EnvironmentObject private var auth: AuthRepository
     @EnvironmentObject private var toast: ToastCenter
     @State private var inviteInFlight = false
+    @State private var showConnectionMessageSheet = false
+    @State private var connectionMessageDraft = ""
 
     private let connectionsRepo = ConnectionRepository()
-    private let inviteRepo = InviteRepository()
 
     var body: some View {
         NavigationStack {
@@ -44,7 +45,7 @@ struct ExploreView: View {
                                     founder: founder,
                                     inviteCTAState: viewModel.inviteCTAState,
                                     inviteInFlight: inviteInFlight,
-                                    onSendInvite: { Task { await sendDeskInvite() } }
+                                    onConnect: { showConnectionMessageSheet = true }
                                 )
 
                                 DeskCardView(desk: desk, founder: founder) {
@@ -53,7 +54,6 @@ struct ExploreView: View {
                                         await viewModel.viewAgain()
                                         await viewModel.refreshInviteCTAState(
                                             currentUserId: auth.currentUser?.id,
-                                            inviteRepo: inviteRepo,
                                             connectionsRepo: connectionsRepo
                                         )
                                     }
@@ -122,7 +122,6 @@ struct ExploreView: View {
                 Task {
                     await viewModel.refreshInviteCTAState(
                         currentUserId: auth.currentUser?.id,
-                        inviteRepo: inviteRepo,
                         connectionsRepo: connectionsRepo
                     )
                 }
@@ -132,12 +131,14 @@ struct ExploreView: View {
                     await viewModel.loadMyDesks(founderId: auth.currentUser?.id)
                     await viewModel.refreshInviteCTAState(
                         currentUserId: auth.currentUser?.id,
-                        inviteRepo: inviteRepo,
                         connectionsRepo: connectionsRepo
                     )
                 }
             }
             .deskerHiddenNavigationBar()
+            .sheet(isPresented: $showConnectionMessageSheet) {
+                connectionInviteMessageSheet
+            }
         }
     }
 
@@ -146,7 +147,6 @@ struct ExploreView: View {
         await viewModel.loadMyDesks(founderId: auth.currentUser?.id)
         await viewModel.refreshInviteCTAState(
             currentUserId: auth.currentUser?.id,
-            inviteRepo: inviteRepo,
             connectionsRepo: connectionsRepo
         )
     }
@@ -220,7 +220,45 @@ struct ExploreView: View {
         .padding(.top, 48)
     }
 
-    private func sendDeskInvite() async {
+    private var connectionInviteMessageSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("可選：一句話介紹自己或說明為何想連接（最多 150 字）")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    TextField("個人訊息（可選）", text: $connectionMessageDraft, axis: .vertical)
+                        .lineLimit(3...6)
+                        .onChange(of: connectionMessageDraft) { _, new in
+                            if new.count > 150 {
+                                connectionMessageDraft = String(new.prefix(150))
+                            }
+                        }
+                    Text("\(connectionMessageDraft.count)/150")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+            .navigationTitle("發送連接邀請")
+            .deskerInlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        showConnectionMessageSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("送出") {
+                        Task { await submitConnectionInvite() }
+                    }
+                    .disabled(inviteInFlight)
+                }
+            }
+        }
+    }
+
+    private func submitConnectionInvite() async {
         HapticFeedback.medium()
         guard let uid = auth.currentUser?.id else {
             toast.show(.error, "請先登入")
@@ -233,49 +271,50 @@ struct ExploreView: View {
             toast.show(.info, "這是你本人")
             return
         }
-        guard let myDesk = viewModel.myDesks.first else {
-            toast.show(.info, "請先建立 Desk")
-            HapticFeedback.error()
-            return
-        }
         inviteInFlight = true
         defer { inviteInFlight = false }
         do {
             if try await connectionsRepo.areConnected(uid, founderId) {
                 toast.show(.info, "你們已連接")
+                showConnectionMessageSheet = false
                 HapticFeedback.success()
                 await viewModel.refreshInviteCTAState(
                     currentUserId: auth.currentUser?.id,
-                    inviteRepo: inviteRepo,
                     connectionsRepo: connectionsRepo
                 )
                 return
             }
-            if let existing = try await inviteRepo.fetchInvite(deskId: myDesk.id, inviteeId: founderId),
-               existing.status == .pending {
-                toast.show(.info, "已發送過邀請")
+            if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: founderId) != nil {
+                toast.show(.info, "連接邀請待對方回覆")
+                showConnectionMessageSheet = false
                 HapticFeedback.success()
                 await viewModel.refreshInviteCTAState(
                     currentUserId: auth.currentUser?.id,
-                    inviteRepo: inviteRepo,
                     connectionsRepo: connectionsRepo
                 )
                 return
             }
-            try await inviteRepo.sendInvite(
-                deskId: myDesk.id,
-                inviterId: uid,
-                inviteeId: founderId
+            let msg = connectionMessageDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await connectionsRepo.sendConnectionInvite(
+                from: uid,
+                to: founderId,
+                message: msg.isEmpty ? nil : msg
             )
-            toast.show(.success, "邀請已發送")
+            connectionMessageDraft = ""
+            showConnectionMessageSheet = false
+            toast.show(.success, "連接邀請已送出")
             HapticFeedback.success()
             await viewModel.refreshInviteCTAState(
                 currentUserId: auth.currentUser?.id,
-                inviteRepo: inviteRepo,
                 connectionsRepo: connectionsRepo
             )
         } catch {
-            toast.show(.error, error.localizedDescription)
+            let desc = error.localizedDescription
+            if desc.localizedCaseInsensitiveContains("duplicate") || desc.contains("23505") {
+                toast.show(.info, "已發送過邀請")
+            } else {
+                toast.show(.error, desc)
+            }
             HapticFeedback.error()
         }
     }
@@ -287,7 +326,7 @@ private struct ExploreFounderCard: View {
     let founder: UserProfile
     let inviteCTAState: ExploreInviteCTAState
     let inviteInFlight: Bool
-    let onSendInvite: () -> Void
+    let onConnect: () -> Void
 
     private var skillChips: [String] {
         let s = Array(founder.skills.prefix(3))
@@ -310,20 +349,18 @@ private struct ExploreFounderCard: View {
 
     private var ctaTitle: String {
         switch inviteCTAState {
-        case .loading: return "發送邀請"
-        case .needsLogin: return "發送邀請"
+        case .loading: return "連接"
+        case .needsLogin: return "連接"
         case .selfProfile: return "你的專案"
-        case .noDesk: return "發送邀請"
         case .connected: return "已連接"
-        case .pendingDeskInvite: return "已發送過邀請"
         case .pendingConnectionInvite: return "連接邀請待回覆"
-        case .ready: return "發送邀請"
+        case .ready: return "連接"
         }
     }
 
     private var ctaEnabled: Bool {
         switch inviteCTAState {
-        case .ready, .noDesk, .needsLogin: return true
+        case .ready, .needsLogin: return true
         default: return false
         }
     }
@@ -376,7 +413,7 @@ private struct ExploreFounderCard: View {
                 }
             }
 
-            Button(action: onSendInvite) {
+            Button(action: onConnect) {
                 HStack {
                     if inviteInFlight {
                         ProgressView()
@@ -438,11 +475,9 @@ private struct ExploreFounderCard: View {
 
     private var statusFootnote: String? {
         switch inviteCTAState {
-        case .connected: return "你們已連接"
-        case .pendingDeskInvite: return "Desk 邀請待對方回覆"
+        case .connected: return "你們已連接，可於「訊息」→「人脈」開啟私訊"
         case .pendingConnectionInvite: return "連接邀請待對方回覆"
-        case .noDesk: return "建立 Desk 後可邀請對方加入你的項目"
-        case .needsLogin: return "登入後可發送邀請"
+        case .needsLogin: return "登入後可發送連接邀請"
         default: return nil
         }
     }

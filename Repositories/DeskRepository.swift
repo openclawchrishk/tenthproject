@@ -150,6 +150,7 @@ final class DeskRepository {
             .from("desk_members")
             .select()
             .eq("desk_id", value: deskId)
+            .eq("status", value: "active")
             .order("joined_at", ascending: true)
             .execute()
             .value

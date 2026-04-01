@@ -2,11 +2,13 @@ import SwiftUI
 
 struct NotificationsView: View {
     @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
     @State private var items: [AppNotification] = []
     @State private var isLoading = true
     @State private var errorText: String?
     @State private var realtimeTask: Task<Void, Never>?
     @State private var markAllInFlight = false
+    @State private var connectionInviteDetailId: UUID?
 
     private let repo = NotificationRepository()
 
@@ -63,7 +65,7 @@ struct NotificationsView: View {
                                     notificationCard(n)
                                         .contentShape(Rectangle())
                                         .onTapGesture {
-                                            Task { await markRead(n) }
+                                            Task { await onNotificationTap(n) }
                                         }
                                 }
                             }
@@ -102,6 +104,32 @@ struct NotificationsView: View {
             realtimeTask = nil
         }
         .refreshable { await load() }
+        .sheet(isPresented: Binding(
+            get: { connectionInviteDetailId != nil },
+            set: { if !$0 { connectionInviteDetailId = nil } }
+        )) {
+            if let id = connectionInviteDetailId {
+                ConnectionInviteNotificationDetailView(
+                    inviteId: id,
+                    onFinished: {
+                        connectionInviteDetailId = nil
+                        Task { await load() }
+                    }
+                )
+                .environmentObject(auth)
+                .environmentObject(toast)
+            }
+        }
+    }
+
+    private func onNotificationTap(_ n: AppNotification) async {
+        await markRead(n)
+        if n.type == AppNotificationType.connectionInvite {
+            if let id = n.connectionInviteId {
+                connectionInviteDetailId = id
+                HapticFeedback.medium()
+            }
+        }
     }
 
     private func sectionHeader(_ day: Date) -> String {
@@ -222,4 +250,155 @@ struct NotificationsView: View {
         f.locale = Locale(identifier: "zh_Hant_HK")
         return f
     }()
+}
+
+// MARK: - Connection invite from notification (PRD §8)
+
+private struct ConnectionInviteNotificationDetailView: View {
+    let inviteId: UUID
+    let onFinished: () -> Void
+
+    @EnvironmentObject private var auth: AuthRepository
+    @EnvironmentObject private var toast: ToastCenter
+    @State private var invite: ConnectionInvite?
+    @State private var fromProfile: UserProfile?
+    @State private var loadError: String?
+    @State private var actionBusy = false
+
+    private let connectionsRepo = ConnectionRepository()
+    private let usersRepo = UserRepository()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let err = loadError {
+                    ContentUnavailableView("無法載入", systemImage: "exclamationmark.triangle", description: Text(err))
+                } else if let inv = invite, let from = fromProfile {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Label("有人想連接你", systemImage: "person.badge.plus")
+                                .font(.title2.bold())
+                                .foregroundStyle(AppColor.primary)
+                            HStack(spacing: 12) {
+                                Text(from.displayName.isEmpty ? "用戶" : from.displayName)
+                                    .font(.title3.weight(.semibold))
+                                if from.verificationBadgeStyle != nil {
+                                    Image(systemName: "star.fill")
+                                        .foregroundStyle(AppColor.gold)
+                                }
+                            }
+                            if let msg = inv.message?.trimmingCharacters(in: .whitespacesAndNewlines), !msg.isEmpty {
+                                Text(msg)
+                                    .font(.body)
+                                    .foregroundStyle(AppColor.textSecondary)
+                                    .padding(CardChrome.padding)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                                            .fill(AppColor.surfaceElevated)
+                                    )
+                            } else {
+                                Text("對方沒有留下訊息")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColor.textTertiary)
+                            }
+                            HStack(spacing: 12) {
+                                Button {
+                                    Task { await decline(inv) }
+                                } label: {
+                                    Text("拒絕")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(AppColor.error.opacity(0.12))
+                                        .foregroundStyle(AppColor.error)
+                                        .clipShape(Capsule())
+                                }
+                                .disabled(actionBusy)
+
+                                Button {
+                                    Task { await accept(inv) }
+                                } label: {
+                                    if actionBusy {
+                                        ProgressView()
+                                            .tint(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 14)
+                                    } else {
+                                        Text("接受")
+                                            .font(.headline)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 14)
+                                    }
+                                }
+                                .background(AppColor.brandGradient)
+                                .foregroundStyle(.white)
+                                .clipShape(Capsule())
+                                .disabled(actionBusy)
+                            }
+                        }
+                        .padding(CardChrome.padding)
+                    }
+                    .background(AppColor.background)
+                } else {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                        Text("載入邀請…")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColor.textSecondary)
+                    }
+                    .frame(maxHeight: .infinity)
+                }
+            }
+            .navigationTitle("連接邀請")
+            .deskerInlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("關閉") { onFinished() }
+                }
+            }
+        }
+        .task { await loadInvite() }
+    }
+
+    private func loadInvite() async {
+        loadError = nil
+        do {
+            let inv = try await connectionsRepo.fetchInvite(id: inviteId)
+            invite = inv
+            fromProfile = try await usersRepo.fetchUser(id: inv.fromUserId)
+        } catch {
+            loadError = error.localizedDescription
+        }
+    }
+
+    private func accept(_ inv: ConnectionInvite) async {
+        guard let uid = auth.currentUser?.id else { return }
+        actionBusy = true
+        defer { actionBusy = false }
+        do {
+            try await connectionsRepo.acceptConnectionInvite(inviteId: inv.id, currentUserId: uid)
+            toast.show(.success, "已連接，可於私訊開始對話")
+            HapticFeedback.success()
+            onFinished()
+        } catch {
+            toast.show(.error, error.localizedDescription)
+            HapticFeedback.error()
+        }
+    }
+
+    private func decline(_ inv: ConnectionInvite) async {
+        guard let uid = auth.currentUser?.id else { return }
+        actionBusy = true
+        defer { actionBusy = false }
+        do {
+            try await connectionsRepo.declineConnectionInvite(inviteId: inv.id, currentUserId: uid)
+            toast.show(.info, "已拒絕邀請")
+            HapticFeedback.success()
+            onFinished()
+        } catch {
+            toast.show(.error, error.localizedDescription)
+            HapticFeedback.error()
+        }
+    }
 }

@@ -67,8 +67,8 @@ final class ConnectionRepository {
         let rows: [ConnectionInvite] = try await client
             .from("connection_invites")
             .select()
-            .eq("from_user_id", value: from)
-            .eq("to_user_id", value: to)
+            .eq("inviter_id", value: from)
+            .eq("invitee_id", value: to)
             .eq("status", value: ConnectionInviteStatus.pending.rawValue)
             .limit(1)
             .execute()
@@ -76,18 +76,26 @@ final class ConnectionRepository {
         return rows.first
     }
 
-    func sendConnectionInvite(from: UUID, to: UUID) async throws {
+    /// Creates or replaces pending invite (`UNIQUE (inviter_id, invitee_id)`).
+    func sendConnectionInvite(from: UUID, to: UUID, message: String?) async throws {
+        let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let note: String? = {
+            guard let t = trimmed, !t.isEmpty else { return nil }
+            return String(t.prefix(150))
+        }()
         struct Insert: Encodable {
             let id: UUID
-            let from_user_id: UUID
-            let to_user_id: UUID
+            let inviter_id: UUID
+            let invitee_id: UUID
             let status: String
+            let message: String?
         }
         let row = Insert(
             id: UUID(),
-            from_user_id: from,
-            to_user_id: to,
-            status: ConnectionInviteStatus.pending.rawValue
+            inviter_id: from,
+            invitee_id: to,
+            status: ConnectionInviteStatus.pending.rawValue,
+            message: note
         )
         try await client.from("connection_invites").insert(row).execute()
     }
@@ -96,7 +104,7 @@ final class ConnectionRepository {
         try await client
             .from("connection_invites")
             .select()
-            .eq("to_user_id", value: userId)
+            .eq("invitee_id", value: userId)
             .eq("status", value: ConnectionInviteStatus.pending.rawValue)
             .order("created_at", ascending: false)
             .execute()

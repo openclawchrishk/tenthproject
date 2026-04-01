@@ -50,12 +50,42 @@ final class UserRepository {
 
     /// Sets verification to pending for manual review (PRD §9).
     func submitVerificationApplication(userId: UUID) async throws {
+        try await submitVerificationApplication(
+            userId: userId,
+            kind: .investor,
+            expertDomain: nil,
+            documentNote: nil
+        )
+    }
+
+    enum VerificationApplicationKind: String, Encodable {
+        case investor
+        case expert
+    }
+
+    /// Investor or expert path; expert may set `verification_domain` (e.g. 香港執業律師).
+    func submitVerificationApplication(
+        userId: UUID,
+        kind: VerificationApplicationKind,
+        expertDomain: String?,
+        documentNote: String?
+    ) async throws {
         struct Patch: Encodable {
             let verification_status: String
+            let verification_domain: String?
         }
+        let domain: String? = {
+            guard kind == .expert else { return nil }
+            let t = expertDomain?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return t.isEmpty ? nil : t
+        }()
+        _ = documentNote
         try await client
             .from("users")
-            .update(Patch(verification_status: VerificationStatus.pending.rawValue))
+            .update(Patch(
+                verification_status: VerificationStatus.pending.rawValue,
+                verification_domain: domain
+            ))
             .eq("id", value: userId)
             .execute()
     }

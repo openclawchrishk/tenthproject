@@ -31,11 +31,29 @@ struct AppNotification: Identifiable, Decodable, Equatable {
         body = try c.decodeIfPresent(String.self, forKey: .body) ?? ""
         read = try c.decodeIfPresent(Bool.self, forKey: .read) ?? false
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
-        do {
-            data = try c.decodeIfPresent(String.self, forKey: .data)
-        } catch {
-            data = nil
+        data = Self.decodeNotificationData(from: c)
+    }
+
+    /// JSONB `data` may decode as a string or a small key–value object.
+    private static func decodeNotificationData(from c: KeyedDecodingContainer<CodingKeys>) -> String? {
+        if let s = try? c.decodeIfPresent(String.self, forKey: .data) { return s }
+        if let dict = try? c.decodeIfPresent([String: String].self, forKey: .data),
+           let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+           let str = String(data: jsonData, encoding: .utf8) {
+            return str
         }
+        return nil
+    }
+
+    /// Parsed from `data` for connection invite notifications (PRD §8).
+    var connectionInviteId: UUID? {
+        guard let data, let d = data.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return nil }
+        let keys = ["invite_id", "connection_invite_id", "inviteId"]
+        for k in keys {
+            if let s = obj[k] as? String, let id = UUID(uuidString: s) { return id }
+        }
+        return nil
     }
 }
 

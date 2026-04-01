@@ -28,7 +28,7 @@ struct DeskDetailView: View {
     @State private var applyError: String?
     @State private var applyInFlight = false
     @State private var canAccessGroupChat = false
-    @State private var showDeskShare = false
+    @State private var showDeskShareOptions = false
     @State private var showDeskReport = false
     @State private var deskExportBanner: String?
     @State private var showDeskExportShare = false
@@ -90,7 +90,7 @@ struct DeskDetailView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
-                    showDeskShare = true
+                    showDeskShareOptions = true
                     HapticFeedback.medium()
                 } label: {
                     Image(systemName: "square.and.arrow.up")
@@ -116,9 +116,13 @@ struct DeskDetailView: View {
             }
         }
         .task { await load() }
-        .sheet(isPresented: $showDeskShare) {
+        .sheet(isPresented: $showDeskShareOptions) {
             if let desk {
-                ShareSheetView(items: [PublicLinks.deskURL(deskId: desk.id)])
+                DeskerShareOptionsSheet(
+                    title: "分享 Desk",
+                    url: PublicLinks.deskURL(deskId: desk.id),
+                    onBuildIGCardShareItems: { await buildDeskIGCardShareItems() }
+                )
             }
         }
         .sheet(isPresented: $showDeskReport) {
@@ -153,6 +157,22 @@ struct DeskDetailView: View {
                 if let founder {
                     founderBlock(founder)
                 }
+                shareDeskButton(desk)
+                NavigationLink {
+                    DeskMembersView(desk: desk)
+                } label: {
+                    Label("Desk 成員", systemImage: "person.3.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(AppColor.primary)
+                        .background(
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                                .fill(AppColor.cardBackground)
+                                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                        )
+                }
+                .buttonStyle(.plain)
                 aboutProjectSection(desk)
                 fundingHighlightBox(desk)
                 cardParitySummary(desk)
@@ -812,6 +832,42 @@ struct DeskDetailView: View {
             HapticFeedback.error()
         }
         #endif
+    }
+
+    /// Items for `DeskerShareOptionsSheet` IG export (image + URL).
+    private func buildDeskIGCardShareItems() async -> [Any]? {
+        #if os(iOS)
+        guard let desk, let founder else { return nil }
+        var founderImage: UIImage?
+        if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let url = URL(string: s) {
+            founderImage = await IGCardExportService.loadUIImage(from: url)
+        }
+        guard let image = IGCardExportService.renderDeskRecruitmentCard(desk: desk, founder: founder, founderAvatar: founderImage) else {
+            return nil
+        }
+        let link = PublicLinks.deskURL(deskId: desk.id)
+        return [image, link]
+        #else
+        return nil
+        #endif
+    }
+
+    private func shareDeskButton(_ desk: Desk) -> some View {
+        Button {
+            showDeskShareOptions = true
+            HapticFeedback.medium()
+        } label: {
+            Label("分享 Desk", systemImage: "square.and.arrow.up")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .foregroundStyle(.white)
+                .background(AppColor.brandGradient)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .deskerButtonShadow()
     }
 
     private static let dateFormatter: DateFormatter = {

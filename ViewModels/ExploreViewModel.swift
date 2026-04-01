@@ -2,14 +2,12 @@ import Foundation
 import SwiftUI
 import os
 
-/// CTA state for sending a Desk invite to the current card founder.
+/// CTA state for sending a **connection** invite (PRD §8 — 連接).
 enum ExploreInviteCTAState: Equatable {
     case loading
     case needsLogin
     case selfProfile
-    case noDesk
     case connected
-    case pendingDeskInvite
     case pendingConnectionInvite
     case ready
 }
@@ -22,7 +20,7 @@ final class ExploreViewModel: ObservableObject {
     @Published private(set) var currentDesk: Desk?
     /// Resolved founder for `currentDesk` (Explore card).
     @Published private(set) var currentFounder: UserProfile?
-    /// Desks owned by the current user — used to send Desk invites from Explore.
+    /// Desks owned by the current user (used elsewhere; connection flow does not require a Desk).
     @Published private(set) var myDesks: [Desk] = []
     @Published private(set) var inviteCTAState: ExploreInviteCTAState = .loading
     @Published private(set) var isLoading = false
@@ -94,7 +92,6 @@ final class ExploreViewModel: ObservableObject {
 
     func refreshInviteCTAState(
         currentUserId: UUID?,
-        inviteRepo: InviteRepository,
         connectionsRepo: ConnectionRepository
     ) async {
         guard let uid = currentUserId else {
@@ -110,17 +107,9 @@ final class ExploreViewModel: ObservableObject {
             inviteCTAState = .selfProfile
             return
         }
-        guard let myDesk = myDesks.first else {
-            inviteCTAState = .noDesk
-            return
-        }
         do {
             if try await connectionsRepo.areConnected(uid, founderId) {
                 inviteCTAState = .connected
-                return
-            }
-            if let inv = try await inviteRepo.fetchInvite(deskId: myDesk.id, inviteeId: founderId), inv.status == .pending {
-                inviteCTAState = .pendingDeskInvite
                 return
             }
             if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: founderId) != nil {

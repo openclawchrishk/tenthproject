@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 #if os(iOS)
 import UIKit
@@ -14,7 +15,13 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var banner: String?
     @State private var showShareInvite = false
-    @State private var showShareProfile = false
+    @State private var showProfileShareOptions = false
+    @State private var showVerificationSheet = false
+    @State private var verificationKind: VerificationKindUI = .investor
+    @State private var expertDomainDraft = ""
+    @State private var verificationDocURL: URL?
+    @State private var showDocImporter = false
+    @State private var verificationBusy = false
     @State private var showIGExportShare = false
     @State private var igExportShareItems: [Any] = []
     @State private var showPremium = false
@@ -100,11 +107,24 @@ struct ProfileView: View {
                 ShareSheetView(items: [link])
             }
         }
-        .sheet(isPresented: $showShareProfile) {
+        .sheet(isPresented: $showProfileShareOptions) {
             if let user = auth.currentUser {
-                let url = profileURL(for: user)
-                ShareSheetView(items: [url])
+                DeskerShareOptionsSheet(
+                    title: "分享個人檔案",
+                    url: profileURL(for: user),
+                    onBuildIGCardShareItems: { await buildProfileIGShareItems(for: user) }
+                )
             }
+        }
+        .sheet(isPresented: $showVerificationSheet) {
+            verificationRequestForm
+        }
+        .fileImporter(
+            isPresented: $showDocImporter,
+            allowedContentTypes: [.pdf, UTType.image],
+            allowsMultipleSelection: false
+        ) { result in
+            verificationDocURL = try? result.get().first
         }
         .sheet(isPresented: $showIGExportShare) {
             ShareSheetView(items: igExportShareItems)
@@ -329,7 +349,11 @@ struct ProfileView: View {
             }
             if user.verificationStatus == .none || user.verificationStatus == .rejected {
                 Button {
-                    Task { await submitVerification() }
+                    verificationKind = .investor
+                    expertDomainDraft = ""
+                    verificationDocURL = nil
+                    showVerificationSheet = true
+                    HapticFeedback.light()
                 } label: {
                     Label("申請官方認證", systemImage: "checkmark.shield")
                         .symbolRenderingMode(.palette)
@@ -348,10 +372,10 @@ struct ProfileView: View {
     private func exportSection(_ user: UserProfile) -> some View {
         Section("分享與匯出") {
             Button {
-                showShareProfile = true
+                showProfileShareOptions = true
                 HapticFeedback.light()
             } label: {
-                Label("分享公開檔案連結", systemImage: "link")
+                Label("分享個人檔案", systemImage: "link")
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(AppColor.primary, AppColor.secondary)
             }
@@ -479,17 +503,101 @@ struct ProfileView: View {
         #endif
     }
 
-    private func submitVerification() async {
+    private var verificationRequestForm: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("認證類型", selection: $verificationKind) {
+                        ForEach(VerificationKindUI.allCases, id: \.self) { k in
+                            Text(k.rawValue).tag(k)
+                        }
+                    }
+                }
+                if verificationKind == .expert {
+                    Section {
+                        TextField("專業領域（例：香港執業律師）", text: $expertDomainDraft)
+                            .foregroundStyle(AppColor.textPrimary)
+                        Button {
+                            showDocImporter = true
+                            HapticFeedback.light()
+                        } label: {
+                            Label(
+                                verificationDocURL?.lastPathComponent ?? "選擇證明文件（PDF／圖片）",
+                                systemImage: "doc.badge.plus"
+                            )
+                        }
+                    } header: {
+                        Text("專家認證")
+                    }
+                }
+                Section {
+                    Text("提交後狀態將為「審核中」。文件上傳為本機選擇示意，正式上線可對接 Storage。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("申請官方認證")
+            .deskerInlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { showVerificationSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("提交") {
+                        Task { await submitVerificationFromSheet() }
+                    }
+                    .disabled(verificationBusy)
+                }
+            }
+        }
+    }
+
+    private func submitVerificationFromSheet() async {
         guard let uid = auth.currentUser?.id else { return }
+        if verificationKind == .expert {
+            let d = expertDomainDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            if d.isEmpty {
+                banner = "請填寫專業領域"
+                HapticFeedback.error()
+                return
+            }
+        }
+        verificationBusy = true
+        defer { verificationBusy = false }
         do {
-            try await userRepo.submitVerificationApplication(userId: uid)
+            let kind: UserRepository.VerificationApplicationKind =
+                verificationKind == .investor ? .investor : .expert
+            try await userRepo.submitVerificationApplication(
+                userId: uid,
+                kind: kind,
+                expertDomain: verificationKind == .expert ? expertDomainDraft : nil,
+                documentNote: verificationDocURL?.path
+            )
+            showVerificationSheet = false
             await auth.refreshProfile()
             banner = "已提交認證申請"
+            toast.show(.success, "已提交認證申請")
             HapticFeedback.success()
         } catch {
             banner = "提交失敗：\(error.localizedDescription)"
             HapticFeedback.error()
         }
+    }
+
+    private func buildProfileIGShareItems(for user: UserProfile) async -> [Any]? {
+        #if os(iOS)
+        var avatar: UIImage?
+        if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let url = URL(string: s) {
+            avatar = await IGCardExportService.loadUIImage(from: url)
+        }
+        guard let image = IGCardExportService.renderProfileCard(user: user, avatarImage: avatar) else {
+            return nil
+        }
+        return [image, profileURL(for: user)]
+        #else
+        return nil
+        #endif
     }
 
     private func syncFromProfile() {
@@ -528,6 +636,11 @@ struct ProfileView: View {
         if banner.contains("已儲存") || banner.contains("已提交") || banner.contains("相簿") { return AppColor.success }
         return AppColor.textSecondary
     }
+}
+
+private enum VerificationKindUI: String, CaseIterable {
+    case investor = "投資者"
+    case expert = "專家"
 }
 
 private struct ProfileCompletenessBar: View {

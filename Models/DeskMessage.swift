@@ -21,6 +21,8 @@ struct DeskMember: Identifiable, Codable, Equatable {
     let deskId: UUID
     let userId: UUID
     var roleTitle: String?
+    /// `active` / `removed` when present in DB.
+    var status: String?
     var joinedAt: Date?
 
     enum CodingKeys: String, CodingKey {
@@ -28,6 +30,7 @@ struct DeskMember: Identifiable, Codable, Equatable {
         case deskId = "desk_id"
         case userId = "user_id"
         case roleTitle = "role_title"
+        case status
         case joinedAt = "joined_at"
     }
 }

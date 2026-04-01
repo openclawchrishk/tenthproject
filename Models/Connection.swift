@@ -30,13 +30,16 @@ struct ConnectionInvite: Identifiable, Codable, Equatable {
     let id: UUID
     let fromUserId: UUID
     let toUserId: UUID
+    /// Optional personal note from inviter (PRD §8).
+    var message: String?
     var status: ConnectionInviteStatus
     var createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
-        case fromUserId = "from_user_id"
-        case toUserId = "to_user_id"
+        case fromUserId = "inviter_id"
+        case toUserId = "invitee_id"
+        case message
         case status
         case createdAt = "created_at"
     }
