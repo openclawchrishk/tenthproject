@@ -33,7 +33,7 @@ struct ExploreView: View {
                         } else if let err = viewModel.errorMessage {
                             VStack(spacing: 16) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 40))
+                                    .font(.system(size: 52))
                                     .foregroundStyle(AppColor.error)
                                 Text(err)
                                     .font(.subheadline)
@@ -77,7 +77,7 @@ struct ExploreView: View {
                                             .symbolRenderingMode(.palette)
                                             .foregroundStyle(AppColor.primary, AppColor.secondary)
                                         Text("查看完整專案詳情")
-                                            .font(.headline.weight(.semibold))
+                                            .font(.headline)
                                             .foregroundStyle(AppColor.primary)
                                             .lineLimit(1)
                                         Spacer()
@@ -146,7 +146,7 @@ struct ExploreView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.body.weight(.medium))
+                    .font(.footnote)
                     .foregroundStyle(AppColor.textSecondary)
                 TextField("搜尋專案名稱或 Pitch", text: $viewModel.searchText)
                     .font(.body)
@@ -173,13 +173,13 @@ struct ExploreView: View {
                         } label: {
                             Text(chip)
                                 .font(.subheadline.weight(on ? .semibold : .regular))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
                                 .background(
-                                    Capsule()
-                                        .fill(on ? AppColor.primary : AppColor.cardBackground)
+                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
+                                        .fill(on ? AppColor.primary : AppColor.primary.opacity(0.1))
                                 )
-                                .foregroundStyle(on ? Color.white : AppColor.textPrimary)
+                                .foregroundStyle(on ? Color.white : AppColor.primary)
                                 .shadow(color: CardChrome.shadowColor.opacity(0.35), radius: 4, x: 0, y: 1)
                         }
                         .buttonStyle(DeskerChipPressStyle())
@@ -198,7 +198,7 @@ struct ExploreView: View {
                 .font(.system(size: 52))
                 .foregroundStyle(AppColor.textSecondary)
             Text("暫時沒有其他創業者")
-                .font(.title3.weight(.bold))
+                .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
             Text("稍後再回來看看")
@@ -317,7 +317,7 @@ private struct ExploreFounderCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Text(displayName)
-                            .font(.title3.bold())
+                            .font(.headline)
                             .foregroundStyle(AppColor.textPrimary)
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -338,12 +338,12 @@ private struct ExploreFounderCard: View {
                     HStack(spacing: 8) {
                         ForEach(skillChips, id: \.self) { skill in
                             Text(skill)
-                                .font(.caption.weight(.medium))
-                                .padding(.horizontal, 10)
+                                .font(.caption)
+                                .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(AppColor.primary.opacity(0.12))
+                                .background(AppColor.primary.opacity(0.1))
                                 .foregroundStyle(AppColor.primary)
-                                .clipShape(Capsule())
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                         }
                     }
                 }
@@ -356,14 +356,20 @@ private struct ExploreFounderCard: View {
                             .tint(.white)
                     } else {
                         Text(ctaTitle)
-                            .font(.headline.weight(.semibold))
+                            .font(.headline)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(AppColor.brandGradient)
+                .frame(height: 50)
+                .background(
+                    LinearGradient(
+                        colors: [AppColor.primary, AppColor.secondary],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .foregroundStyle(.white)
-                .clipShape(Capsule())
+                .cornerRadius(12)
             }
             .buttonStyle(DeskerCardPressStyle())
             .deskerButtonShadow()

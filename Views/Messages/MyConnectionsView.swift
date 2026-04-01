@@ -77,7 +77,7 @@ struct MyConnectionsView: View {
     private var connectionsEmptyHero: some View {
         VStack(spacing: 18) {
             Image(systemName: "person.2")
-                .font(.system(size: 48))
+                .font(.system(size: 52))
                 .foregroundStyle(AppColor.textSecondary)
             Text("你仲未有連接的人")
                 .font(.title3.weight(.semibold))
@@ -171,8 +171,9 @@ struct MyConnectionsView: View {
                 .fill(AppColor.brandGradient)
                 .frame(width: size, height: size)
             Text(initial)
-                .font(.system(size: size * 0.38, weight: .bold))
+                .font(.title2.bold())
                 .foregroundStyle(.white)
+                .minimumScaleFactor(0.5)
         }
         .overlay(Circle().stroke(AppColor.gold.opacity(0.35), lineWidth: 2))
     }

@@ -30,7 +30,7 @@ struct SkillsAndNeedsView: View {
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "tag.fill")
-                        .font(.system(size: 40))
+                        .font(.system(size: 48))
                         .foregroundStyle(AppColor.secondary)
 
                     Text("標籤設定")
@@ -108,7 +108,7 @@ struct SkillsAndNeedsView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 54)
+                    .frame(height: 50)
                     .background(
                         LinearGradient(
                             colors: [AppColor.primary, AppColor.secondary],
@@ -116,7 +116,7 @@ struct SkillsAndNeedsView: View {
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(14)
+                    .cornerRadius(12)
                 }
                 .disabled(isSaving)
                 .padding(.bottom, 32)
@@ -168,14 +168,14 @@ struct SkillsAndNeedsView: View {
                             Text(option)
                                 .font(.subheadline)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(isSelected ? accent : AppColor.cardBackground)
-                        .foregroundStyle(isSelected ? .white : AppColor.textPrimary)
-                        .cornerRadius(22)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(isSelected ? accent : accent.opacity(0.1))
+                        .foregroundStyle(isSelected ? .white : accent)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                         .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: 3, x: 0, y: 1)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 22)
+                            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
                                 .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)
                         )
                     }

@@ -8,7 +8,7 @@ struct RoleSelectionView: View {
             VStack(spacing: 32) {
                 VStack(spacing: 12) {
                     Image(systemName: "person.crop.rectangle.stack.fill")
-                        .font(.system(size: 48))
+                        .font(.system(size: 52))
                         .foregroundStyle(AppColor.primary)
 
                     Text("選擇你嘅角色")
@@ -104,7 +104,7 @@ struct RoleCard: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 28))
+                        .font(.title)
                         .foregroundStyle(AppColor.gold)
                 } else {
                     Circle()
@@ -116,12 +116,7 @@ struct RoleCard: View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(
-                        color: Color.black.opacity(isSelected ? 0.12 : 0.06),
-                        radius: isSelected ? CardChrome.shadowRadiusElevated : 10,
-                        x: 0,
-                        y: isSelected ? CardChrome.shadowYElevated : 4
-                    )
+                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)

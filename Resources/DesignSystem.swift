@@ -92,7 +92,8 @@ enum CardChrome {
     static let sectionSpacing: CGFloat = 24
     static let padding: CGFloat = 16
 
-    static let shadowColor = Color.black.opacity(0.1)
+    /// Premium elevated card shadow (matches design spec).
+    static let shadowColor = Color.black.opacity(0.06)
 
     /// Elevated cards (main surfaces).
     static let shadowRadiusElevated: CGFloat = 16
@@ -114,12 +115,7 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(
-                        color: CardChrome.shadowColor,
-                        radius: CardChrome.shadowRadiusElevated,
-                        x: 0,
-                        y: CardChrome.shadowYElevated
-                    )
+                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
             )
     }
 
@@ -129,12 +125,7 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(
-                        color: CardChrome.shadowColor,
-                        radius: CardChrome.shadowRadiusElevated,
-                        x: 0,
-                        y: CardChrome.shadowYElevated
-                    )
+                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
             )
     }
 

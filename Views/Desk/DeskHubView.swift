@@ -109,7 +109,7 @@ struct DeskHubView: View {
 
     private func sectionTitle(_ title: String, icon: String, tint: Color) -> some View {
         Label(title, systemImage: icon)
-            .font(.title3.weight(.bold))
+            .font(.headline)
             .foregroundStyle(tint)
             .padding(.top, 8)
     }
@@ -117,7 +117,7 @@ struct DeskHubView: View {
     private var deskProjectsEmpty: some View {
         VStack(spacing: 18) {
             Image(systemName: "briefcase")
-                .font(.system(size: 40))
+                .font(.system(size: 52))
                 .foregroundStyle(AppColor.textSecondary)
             Text("你仲未建立Desk")
                 .font(.body.weight(.semibold))
@@ -128,12 +128,18 @@ struct DeskHubView: View {
                 showCreateDesk = true
             } label: {
                 Text("建立第一個Desk")
-                    .font(.headline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(AppColor.brandGradient)
+                    .font(.headline)
                     .foregroundStyle(.white)
-                    .clipShape(Capsule())
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        LinearGradient(
+                            colors: [AppColor.primary, AppColor.secondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
             }
             .buttonStyle(DeskerCardPressStyle())
             .deskerButtonShadow()
@@ -146,7 +152,7 @@ struct DeskHubView: View {
     private var applicationsEmpty: some View {
         VStack(spacing: 14) {
             Image(systemName: "tray")
-                .font(.system(size: 36))
+                .font(.system(size: 48))
                 .foregroundStyle(AppColor.textSecondary)
             Text("仲未有申請")
                 .font(.body)
@@ -162,7 +168,7 @@ struct DeskHubView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(desk.name)
-                    .font(.title3.bold())
+                    .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -225,7 +231,7 @@ struct DeskHubView: View {
                             .clipShape(Capsule())
                     }
                     Text(item.applicantDisplayName)
-                        .font(.title3.bold())
+                        .font(.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Text("應徵角色：\(item.application.selectedRole)")
                         .font(.subheadline)

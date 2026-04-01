@@ -65,7 +65,7 @@ struct CompletionView: View {
                         .frame(width: 120, height: 120)
 
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 56))
+                        .font(.system(size: 52))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.success, AppColor.primary)
                 }

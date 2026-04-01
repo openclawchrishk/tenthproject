@@ -7,13 +7,13 @@ struct AppHeaderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(.title2.bold())
                 .foregroundStyle(AppColor.textPrimary)
                 .tracking(-0.3)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(AppColor.textSecondary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
         }

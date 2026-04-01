@@ -17,7 +17,7 @@ struct BasicInfoView: View {
                 // Header
                 VStack(spacing: 8) {
                     Image(systemName: "person.fill")
-                        .font(.system(size: 40))
+                        .font(.system(size: 48))
                         .foregroundStyle(AppColor.primary)
 
                     Text("基本資料")
@@ -128,12 +128,12 @@ struct BasicInfoView: View {
                                         .font(.subheadline)
                                 }
                                 .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(isSelected ? AppColor.primary : AppColor.cardBackground)
-                                .foregroundStyle(isSelected ? .white : AppColor.textPrimary)
-                                .cornerRadius(20)
+                                .padding(.vertical, 6)
+                                .background(isSelected ? AppColor.primary : AppColor.primary.opacity(0.1))
+                                .foregroundStyle(isSelected ? .white : AppColor.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
+                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
                                         .stroke(isSelected ? AppColor.primary : AppColor.textSecondary.opacity(0.3), lineWidth: 1)
                                 )
                             }
@@ -205,7 +205,7 @@ struct BasicInfoView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 54)
+                    .frame(height: 50)
                     .background(
                         LinearGradient(
                             colors: [AppColor.primary, AppColor.secondary],
@@ -213,7 +213,7 @@ struct BasicInfoView: View {
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(14)
+                    .cornerRadius(12)
                 }
                 .disabled(viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty)
                 .opacity(viewModel.displayName.isEmpty || viewModel.selectedLanguages.isEmpty ? 0.5 : 1)

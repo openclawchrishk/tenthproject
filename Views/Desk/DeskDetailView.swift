@@ -122,7 +122,7 @@ struct DeskDetailView: View {
                 detailHero(desk)
                 if let deskExportBanner {
                     Text(deskExportBanner)
-                        .font(.footnote)
+                        .font(.caption)
                         .foregroundStyle(deskExportBanner.contains("失敗") ? AppColor.error : AppColor.textSecondary)
                         .padding(.horizontal, CardChrome.padding)
                 }
@@ -153,7 +153,7 @@ struct DeskDetailView: View {
                         DeskGroupChatView(desk: desk)
                     } label: {
                         Label("群組聊天", systemImage: "bubble.left.and.bubble.right.fill")
-                            .font(.headline.weight(.semibold))
+                            .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
@@ -200,11 +200,11 @@ struct DeskDetailView: View {
                         .foregroundStyle(.white.opacity(0.85))
                 }
                 Text(desk.name)
-                    .font(.largeTitle.weight(.bold))
+                    .font(.largeTitle.bold())
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
                 Text(desk.pitch)
-                    .font(.body.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -274,12 +274,12 @@ struct DeskDetailView: View {
                                 .fill(AppColor.primary.opacity(0.1))
                                 .frame(width: 48, height: 48)
                             Image(systemName: "person.badge.plus")
-                                .font(.title2)
+                                .font(.title3)
                                 .foregroundStyle(AppColor.primary)
                         }
                         VStack(alignment: .leading, spacing: 6) {
                             Text(role.title)
-                                .font(.headline.weight(.semibold))
+                                .font(.headline)
                                 .foregroundStyle(AppColor.textPrimary)
                             Text("名額：\(role.count)")
                                 .font(.subheadline)
@@ -320,7 +320,7 @@ struct DeskDetailView: View {
                         showApplySheet = true
                     } label: {
                         Label("已申請 · 點擊查看狀態", systemImage: "checkmark.seal.fill")
-                            .font(.headline.weight(.semibold))
+                            .font(.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -336,7 +336,7 @@ struct DeskDetailView: View {
                         HapticFeedback.medium()
                     } label: {
                         Label("申請加入", systemImage: "paperplane.fill")
-                            .font(.headline.weight(.bold))
+                            .font(.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -479,7 +479,7 @@ struct DeskDetailView: View {
                     .foregroundStyle(AppColor.gold)
                 HStack(spacing: 8) {
                     Text(founder.displayName.isEmpty ? "—" : founder.displayName)
-                        .font(.title3.weight(.bold))
+                        .font(.title.bold())
                         .foregroundStyle(AppColor.textPrimary)
                     if founder.verificationBadgeStyle != nil {
                         Image(systemName: "star.fill")
@@ -581,7 +581,7 @@ struct DeskDetailView: View {
                 if let created = desk.createdAt {
                     Text(Self.dateFormatter.string(from: created))
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(AppColor.textTertiary)
                 }
             }
         }
@@ -792,21 +792,16 @@ struct DeskDetailView: View {
 private struct FlowTags: View {
     let tags: [String]
 
-    private let chipColors: [Color] = [
-        AppColor.primary, AppColor.secondary, AppColor.teal, AppColor.gold,
-    ]
-
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), alignment: .leading)], alignment: .leading, spacing: 10) {
-            ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
-                let c = chipColors[index % chipColors.count]
+            ForEach(tags, id: \.self) { tag in
                 Text(tag)
-                    .font(.subheadline.weight(.medium))
+                    .font(.caption)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(c.opacity(0.16))
-                    .foregroundStyle(c)
-                    .clipShape(Capsule())
+                    .padding(.vertical, 6)
+                    .background(AppColor.primary.opacity(0.1))
+                    .foregroundStyle(AppColor.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
             }
         }
     }

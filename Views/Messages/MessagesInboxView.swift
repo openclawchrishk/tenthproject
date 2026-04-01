@@ -74,10 +74,10 @@ struct MessagesInboxView: View {
 
     private var inboxSegmentPicker: some View {
         Picker("", selection: $segment) {
-            Text("私訊").tag(0)
-            Text("通知").tag(1)
-            Text("Desk邀請").tag(2)
-            Text("人脈").tag(3)
+            Label("私訊", systemImage: "bubble.left.and.bubble.right").tag(0)
+            Label("通知", systemImage: "bell").tag(1)
+            Label("Desk邀請", systemImage: "envelope.open").tag(2)
+            Label("人脈", systemImage: "person.2").tag(3)
         }
         .pickerStyle(.segmented)
         .tint(AppColor.primary)
@@ -134,13 +134,13 @@ struct MessagesInboxView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.peerDisplayName)
-                        .font(.headline.weight(.semibold))
+                        .font(.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     if let d = item.message.createdAt {
                         Text(Self.shortDate.string(from: d))
                             .font(.caption)
-                            .foregroundStyle(AppColor.textTertiary)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 Text(item.message.body)
@@ -153,7 +153,7 @@ struct MessagesInboxView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
         )
     }
 
@@ -234,7 +234,7 @@ struct MessagesInboxView: View {
                             .background(
                                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                                     .fill(AppColor.cardBackground)
-                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
                             )
                         }
                     }

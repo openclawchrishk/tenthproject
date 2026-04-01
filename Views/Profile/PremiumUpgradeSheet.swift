@@ -22,7 +22,7 @@ struct PremiumUpgradeSheet: View {
 
                         VStack(spacing: 14) {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: 48))
+                                .font(.system(size: 52))
                                 .foregroundStyle(.white)
                                 .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
                             Text("Level 3 Premium")
@@ -35,7 +35,7 @@ struct PremiumUpgradeSheet: View {
                         }
                         .padding(28)
                     }
-                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
 
                     VStack(alignment: .leading, spacing: 14) {
                         benefitRow("Desk 成員上限提升至 8 人", icon: "person.3.fill")
@@ -48,7 +48,7 @@ struct PremiumUpgradeSheet: View {
                     .background(
                         RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                             .fill(AppColor.cardBackground)
-                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
+                            .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
                     )
 
                     VStack(spacing: 8) {

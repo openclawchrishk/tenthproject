@@ -100,12 +100,18 @@ struct DeskCardView: View {
                         DeskDetailView(deskId: desk.id)
                     } label: {
                         Text("申請加入")
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(AppColor.brandGradient)
+                            .font(.headline)
                             .foregroundStyle(.white)
-                            .clipShape(Capsule())
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(
+                                LinearGradient(
+                                    colors: [AppColor.primary, AppColor.secondary],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
                     }
                     .buttonStyle(.plain)
                     .deskerButtonShadow()
@@ -113,17 +119,18 @@ struct DeskCardView: View {
                     Button(action: onViewAgain) {
                         HStack(spacing: 8) {
                             Image(systemName: "arrow.clockwise.circle.fill")
+                                .font(.caption)
                                 .symbolRenderingMode(.palette)
                                 .foregroundStyle(AppColor.primary, AppColor.gold)
                             Text("換一張")
-                                .fontWeight(.semibold)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .font(.headline)
                         .foregroundStyle(AppColor.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
                         .background(
-                            Capsule()
-                                .stroke(AppColor.primary.opacity(0.35), lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppColor.primary, lineWidth: 1.5)
                         )
                     }
                     .buttonStyle(.plain)
@@ -134,12 +141,7 @@ struct DeskCardView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-        )
-        .shadow(
-            color: CardChrome.shadowColor,
-            radius: CardChrome.shadowRadiusElevated,
-            x: 0,
-            y: CardChrome.shadowYElevated
+                .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
         )
     }
 
@@ -173,7 +175,7 @@ struct DeskCardView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Image(systemName: "briefcase.fill")
-                        .font(.title3.weight(.semibold))
+                        .font(.title3)
                         .foregroundStyle(.white)
                     Text("Desk")
                         .font(.caption.weight(.bold))
@@ -182,12 +184,12 @@ struct DeskCardView: View {
                 }
 
                 Text(desk.name)
-                    .font(.title.bold())
+                    .font(.headline)
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
 
                 Text(desk.pitch)
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -197,12 +199,12 @@ struct DeskCardView: View {
                         HStack(spacing: 8) {
                             ForEach(desk.industryTags, id: \.self) { tag in
                                 Text(tag)
-                                    .font(.caption.weight(.medium))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
+                                    .font(.caption)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
                                     .background(.white.opacity(0.22))
                                     .foregroundStyle(.white)
-                                    .clipShape(Capsule())
+                                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                             }
                         }
                     }

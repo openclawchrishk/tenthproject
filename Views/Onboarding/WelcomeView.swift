@@ -25,12 +25,12 @@ struct WelcomeView: View {
 
                 VStack(spacing: 16) {
                     Image(systemName: "briefcase.fill")
-                        .font(.system(size: 72))
+                        .font(.system(size: 56))
                         .foregroundStyle(.white)
                         .shadow(color: Color.black.opacity(0.35), radius: 24, y: 8)
 
                     Text("Desker HK")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.largeTitle.bold())
                         .foregroundStyle(.white)
 
                     Text("香港創業社群")
@@ -201,7 +201,7 @@ struct PhoneLoginView: View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Image(systemName: "phone.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: 52))
                     .foregroundStyle(AppColor.primary)
 
                 Text("輸入你嘅手機號碼")
@@ -273,7 +273,7 @@ struct PhoneLoginView: View {
         VStack(spacing: 24) {
             VStack(spacing: 8) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 48))
+                    .font(.system(size: 52))
                     .foregroundStyle(AppColor.primary)
 
                 Text("輸入驗證碼")

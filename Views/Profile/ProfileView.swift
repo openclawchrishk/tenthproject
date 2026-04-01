@@ -140,7 +140,7 @@ struct ProfileView: View {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Text(user.displayName.isEmpty ? "—" : user.displayName)
-                        .font(.title2.bold())
+                        .font(.title.bold())
                         .foregroundStyle(AppColor.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -170,7 +170,7 @@ struct ProfileView: View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor, radius: 10, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
             )
         }
     }
@@ -195,7 +195,7 @@ struct ProfileView: View {
                 .fill(AppColor.primary)
                 .frame(width: 112, height: 112)
             Text(initials)
-                .font(.system(size: 40, weight: .bold))
+                .font(.largeTitle.bold())
                 .foregroundStyle(.white)
         }
     }
@@ -216,7 +216,7 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("資料完整度")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.headline)
                         .foregroundStyle(AppColor.textPrimary)
                     Spacer()
                     Text("\(Int(round(p * 100)))%")
@@ -421,7 +421,7 @@ struct ProfileView: View {
                     }
                 } else {
                     Text("儲存變更")
-                        .font(.headline.weight(.semibold))
+                        .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 4)
                 }
@@ -569,10 +569,10 @@ private struct TagSection: View {
                         Text(option)
                             .font(.caption)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
                             .frame(maxWidth: .infinity)
-                            .background(on ? accent.opacity(0.18) : AppColor.surfaceElevated)
+                            .background(on ? accent.opacity(0.18) : accent.opacity(0.1))
                             .foregroundStyle(on ? accent : AppColor.textPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
                             .overlay(

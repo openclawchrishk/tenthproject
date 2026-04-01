@@ -92,9 +92,8 @@ struct MainTabView: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 22))
                 Text(title)
-                    .font(.system(size: 10, weight: on ? .semibold : .medium))
+                    .font(.caption2.weight(on ? .semibold : .medium))
             }
             .foregroundStyle(on ? AppColor.tabBarSelected : AppColor.tabBarUnselected)
             .frame(maxWidth: .infinity)
