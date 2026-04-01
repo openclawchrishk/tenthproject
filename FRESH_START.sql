@@ -15,6 +15,7 @@ DELETE FROM desk_members;
 DELETE FROM reports;
 DELETE FROM blocked_users;
 DELETE FROM referrals;
+DELETE FROM invites;
 DELETE FROM connection_invites;
 DELETE FROM connections;
 DELETE FROM conversations;

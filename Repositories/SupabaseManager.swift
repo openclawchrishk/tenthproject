@@ -2,13 +2,15 @@ import Foundation
 import Supabase
 
 /*
- FATAL — Supabase is not configured for production until you either:
- 1) Set environment variables in the Xcode scheme (Run → Arguments → Environment):
+ Configure production credentials using either:
+
+ 1) Xcode scheme environment (Run → Arguments → Environment):
     - SUPABASE_URL   (e.g. https://abcd1234.supabase.co)
     - SUPABASE_ANON_KEY or SUPABASE_KEY  (project anon/public key)
- 2) Or replace the fallback URL and key below with real values from the Supabase dashboard.
 
- Without valid credentials, auth and database calls will fail at runtime.
+ 2) `Info.plist` keys `SUPABASE_URL` and `SUPABASE_ANON_KEY` (values via xcconfig or build settings; do not commit secrets).
+
+ No embedded API keys are shipped in source — set real values in CI / local scheme.
  */
 final class SupabaseManager {
     static let shared = SupabaseManager()
@@ -19,18 +21,34 @@ final class SupabaseManager {
     let client: SupabaseClient
 
     private init() {
-        if let url = Self.urlFromEnvironment(), let key = Self.anonKeyFromEnvironment() {
-            supabaseUrl = url
-            supabaseAnonKey = key
-        } else {
-            // Chris Lau's Supabase project — static URL; fallback chain avoids force-unwrap / precondition crashes.
-            let fallbackString = "https://dxihaspyxzocrnxyhbhow.supabase.co"
-            supabaseUrl = URL(string: fallbackString)
-                ?? URL(string: "https://localhost")
-                ?? URL(fileURLWithPath: "/")
-            supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWhhc3B5eHpvY3JueHloYm93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODUwNjQsImV4cCI6MjA5MDI2MTA2NH0.NzJj0qKNjKigPZ-Gp_rxQPG0_3h6QUwcLAXok4yhwsw"
-        }
+        let url = Self.resolvedURL()
+        let key = Self.resolvedAnonKey()
+        supabaseUrl = url
+        supabaseAnonKey = key
         client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey)
+    }
+
+    /// Prefer env, then Info.plist; last resort is non-routable placeholder (no network secrets in binary).
+    private static func resolvedURL() -> URL {
+        if let u = urlFromEnvironment() { return u }
+        if let raw = stringFromInfoPlist("SUPABASE_URL") {
+            let normalized = raw.lowercased().hasPrefix("http") ? raw : "https://\(raw)"
+            if let u = URL(string: normalized) { return u }
+        }
+        return URL(string: "https://127.0.0.1") ?? URL(fileURLWithPath: "/")
+    }
+
+    private static func resolvedAnonKey() -> String {
+        if let k = anonKeyFromEnvironment(), !k.isEmpty { return k }
+        if let k = stringFromInfoPlist("SUPABASE_ANON_KEY"), !k.isEmpty { return k }
+        if let k = stringFromInfoPlist("SUPABASE_KEY"), !k.isEmpty { return k }
+        return ""
+    }
+
+    private static func stringFromInfoPlist(_ key: String) -> String? {
+        guard let s = Bundle.main.object(forInfoDictionaryKey: key) as? String else { return nil }
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
     }
 
     private static func urlFromEnvironment() -> URL? {

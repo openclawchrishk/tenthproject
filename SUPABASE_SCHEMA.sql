@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS public.desk_members CASCADE;
 DROP TABLE IF EXISTS public.reports CASCADE;
 DROP TABLE IF EXISTS public.blocked_users CASCADE;
 DROP TABLE IF EXISTS public.referrals CASCADE;
+DROP TABLE IF EXISTS public.invites CASCADE;
 DROP TABLE IF EXISTS public.connection_invites CASCADE;
 DROP TABLE IF EXISTS public.connections CASCADE;
 DROP TABLE IF EXISTS public.conversations CASCADE;
@@ -221,6 +222,20 @@ CREATE TABLE IF NOT EXISTS public.referrals (
     UNIQUE (referrer_id, referred_id)
 );
 
+-- ============================================================
+-- DESK INVITES (in-app Desk invites — distinct from connection_invites)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.invites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    desk_id UUID NOT NULL REFERENCES public.desks(id) ON DELETE CASCADE,
+    inviter_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    invitee_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (desk_id, invitee_id)
+);
+
 COMMIT;
 
 -- ============================================================
@@ -249,6 +264,10 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications(u
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON public.notifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON public.referrals(referrer_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_referred ON public.referrals(referred_id);
+CREATE INDEX IF NOT EXISTS idx_invites_desk ON public.invites(desk_id);
+CREATE INDEX IF NOT EXISTS idx_invites_invitee ON public.invites(invitee_id);
+CREATE INDEX IF NOT EXISTS idx_invites_inviter ON public.invites(inviter_id);
+CREATE INDEX IF NOT EXISTS idx_invites_status ON public.invites(status);
 
 COMMIT;
 
@@ -272,6 +291,7 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blocked_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY;
 
 -- USERS policies
 CREATE POLICY "Users are viewable by everyone" ON public.users FOR SELECT USING (true);
@@ -388,6 +408,21 @@ CREATE POLICY "Users can unblock" ON public.blocked_users FOR DELETE USING (auth
 -- REFERRALS policies
 CREATE POLICY "Users can view their referrals" ON public.referrals FOR SELECT USING (auth.uid() = referrer_id);
 
+-- DESK INVITES policies (see `InviteRepository`)
+CREATE POLICY "Invites viewable by participants" ON public.invites FOR SELECT USING (
+    auth.uid() = inviter_id OR auth.uid() = invitee_id
+    OR EXISTS (SELECT 1 FROM public.desks d WHERE d.id = invites.desk_id AND d.founder_id = auth.uid())
+);
+CREATE POLICY "Founders can send desk invites" ON public.invites FOR INSERT WITH CHECK (
+    auth.uid() = inviter_id
+    AND EXISTS (SELECT 1 FROM public.desks d WHERE d.id = desk_id AND d.founder_id = auth.uid())
+);
+CREATE POLICY "Invitee or founder can update invites" ON public.invites FOR UPDATE USING (
+    auth.uid() = invitee_id
+    OR auth.uid() = inviter_id
+    OR EXISTS (SELECT 1 FROM public.desks d WHERE d.id = invites.desk_id AND d.founder_id = auth.uid())
+);
+
 COMMIT;
 
 -- ============================================================
@@ -476,6 +511,10 @@ CREATE TRIGGER desk_applications_updated_at BEFORE UPDATE ON public.desk_applica
 CREATE TRIGGER connection_invites_updated_at BEFORE UPDATE ON public.connection_invites
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS invites_updated_at ON public.invites;
+CREATE TRIGGER invites_updated_at BEFORE UPDATE ON public.invites
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 -- ============================================================
 -- EMAIL AUTHENTICATION (Supabase Auth + optional RPC)
 -- ============================================================
@@ -516,6 +555,11 @@ GRANT EXECUTE ON FUNCTION public.check_email_registered(text) TO authenticated;
 BEGIN;
 
 ALTER TABLE public.desk_applications ADD COLUMN IF NOT EXISTS selected_role TEXT;
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS linked_in_url TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS website_url TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS profile_completion_rate DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS verification_document_note TEXT;
 
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS check_display_name_length;
 ALTER TABLE public.users ADD CONSTRAINT check_display_name_length CHECK (

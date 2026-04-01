@@ -74,6 +74,39 @@ enum VerificationBadgeStyle {
     case expert
 }
 
+/// Maps `users.commitment_level` (`fulltime` / `parttime` / `casual`) to onboarding UI copy.
+enum CommitmentLevelBridge {
+    static func storageValue(from displayOrStorage: String) -> String {
+        let t = displayOrStorage.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch t {
+        case "全職": return "fulltime"
+        case "兼職": return "parttime"
+        case "只看看": return "casual"
+        case "fulltime", "parttime", "casual": return t
+        default:
+            return "fulltime"
+        }
+    }
+
+    static func displayValue(from storage: String) -> String {
+        switch storage.trimmingCharacters(in: .whitespacesAndNewlines) {
+        case "fulltime": return "全職"
+        case "parttime": return "兼職"
+        case "casual": return "只看看"
+        default:
+            return storage.isEmpty ? "全職" : storage
+        }
+    }
+}
+
+private enum UserProfileLegacyCodingKeys: String, CodingKey {
+    case bio
+    case detailed_bio
+    case industry_tags
+    case interest_tags
+    case invitation_code
+}
+
 struct UserProfile: Identifiable, Codable, Equatable {
     let id: UUID
     /// Public handle for `desker.hk/u/{username}` (optional until set).
@@ -133,15 +166,15 @@ struct UserProfile: Identifiable, Codable, Equatable {
         case region
         case languages
         case commitmentLevel = "commitment_level"
-        case bio
-        case detailedBio = "detailed_bio"
-        case industryTags = "industry_tags"
-        case interestTags = "interest_tags"
+        case bio = "bio_short"
+        case detailedBio = "bio_long"
+        case industryTags = "industries"
+        case interestTags = "interests"
         case skills
         case needs
         case linkedInUrl = "linked_in_url"
         case websiteUrl = "website_url"
-        case invitationCode = "invitation_code"
+        case invitationCode = "referral_code"
         case profileCompletionRate = "profile_completion_rate"
         case referralCount = "referral_count"
     }
@@ -203,16 +236,39 @@ struct UserProfile: Identifiable, Codable, Equatable {
         verificationStatus = try c.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus) ?? .none
         region = try c.decodeIfPresent(String.self, forKey: .region) ?? "HK"
         languages = try c.decodeIfPresent([String].self, forKey: .languages) ?? ["廣東話"]
-        commitmentLevel = try c.decodeIfPresent(String.self, forKey: .commitmentLevel) ?? "全職"
-        bio = try c.decodeIfPresent(String.self, forKey: .bio)
-        detailedBio = try c.decodeIfPresent(String.self, forKey: .detailedBio)
-        industryTags = try c.decodeIfPresent([String].self, forKey: .industryTags) ?? []
-        interestTags = try c.decodeIfPresent([String].self, forKey: .interestTags) ?? []
+        let rawCommitment = try c.decodeIfPresent(String.self, forKey: .commitmentLevel) ?? "fulltime"
+        commitmentLevel = CommitmentLevelBridge.displayValue(from: rawCommitment)
+
+        let legacy = try? decoder.container(keyedBy: UserProfileLegacyCodingKeys.self)
+        if let b = try c.decodeIfPresent(String.self, forKey: .bio) {
+            bio = b
+        } else {
+            bio = try legacy?.decodeIfPresent(String.self, forKey: .bio)
+        }
+        if let d = try c.decodeIfPresent(String.self, forKey: .detailedBio) {
+            detailedBio = d
+        } else {
+            detailedBio = try legacy?.decodeIfPresent(String.self, forKey: .detailed_bio)
+        }
+        if let tags = try c.decodeIfPresent([String].self, forKey: .industryTags) {
+            industryTags = tags
+        } else {
+            industryTags = try legacy?.decodeIfPresent([String].self, forKey: .industry_tags) ?? []
+        }
+        if let tags = try c.decodeIfPresent([String].self, forKey: .interestTags) {
+            interestTags = tags
+        } else {
+            interestTags = try legacy?.decodeIfPresent([String].self, forKey: .interest_tags) ?? []
+        }
         skills = try c.decodeIfPresent([String].self, forKey: .skills) ?? []
         needs = try c.decodeIfPresent([String].self, forKey: .needs) ?? []
         linkedInUrl = try c.decodeIfPresent(String.self, forKey: .linkedInUrl)
         websiteUrl = try c.decodeIfPresent(String.self, forKey: .websiteUrl)
-        invitationCode = try c.decodeIfPresent(String.self, forKey: .invitationCode) ?? ""
+        if let code = try c.decodeIfPresent(String.self, forKey: .invitationCode) {
+            invitationCode = code
+        } else {
+            invitationCode = try legacy?.decodeIfPresent(String.self, forKey: .invitation_code) ?? ""
+        }
         profileCompletionRate = try c.decodeIfPresent(Double.self, forKey: .profileCompletionRate) ?? 0
         referralCount = try c.decodeIfPresent(Int.self, forKey: .referralCount) ?? 0
     }
@@ -435,46 +491,49 @@ enum ProfileFieldValidation {
     }
 }
 
-/// Partial update: only non-`nil` fields are encoded (PATCH semantics).
+/// Partial update: only non-`nil` fields are encoded (PATCH semantics). Column names match `SUPABASE_SCHEMA.sql`.
 struct UserProfilePartialPatch: Encodable {
     var display_name: String?
     var avatar_url: String?
-    var bio: String?
-    var detailed_bio: String?
+    var bio_short: String?
+    var bio_long: String?
     var region: String?
     var languages: [String]?
-    var industry_tags: [String]?
-    var interest_tags: [String]?
+    var industries: [String]?
+    var interests: [String]?
     var skills: [String]?
     var needs: [String]?
     var linked_in_url: String?
     var website_url: String?
+    /// Set UI copy (`全職` …) or DB values (`fulltime` …); encoded as canonical `fulltime`/`parttime`/`casual`.
     var commitment_level: String?
 
     enum CodingKeys: String, CodingKey {
-        case display_name, avatar_url, bio, detailed_bio, region, languages
-        case industry_tags, interest_tags, skills, needs, linked_in_url, website_url, commitment_level
+        case display_name, avatar_url, bio_short, bio_long, region, languages
+        case industries, interests, skills, needs, linked_in_url, website_url, commitment_level
     }
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encodeIfPresent(display_name, forKey: .display_name)
         try c.encodeIfPresent(avatar_url, forKey: .avatar_url)
-        try c.encodeIfPresent(bio, forKey: .bio)
-        try c.encodeIfPresent(detailed_bio, forKey: .detailed_bio)
+        try c.encodeIfPresent(bio_short, forKey: .bio_short)
+        try c.encodeIfPresent(bio_long, forKey: .bio_long)
         try c.encodeIfPresent(region, forKey: .region)
         try c.encodeIfPresent(languages, forKey: .languages)
-        try c.encodeIfPresent(industry_tags, forKey: .industry_tags)
-        try c.encodeIfPresent(interest_tags, forKey: .interest_tags)
+        try c.encodeIfPresent(industries, forKey: .industries)
+        try c.encodeIfPresent(interests, forKey: .interests)
         try c.encodeIfPresent(skills, forKey: .skills)
         try c.encodeIfPresent(needs, forKey: .needs)
         try c.encodeIfPresent(linked_in_url, forKey: .linked_in_url)
         try c.encodeIfPresent(website_url, forKey: .website_url)
-        try c.encodeIfPresent(commitment_level, forKey: .commitment_level)
+        if let commitment_level {
+            try c.encode(CommitmentLevelBridge.storageValue(from: commitment_level), forKey: .commitment_level)
+        }
     }
 }
 
-/// Payload for upserting the `users` row (snake_case columns).
+/// Payload for upserting the `users` row — column names match `SUPABASE_SCHEMA.sql`.
 struct UserUpsertPayload: Encodable {
     let id: UUID
     var username: String?
@@ -486,15 +545,15 @@ struct UserUpsertPayload: Encodable {
     var region: String
     var languages: [String]
     var commitment_level: String
-    var bio: String?
-    var detailed_bio: String?
-    var industry_tags: [String]
-    var interest_tags: [String]
+    var bio_short: String?
+    var bio_long: String?
+    var industries: [String]
+    var interests: [String]
     var skills: [String]
     var needs: [String]
     var linked_in_url: String?
     var website_url: String?
-    var invitation_code: String
+    var referral_code: String
     var profile_completion_rate: Double
     var referral_count: Int
 
@@ -508,16 +567,16 @@ struct UserUpsertPayload: Encodable {
         verification_status = user.verificationStatus.rawValue
         region = user.region
         languages = user.languages
-        commitment_level = user.commitmentLevel
-        bio = user.bio
-        detailed_bio = user.detailedBio
-        industry_tags = user.industryTags
-        interest_tags = user.interestTags
+        commitment_level = CommitmentLevelBridge.storageValue(from: user.commitmentLevel)
+        bio_short = user.bio
+        bio_long = user.detailedBio
+        industries = user.industryTags
+        interests = user.interestTags
         skills = user.skills
         needs = user.needs
         linked_in_url = user.linkedInUrl
         website_url = user.websiteUrl
-        invitation_code = user.invitationCode
+        referral_code = user.invitationCode
         profile_completion_rate = user.profileCompleteness
         referral_count = user.referralCount
     }

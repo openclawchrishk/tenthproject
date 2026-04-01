@@ -78,6 +78,7 @@ struct WelcomeView: View {
                     .signInWithAppleButtonStyle(.black)
                     .frame(height: 50)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .accessibilityLabel("使用 Apple 登入")
                     .deskerButtonShadow()
 
                     Button {
@@ -97,6 +98,7 @@ struct WelcomeView: View {
                         )
                     }
                     .buttonStyle(DeskerButtonPressStyle())
+                    .accessibilityLabel("使用手機號碼登入")
                     .deskerButtonShadow()
 
                     Button {
@@ -116,6 +118,7 @@ struct WelcomeView: View {
                         .cornerRadius(12)
                     }
                     .buttonStyle(DeskerButtonPressStyle())
+                    .accessibilityLabel("使用 Email 登入")
                     .deskerButtonShadow()
 
                     if let errorText {
@@ -229,14 +232,14 @@ struct WelcomeView: View {
                     await MainActor.run { isLoading = false }
                 } catch {
                     await MainActor.run {
-                        errorText = "登入失敗：\(error.localizedDescription)"
+                        errorText = "登入失敗：\(APIErrorMessages.userFacingMessage(for: error))"
                         isLoading = false
                     }
                 }
             }
 
         case .failure(let error):
-            errorText = "Apple 登入失敗：\(error.localizedDescription)"
+            errorText = "Apple 登入失敗：\(APIErrorMessages.userFacingMessage(for: error))"
         }
     }
 }
@@ -457,7 +460,7 @@ struct PhoneLoginView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorText = error.localizedDescription
+                    errorText = APIErrorMessages.userFacingMessage(for: error)
                     isLoading = false
                 }
             }
@@ -478,7 +481,7 @@ struct PhoneLoginView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorText = error.localizedDescription
+                    errorText = APIErrorMessages.userFacingMessage(for: error)
                     isLoading = false
                 }
             }

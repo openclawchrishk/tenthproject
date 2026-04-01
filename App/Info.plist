@@ -10,33 +10,16 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>CFBundleDisplayName</key>
-	<string>Desker HK</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>hk.desker.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>desker</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>Desker HK 需要使用相機來拍攝頭像照片</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Desker HK 需要訪問相簿來選擇頭像照片</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Desker HK 需要存取相簿以保存 IG 卡片</string>
+	<string>DeskerHK 需要存取相簿以保存 IG 卡片</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -45,18 +28,10 @@
 		<dict/>
 	</dict>
 	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
+	<array/>
+	<key>SUPABASE_URL</key>
+	<string></string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string></string>
 </dict>
 </plist>

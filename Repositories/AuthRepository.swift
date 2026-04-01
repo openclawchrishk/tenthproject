@@ -71,27 +71,43 @@ final class AuthRepository: ObservableObject {
     }
 
     func signInWithPhone(phone: String) async throws {
-        try await client.auth.signInWithOTP(phone: phone)
+        do {
+            try await client.auth.signInWithOTP(phone: phone)
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signInWithPhone")
+        }
     }
 
     func verifyOTP(phone: String, token: String) async throws {
-        _ = try await client.auth.verifyOTP(
-            phone: phone,
-            token: token,
-            type: .sms
-        )
+        do {
+            _ = try await client.auth.verifyOTP(
+                phone: phone,
+                token: token,
+                type: .sms
+            )
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.verifyOTP")
+        }
     }
 
     func signInWithEmailOTP(email: String) async throws {
-        try await client.auth.signInWithOTP(email: email)
+        do {
+            try await client.auth.signInWithOTP(email: email)
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.signInWithEmailOTP")
+        }
     }
 
     func verifyEmailOTP(email: String, token: String) async throws {
-        _ = try await client.auth.verifyOTP(
-            email: email,
-            token: token,
-            type: .email
-        )
+        do {
+            _ = try await client.auth.verifyOTP(
+                email: email,
+                token: token,
+                type: .email
+            )
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.verifyEmailOTP")
+        }
     }
 
     /// Email/password sign-in using Supabase `auth.users` (GoTrue).
