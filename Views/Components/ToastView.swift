@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum ToastKind {
+enum ToastKind: Equatable {
     case success
     case error
     case info
@@ -41,19 +41,23 @@ final class ToastCenter: ObservableObject {
     @Published private(set) var current: ToastPayload?
     private var dismissTask: Task<Void, Never>?
 
+    /// Toast visible duration before slide-up + fade out.
+    private static let displayDurationSeconds: Double = 2
+
     func show(_ kind: ToastKind, _ message: String) {
         dismissTask?.cancel()
         let id = UUID()
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+        withAnimation(.easeOut(duration: 0.28)) {
             current = ToastPayload(id: id, kind: kind, message: message)
         }
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            let ns = UInt64(Self.displayDurationSeconds * 1_000_000_000)
+            try? await Task.sleep(nanoseconds: ns)
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                if current?.id == id {
-                    withAnimation(.easeOut(duration: 0.35)) {
-                        current = nil
+                if self.current?.id == id {
+                    withAnimation(.easeIn(duration: 0.32)) {
+                        self.current = nil
                     }
                 }
             }
@@ -62,7 +66,7 @@ final class ToastCenter: ObservableObject {
 
     func dismiss() {
         dismissTask?.cancel()
-        withAnimation(.easeOut(duration: 0.28)) {
+        withAnimation(.easeIn(duration: 0.28)) {
             current = nil
         }
     }
@@ -70,12 +74,21 @@ final class ToastCenter: ObservableObject {
 
 struct ToastBanner: View {
     let toast: ToastPayload
+    @State private var successIconScale: CGFloat = 0.2
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: toast.kind.iconName)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(toast.kind.tint)
+                .scaleEffect(toast.kind == .success ? successIconScale : 1)
+                .onAppear {
+                    guard toast.kind == .success else { return }
+                    successIconScale = 0.2
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.68)) {
+                        successIconScale = 1
+                    }
+                }
             Text(toast.message)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(AppColor.textPrimary)
@@ -111,10 +124,10 @@ struct ToastOverlayModifier: ViewModifier {
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .top).combined(with: .opacity),
-                                removal: .opacity.combined(with: .move(edge: .top))
+                                removal: .move(edge: .top).combined(with: .opacity)
                             )
                         )
-                        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: center.current?.id)
+                        .animation(.easeOut(duration: 0.28), value: center.current?.id)
                 }
             }
     }

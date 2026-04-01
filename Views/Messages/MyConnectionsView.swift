@@ -42,18 +42,12 @@ struct MyConnectionsView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
-                } else if let errorText {
-                    VStack(spacing: 16) {
-                        ContentUnavailableView(
-                            "載入失敗",
-                            systemImage: "exclamationmark.triangle",
-                            description: Text(errorText).foregroundStyle(AppColor.error)
-                        )
-                        Button("重試") { Task { await load() } }
-                            .buttonStyle(.borderedProminent)
-                            .tint(AppColor.primary)
-                    }
-                    .padding(.top, 8)
+                } else if let err = errorText {
+                    DeskerErrorStateView(message: err, onRetry: {
+                        Task { await load() }
+                    }, detail: nil)
+                        .padding(.top, 8)
+                        .padding(.horizontal, CardChrome.padding)
                 } else {
                     if connections.isEmpty && pending.isEmpty {
                         connectionsEmptyHero
@@ -99,7 +93,7 @@ struct MyConnectionsView: View {
             Image(systemName: "person.2")
                 .font(.system(size: 52))
                 .foregroundStyle(AppColor.textSecondary)
-            Text("你仲未有連接的人")
+            Text("你仲未有連接")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
@@ -109,7 +103,7 @@ struct MyConnectionsView: View {
                     tabRouter.selectedTab = 0
                 }
             } label: {
-                Text("去Explore探索創業者")
+                Text("去Explore")
                     .font(.headline.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

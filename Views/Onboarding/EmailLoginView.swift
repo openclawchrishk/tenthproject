@@ -96,6 +96,9 @@ struct EmailLoginView: View {
                     .padding(.horizontal, 24)
                     .padding(.vertical, 28)
                 }
+                #if os(iOS)
+                .scrollDismissesKeyboard(.interactively)
+                #endif
             }
             .navigationTitle("登入")
             .deskerInlineNavigationTitle()
@@ -108,6 +111,7 @@ struct EmailLoginView: View {
             #if os(iOS)
             .toolbarBackground(.hidden, for: .navigationBar)
             #endif
+            .deskerKeyboardDismissToolbar()
             .navigationDestination(for: EmailLoginRoute.self) { route in
                 switch route {
                 case .register:
@@ -155,6 +159,8 @@ struct EmailLoginView: View {
                 TextField("電郵地址", text: $vm.email)
                     .focused($focusedField, equals: .email)
                     .modifier(EmailTextFieldPlatform())
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .password }
                     .deskerTextFieldNoAutocaps()
                     .autocorrectionDisabled()
                     .onChange(of: vm.email) { _, _ in
@@ -200,6 +206,10 @@ struct EmailLoginView: View {
                     }
                 }
                 .focused($focusedField, equals: .password)
+                .submitLabel(.done)
+                .onSubmit {
+                    Task { await vm.signInWithEmail() }
+                }
                 .onChange(of: vm.password) { _, _ in
                     vm.fieldErrorPassword = nil
                 }
@@ -230,10 +240,10 @@ private struct EmailFieldModifiers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(14)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(AppColor.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .stroke(
                         invalid ? AppColor.error : (focused ? AppColor.primary : AppColor.textTertiary.opacity(0.35)),
                         lineWidth: invalid || focused ? 2 : 1

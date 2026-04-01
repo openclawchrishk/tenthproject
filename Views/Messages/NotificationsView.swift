@@ -59,18 +59,11 @@ struct NotificationsView: View {
                         .foregroundStyle(AppColor.textSecondary)
                 }
                 .padding(.top, 24)
-            } else if let errorText, items.isEmpty {
-                VStack(spacing: 16) {
-                    ContentUnavailableView(
-                        "載入失敗",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(errorText).foregroundStyle(AppColor.error)
-                    )
-                    Button("重試") { Task { await load() } }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColor.primary)
-                }
-                .padding(.top, 8)
+            } else if let err = errorText, items.isEmpty {
+                DeskerErrorStateView(message: err, onRetry: {
+                    Task { await load() }
+                }, detail: nil)
+                    .padding(.top, 8)
             } else if items.isEmpty {
                 ContentUnavailableView(
                     "暫時沒有通知",
@@ -273,7 +266,7 @@ struct NotificationsView: View {
         .overlay(alignment: .leading) {
             if !n.read {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(Color.indigo)
+                    .fill(AppColor.primary)
                     .frame(width: 4)
                     .padding(.vertical, 10)
             }

@@ -152,6 +152,8 @@ enum DeskerAnimation {
     static let pressIn = Animation.easeInOut(duration: 0.1)
     /// Release — spring back (~200ms feel).
     static let releaseSpring = Animation.spring(response: 0.2, dampingFraction: 0.78)
+    /// Card press — scale 0.98 @ 150ms ease-out (release uses spring).
+    static let cardPressEaseOut = Animation.easeOut(duration: 0.15)
     /// Card press / release (mirrors buttons with slightly softer release).
     static let cardReleaseSpring = Animation.spring(response: 0.2, dampingFraction: 0.8)
     /// Tab content cross-fade.
@@ -237,6 +239,24 @@ extension View {
         self
         #endif
     }
+
+    /// Toolbar **完成** above the keyboard to dismiss (iOS).
+    func deskerKeyboardDismissToolbar() -> some View {
+        #if os(iOS)
+        self.toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("完成") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+                .font(.body.weight(.semibold))
+                .foregroundStyle(AppColor.primary)
+            }
+        }
+        #else
+        self
+        #endif
+    }
 }
 
 // MARK: - Role badge colors (Explore / Profile)
@@ -278,12 +298,12 @@ struct DeskerButtonPressStyle: ButtonStyle {
     }
 }
 
-/// Card-style controls: press 0.98 @ 100ms, spring release ~200ms.
+/// Card-style controls: press scale 0.98 with 150ms ease-out; spring release ~200ms.
 struct DeskerCardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(configuration.isPressed ? DeskerAnimation.pressIn : DeskerAnimation.cardReleaseSpring, value: configuration.isPressed)
+            .animation(configuration.isPressed ? DeskerAnimation.cardPressEaseOut : DeskerAnimation.cardReleaseSpring, value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, pressed in
                 if pressed { HapticFeedback.light() }
             }
@@ -596,5 +616,45 @@ struct ExploreCardSkeleton: View {
         }
         .padding(CardChrome.padding)
         .deskerElevatedCard()
+    }
+}
+
+// MARK: - Shared error state (feeds & forms)
+
+struct DeskerErrorStateView: View {
+    let message: String
+    let onRetry: () -> Void
+    var detail: String?
+
+    @State private var showDetails = false
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(AppColor.primary)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textPrimary)
+                .multilineTextAlignment(.center)
+            Button("重試") {
+                onRetry()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColor.primary)
+            if let detail, !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                DisclosureGroup(isExpanded: $showDetails) {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } label: {
+                    Text("錯誤詳情")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.secondary)
+                }
+            }
+        }
+        .padding(CardChrome.padding)
     }
 }

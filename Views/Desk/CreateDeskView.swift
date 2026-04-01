@@ -102,6 +102,7 @@ struct CreateDeskView: View {
                 }
             }
             .disabled(isSubmitting)
+            .deskerKeyboardDismissToolbar()
             .deskerSheetSpringContent()
             .overlay {
                 if isSubmitting {

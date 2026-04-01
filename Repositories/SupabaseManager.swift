@@ -25,7 +25,17 @@ final class SupabaseManager {
         let key = Self.resolvedAnonKey()
         supabaseUrl = url
         supabaseAnonKey = key
-        client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey)
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 30
+        config.waitsForConnectivity = true
+        let urlSession = URLSession(configuration: config)
+
+        let options = SupabaseClientOptions(
+            global: SupabaseClientOptions.GlobalOptions(session: urlSession)
+        )
+        client = SupabaseClient(supabaseURL: supabaseUrl, supabaseKey: supabaseAnonKey, options: options)
     }
 
     /// Prefer env, then Info.plist; last resort is non-routable placeholder (no network secrets in binary).

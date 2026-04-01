@@ -268,14 +268,19 @@ struct PhoneLoginView: View {
             ZStack {
                 AppColor.background.ignoresSafeArea()
 
-                VStack(spacing: 32) {
-                    if step == .phoneEntry {
-                        phoneEntryView
-                    } else {
-                        otpVerificationView
+                ScrollView {
+                    VStack(spacing: 32) {
+                        if step == .phoneEntry {
+                            phoneEntryView
+                        } else {
+                            otpVerificationView
+                        }
                     }
+                    .padding()
                 }
-                .padding()
+                #if os(iOS)
+                .scrollDismissesKeyboard(.interactively)
+                #endif
 
                 if isLoading {
                     Color.black.opacity(0.3)
@@ -291,6 +296,7 @@ struct PhoneLoginView: View {
                     Button("取消") { dismiss() }
                 }
             }
+            .deskerKeyboardDismissToolbar()
             .tint(AppColor.primary)
         }
     }
@@ -327,6 +333,10 @@ struct PhoneLoginView: View {
                     TextField("手機號碼", text: $phoneNumber)
                         .keyboardType(.phonePad)
                         .font(.title3)
+                        .onChange(of: phoneNumber) { _, new in
+                            let capped = String(new.filter(\.isNumber).prefix(8))
+                            if capped != new { phoneNumber = capped }
+                        }
                         .padding(.vertical, 16)
                         .padding(.horizontal, 12)
                         .background(AppColor.cardBackground)
@@ -340,7 +350,7 @@ struct PhoneLoginView: View {
                 if let errorText {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColor.error)
+                            .foregroundStyle(AppColor.primary)
                         Text(errorText)
                             .font(.footnote)
                             .foregroundStyle(AppColor.error)
@@ -357,19 +367,18 @@ struct PhoneLoginView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(
-                            phoneNumber.count >= 8
+                            ProfileFieldValidation.isValidHongKongMobileLocalDigits(phoneNumber)
                             ? AppColor.brandGradient
                             : LinearGradient(colors: [AppColor.textTertiary], startPoint: .leading, endPoint: .trailing)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                 }
                 .buttonStyle(DeskerButtonPressStyle())
-                .disabled(phoneNumber.count < 8 || isLoading)
+                .disabled(!ProfileFieldValidation.isValidHongKongMobileLocalDigits(phoneNumber) || isLoading)
                 .deskerButtonShadow()
             }
             .padding(.horizontal)
-
-            Spacer()
+            .padding(.bottom, 32)
         }
     }
 
@@ -406,7 +415,7 @@ struct PhoneLoginView: View {
                 if let errorText {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColor.error)
+                            .foregroundStyle(AppColor.primary)
                         Text(errorText)
                             .font(.footnote)
                             .foregroundStyle(AppColor.error)
@@ -444,13 +453,17 @@ struct PhoneLoginView: View {
                 }
             }
             .padding(.horizontal)
-
-            Spacer()
+            .padding(.bottom, 32)
         }
     }
 
     private func sendOTP() {
-        let fullPhone = "+852\(phoneNumber)"
+        let digits = phoneNumber.filter(\.isNumber)
+        guard ProfileFieldValidation.isValidHongKongMobileLocalDigits(digits) else {
+            errorText = "請輸入有效嘅香港手機號碼（8 位數字）"
+            return
+        }
+        let fullPhone = "+852\(digits)"
         isLoading = true
         errorText = nil
 
@@ -471,7 +484,8 @@ struct PhoneLoginView: View {
     }
 
     private func verifyOTP() {
-        let fullPhone = "+852\(phoneNumber)"
+        let digits = phoneNumber.filter(\.isNumber)
+        let fullPhone = "+852\(digits)"
         isLoading = true
         errorText = nil
 

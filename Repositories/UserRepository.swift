@@ -7,14 +7,16 @@ final class UserRepository {
 
     func fetchUser(id: UUID) async throws -> UserProfile {
         do {
-            let response: UserProfile = try await client
-                .from("users")
-                .select()
-                .eq("id", value: id)
-                .single()
-                .execute()
-                .value
-            return response
+            return try await NetworkResilience.withRetry {
+                let response: UserProfile = try await self.client
+                    .from("users")
+                    .select()
+                    .eq("id", value: id)
+                    .single()
+                    .execute()
+                    .value
+                return response
+            }
         } catch {
             throw RepositoryErrorMapping.map(error, context: "UserRepository.fetchUser id=\(id)")
         }
@@ -58,13 +60,15 @@ final class UserRepository {
     /// Paginated list of profiles (e.g. discovery / admin). Ordered by display name.
     func fetchUsers(limit: Int = 200) async throws -> [UserProfile] {
         do {
-            return try await client
-                .from("users")
-                .select()
-                .order("display_name", ascending: true)
-                .limit(limit)
-                .execute()
-                .value
+            return try await NetworkResilience.withRetry {
+                try await self.client
+                    .from("users")
+                    .select()
+                    .order("display_name", ascending: true)
+                    .limit(limit)
+                    .execute()
+                    .value
+            }
         } catch {
             throw RepositoryErrorMapping.map(error, context: "UserRepository.fetchUsers limit=\(limit)")
         }

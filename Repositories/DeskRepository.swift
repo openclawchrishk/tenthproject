@@ -17,22 +17,24 @@ final class DeskRepository {
         limit: Int = 200
     ) async throws -> [Desk] {
         do {
-            var q = client
-                .from("desks")
-                .select()
-            if let status {
-                q = q.eq("status", value: status.rawValue)
+            return try await NetworkResilience.withRetry {
+                var q = self.client
+                    .from("desks")
+                    .select()
+                if let status {
+                    q = q.eq("status", value: status.rawValue)
+                }
+                if let industry, !industry.trimmingCharacters(in: .whitespaces).isEmpty {
+                    let tag = industry.trimmingCharacters(in: .whitespaces)
+                    q = q.contains("industries", value: [tag])
+                }
+                let rows: [Desk] = try await q
+                    .order("created_at", ascending: false)
+                    .limit(limit)
+                    .execute()
+                    .value
+                return rows
             }
-            if let industry, !industry.trimmingCharacters(in: .whitespaces).isEmpty {
-                let tag = industry.trimmingCharacters(in: .whitespaces)
-                q = q.contains("industries", value: [tag])
-            }
-            let rows: [Desk] = try await q
-                .order("created_at", ascending: false)
-                .limit(limit)
-                .execute()
-                .value
-            return rows
         } catch {
             throw RepositoryErrorMapping.map(error, context: "DeskRepository.fetchDesksForExplorer")
         }

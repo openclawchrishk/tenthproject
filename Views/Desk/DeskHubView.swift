@@ -118,19 +118,10 @@ struct DeskHubView: View {
                     .foregroundStyle(AppColor.textSecondary)
             }
             .padding(.top, 48)
-        } else if let errorText, myDesks.isEmpty, applications.isEmpty {
-            VStack(spacing: 16) {
-                Text(errorText)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.error)
-                    .multilineTextAlignment(.center)
-                Button("重試") {
-                    Task { await reload() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.primary)
-            }
-            .padding(CardChrome.padding)
+        } else if let err = errorText, myDesks.isEmpty, applications.isEmpty {
+            DeskerErrorStateView(message: err, onRetry: {
+                Task { await reload() }
+            }, detail: nil)
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: CardChrome.sectionSpacing) {
@@ -204,19 +195,13 @@ struct DeskHubView: View {
                 HapticFeedback.medium()
                 showCreateDesk = true
             } label: {
-                Text("建立第一個Desk")
+                Text("建立Desk")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(
-                        LinearGradient(
-                            colors: [AppColor.primary, AppColor.secondary],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
+                    .background(AppColor.brandGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
             }
             .buttonStyle(DeskerCardPressStyle())
             .deskerButtonShadow()

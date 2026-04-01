@@ -39,6 +39,10 @@ final class ExploreViewModel: ObservableObject {
     /// Changing this forces card content to refresh (再看一次).
     @Published private(set) var refreshGeneration = UUID()
 
+    /// Explore list pagination (20 per page).
+    @Published var deskListDisplayLimit = 20
+    @Published var userListDisplayLimit = 20
+
     @Published var searchText = ""
     /// `nil` or `"全部"` means no industry/status filter; otherwise industry tag or `"招募中"`.
     @Published var selectedFilterChip: String = "全部"
@@ -101,6 +105,35 @@ final class ExploreViewModel: ObservableObject {
             }
         }
         return list
+    }
+
+    var pagedFilteredDesks: [Desk] {
+        Array(filteredDesks.prefix(deskListDisplayLimit))
+    }
+
+    func pagedBrowseUsers(exceptUserId: UUID?) -> [UserProfile] {
+        Array(filteredBrowseUsers(exceptUserId: exceptUserId).prefix(userListDisplayLimit))
+    }
+
+    var canLoadMoreDesks: Bool {
+        filteredDesks.count > deskListDisplayLimit
+    }
+
+    func canLoadMoreUsers(exceptUserId: UUID?) -> Bool {
+        filteredBrowseUsers(exceptUserId: exceptUserId).count > userListDisplayLimit
+    }
+
+    func loadMoreDesks() {
+        deskListDisplayLimit += 20
+    }
+
+    func loadMoreUsers() {
+        userListDisplayLimit += 20
+    }
+
+    func resetListPagination() {
+        deskListDisplayLimit = 20
+        userListDisplayLimit = 20
     }
 
     func loadBrowseUsers() async {
@@ -193,6 +226,7 @@ final class ExploreViewModel: ObservableObject {
 
     /// Call when search or filter changes to keep `currentDesk` inside the filtered set.
     func applyFiltersReselectingIfNeeded() {
+        resetListPagination()
         isFilterBusy = true
         let pool = filteredDesks
         guard !pool.isEmpty else {

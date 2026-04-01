@@ -46,22 +46,11 @@ struct MessagesInboxView: View {
                             .foregroundStyle(AppColor.textSecondary)
                     }
                     .padding(.top, 40)
-                } else if let errorText, segment == 0 || segment == 2 {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(AppColor.error)
-                        Text(errorText)
-                            .font(.subheadline)
-                            .foregroundStyle(AppColor.error)
-                            .multilineTextAlignment(.center)
-                        Button("重試") {
-                            Task { await loadAll() }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppColor.primary)
-                    }
-                    .padding(CardChrome.padding)
+                } else if let err = errorText, segment == 0 || segment == 2 {
+                    DeskerErrorStateView(message: err, onRetry: {
+                        Task { await loadAll() }
+                    }, detail: nil)
+                        .padding(CardChrome.padding)
                 } else {
                     switch segment {
                     case 0:

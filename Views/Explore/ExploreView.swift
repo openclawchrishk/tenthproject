@@ -29,7 +29,7 @@ struct ExploreView: View {
 
                 ZStack(alignment: .top) {
                     ScrollView {
-                        VStack(spacing: CardChrome.sectionSpacing) {
+                        LazyVStack(spacing: CardChrome.sectionSpacing) {
                             if viewModel.browseTab == .desks {
                                 deskBrowseSection
                             } else {
@@ -105,6 +105,7 @@ struct ExploreView: View {
                 }
             }
             .onChange(of: viewModel.browseTab) { _, tab in
+                viewModel.resetListPagination()
                 if tab == .users, viewModel.browseUsers.isEmpty {
                     Task { await viewModel.loadBrowseUsers() }
                 }
@@ -156,22 +157,10 @@ struct ExploreView: View {
     @ViewBuilder
     private var deskBrowseSection: some View {
         if let err = viewModel.errorMessage, viewModel.desks.isEmpty {
-            VStack(spacing: 16) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(AppColor.error)
-                Text(err)
-                    .font(.subheadline)
-                    .foregroundStyle(AppColor.error)
-                    .multilineTextAlignment(.center)
-                Button("重試") {
-                    HapticFeedback.medium()
-                    Task { await reloadExploreAndInviteState() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppColor.primary)
-            }
-            .padding(CardChrome.padding)
+            DeskerErrorStateView(message: err, onRetry: {
+                HapticFeedback.medium()
+                Task { await reloadExploreAndInviteState() }
+            }, detail: nil)
         } else if viewModel.isLoading, viewModel.desks.isEmpty {
             VStack(spacing: 20) {
                 ExploreCardSkeleton()
@@ -186,7 +175,7 @@ struct ExploreView: View {
             exploreEmpty
                 .padding(.horizontal, CardChrome.padding)
         } else {
-            ForEach(viewModel.filteredDesks) { desk in
+            ForEach(viewModel.pagedFilteredDesks) { desk in
                 NavigationLink {
                     DeskDetailView(deskId: desk.id)
                 } label: {
@@ -195,15 +184,38 @@ struct ExploreView: View {
                 .buttonStyle(DeskerCardPressStyle())
             }
             .padding(.horizontal, CardChrome.padding)
+            if viewModel.canLoadMoreDesks {
+                Button {
+                    HapticFeedback.light()
+                    viewModel.loadMoreDesks()
+                } label: {
+                    Text("載入更多")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColor.surfaceElevated)
+                        .foregroundStyle(AppColor.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, CardChrome.padding)
+            }
         }
     }
 
     @ViewBuilder
     private var usersBrowseSection: some View {
-        let users = viewModel.filteredBrowseUsers(exceptUserId: auth.currentUser?.id)
-        if users.isEmpty {
-            exploreUsersEmpty
-                .padding(.horizontal, CardChrome.padding)
+        let users = viewModel.pagedBrowseUsers(exceptUserId: auth.currentUser?.id)
+        let allFiltered = viewModel.filteredBrowseUsers(exceptUserId: auth.currentUser?.id)
+        if allFiltered.isEmpty {
+            Group {
+                if viewModel.browseUsers.isEmpty {
+                    exploreUsersEmpty
+                } else {
+                    exploreUsersFilteredEmpty
+                }
+            }
+            .padding(.horizontal, CardChrome.padding)
         } else {
             ForEach(users) { user in
                 ExploreUserBrowseCard(
@@ -219,6 +231,22 @@ struct ExploreView: View {
                 )
             }
             .padding(.horizontal, CardChrome.padding)
+            if viewModel.canLoadMoreUsers(exceptUserId: auth.currentUser?.id) {
+                Button {
+                    HapticFeedback.light()
+                    viewModel.loadMoreUsers()
+                } label: {
+                    Text("載入更多")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColor.surfaceElevated)
+                        .foregroundStyle(AppColor.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, CardChrome.padding)
+            }
         }
     }
 
@@ -259,6 +287,39 @@ struct ExploreView: View {
             Image(systemName: "person.3")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColor.secondary)
+            Text("暫時沒有創業者")
+                .font(.headline)
+                .foregroundStyle(AppColor.textPrimary)
+            Text("成為第一個創業者")
+                .font(.subheadline)
+                .foregroundStyle(AppColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button {
+                HapticFeedback.medium()
+                withAnimation(DeskerAnimation.tabCrossFade) {
+                    tabRouter.selectedTab = 3
+                }
+            } label: {
+                Text("前往「我的」完善資料")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(AppColor.brandGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+            }
+            .buttonStyle(DeskerButtonPressStyle())
+            .padding(.horizontal, CardChrome.padding)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 48)
+    }
+
+    private var exploreUsersFilteredEmpty: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "person.3")
+                .font(.system(size: 44))
+                .foregroundStyle(AppColor.secondary)
             Text("沒有符合的用戶")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
@@ -295,8 +356,8 @@ struct ExploreView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white)
+                RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                    .fill(AppColor.cardBackground)
                     .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             )
             .padding(.horizontal, CardChrome.padding)
@@ -341,9 +402,7 @@ struct ExploreView: View {
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text(noDesksAtAll
-                 ? "先完善個人資料，讓社群更了解你；或稍後再試。"
-                 : "調整上方篩選或搜尋，或稍後再試。")
+            Text(noDesksAtAll ? "成為第一個創業者" : "調整上方篩選或搜尋，或稍後再試。")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)

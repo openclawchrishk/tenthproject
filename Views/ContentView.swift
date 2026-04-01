@@ -92,7 +92,7 @@ struct MainTabView: View {
         HStack(spacing: 8) {
             Image(systemName: "wifi.slash")
                 .font(.subheadline.weight(.semibold))
-            Text("離線 — 顯示上次資料")
+            Text("無網絡連接")
                 .font(.caption.weight(.semibold))
         }
         .foregroundStyle(.white)
@@ -265,7 +265,7 @@ struct MainTabView: View {
         HStack(spacing: 8) {
             Image(systemName: "wifi.slash")
                 .font(.subheadline.weight(.semibold))
-            Text("離線 — 顯示上次資料")
+            Text("無網絡連接")
                 .font(.caption.weight(.semibold))
         }
         .foregroundStyle(.white)

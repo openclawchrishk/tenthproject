@@ -489,6 +489,21 @@ enum ProfileFieldValidation {
             }
         }
     }
+
+    /// Hong Kong mobile local part (without country code): exactly 8 digits, mobile ranges typically 4–9 first digit.
+    static func isValidHongKongMobileLocalDigits(_ raw: String) -> Bool {
+        let digits = raw.filter(\.isNumber)
+        guard digits.count == 8 else { return false }
+        guard let first = digits.first, let n = Int(String(first)) else { return false }
+        return (4...9).contains(n)
+    }
+
+    /// Simple email shape check for forms (server remains source of truth).
+    static func isValidEmailFormat(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return false }
+        return t.range(of: "^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", options: .regularExpression) != nil
+    }
 }
 
 /// Partial update: only non-`nil` fields are encoded (PATCH semantics). Column names match `SUPABASE_SCHEMA.sql`.
