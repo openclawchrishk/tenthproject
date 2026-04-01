@@ -15,24 +15,24 @@ final class DeepLinkHandler: ObservableObject {
         HapticFeedback.selection()
         switch parsed {
         case .desk(let id):
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 1
                 tabRouter.pendingOpenDeskId = id
             }
         case .user(let id):
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 0
                 tabRouter.pendingExploreProfileUserId = id
                 tabRouter.pendingExploreUsername = nil
             }
         case .username(let name):
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 0
                 tabRouter.pendingExploreUsername = name
                 tabRouter.pendingExploreProfileUserId = nil
             }
         case .conversation(let id):
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 0
                 tabRouter.pendingDMConversationId = id

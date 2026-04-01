@@ -56,6 +56,33 @@ open DeskerHK.xcodeproj
 
 ---
 
+## Supabase 正式環境設定（上線前）
+
+### 必做設定
+
+1. 在 [supabase.com](https://supabase.com) 建立專案（或使用既有專案）。
+2. 在 **SQL Editor** 執行根目錄的 `SUPABASE_SCHEMA.sql`，建立表、RLS、索引與 Storage。
+3. 在 **Authentication → Providers** 啟用 **Email**（登入／註冊所需）。
+4. 在 **Settings → API** 取得 **Project URL** 與 **anon public key**，並寫入 App（見下方環境變量）。
+5. （可選）在 Authentication 設定 **Google** OAuth。
+6. （可選）在 Authentication 與 Apple Developer 後台設定 **Sign in with Apple**。
+
+### 環境變量
+
+本機或 CI 可透過環境變量注入；Xcode Scheme 亦可設定同名變量：
+
+```
+SUPABASE_URL=your-project-url
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 資料庫遷移
+
+- 首次：**執行 `SUPABASE_SCHEMA.sql`**。
+- 之後：若有補充 migration 檔，依序在 SQL Editor 執行（勿略過順序）。
+
+---
+
 ## 📱 功能一覽
 
 ### Phase 1 MVP ✅

@@ -174,20 +174,20 @@ struct NotificationsView: View {
     private func applyDeepLink(for n: AppNotification) {
         let t = n.type
         if t == AppNotificationType.deskApplicationReceived || t == AppNotificationType.deskApplicationAccepted {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 1
             }
             return
         }
         if t == AppNotificationType.dmReceived {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 0
             }
             return
         }
         if t == AppNotificationType.connectionInvite || t == AppNotificationType.connectionAccepted {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 3
             }
@@ -386,7 +386,7 @@ private struct ConnectionInviteNotificationDetailView: View {
                                 Group {
                                     if let s = from.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                                        let url = URL(string: s) {
-                                        CachedAsyncImage(url: url) { phase in
+                                        CachedAsyncImage(url: url, maxPixelDimension: 200) { phase in
                                             switch phase {
                                             case .success(let img):
                                                 img.resizable().scaledToFill()

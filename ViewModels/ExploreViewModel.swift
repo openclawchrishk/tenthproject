@@ -75,15 +75,23 @@ final class ExploreViewModel: ObservableObject {
             let list = try await repository.fetchExploreDesks()
             guard req == loadRequestID else { return }
             desks = list
+            CriticalDataCache.saveExploreDesks(list)
             pickCurrentDesk(excluding: nil)
             await refreshFounderForCurrentDesk()
         } catch {
             exploreVMLog.error("load failed: \(error.localizedDescription, privacy: .public)")
             guard req == loadRequestID else { return }
-            errorMessage = Self.userFacingMessage(for: error)
-            if desks.isEmpty {
-                currentDesk = nil
-                currentFounder = nil
+            if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
+                desks = cached
+                pickCurrentDesk(excluding: nil)
+                await refreshFounderForCurrentDesk()
+                errorMessage = "無網絡或伺服器暫時不可用 — 顯示上次快取的列表"
+            } else {
+                errorMessage = Self.userFacingMessage(for: error)
+                if desks.isEmpty {
+                    currentDesk = nil
+                    currentFounder = nil
+                }
             }
         }
     }
@@ -162,6 +170,7 @@ final class ExploreViewModel: ObservableObject {
             let list = try await repository.fetchExploreDesks()
             guard req == loadRequestID else { return }
             desks = list
+            CriticalDataCache.saveExploreDesks(list)
             let pool = filteredDesks
             if pool.isEmpty {
                 currentDesk = nil
@@ -179,7 +188,17 @@ final class ExploreViewModel: ObservableObject {
         } catch {
             exploreVMLog.error("viewAgain failed: \(error.localizedDescription, privacy: .public)")
             guard req == loadRequestID else { return }
-            errorMessage = Self.userFacingMessage(for: error)
+            if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
+                desks = cached
+                let pool = filteredDesks
+                if !pool.isEmpty {
+                    currentDesk = pool.randomElement()
+                    await refreshFounderForCurrentDesk()
+                }
+                errorMessage = "無網絡或伺服器暫時不可用 — 顯示上次快取的列表"
+            } else {
+                errorMessage = Self.userFacingMessage(for: error)
+            }
         }
     }
 

@@ -125,13 +125,18 @@ struct MainTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: connectivity.isConnected)
+        .onChange(of: connectivity.isConnected) { _, online in
+            if online {
+                Task { await OfflineDirectMessageQueue.shared.flush(using: DMRepository()) }
+            }
+        }
         .onAppear {
             TabBarAppearanceConfigurator.apply()
             PushNotificationService.shared.configure(tabRouter: tabRouter, auth: auth)
             Task { await refreshAllTabBadges() }
             if DeskerUXPreferences.pendingExploreAfterOnboarding {
                 DeskerUXPreferences.pendingExploreAfterOnboarding = false
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
+                withAnimation(DeskerAnimation.tabCrossFade) {
                     tabRouter.selectedTab = 0
                 }
             }
@@ -231,34 +236,63 @@ struct MainTabView: View {
     #endif
 
     #if os(macOS)
+    private var macOfflineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+                .font(.subheadline.weight(.semibold))
+            Text("離線 — 顯示上次資料")
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(AppColor.primary.opacity(0.92)))
+        .shadow(color: CardChrome.shadowColor, radius: 8, x: 0, y: 3)
+    }
+
     private var macTabContainer: some View {
-        TabView(selection: $tabRouter.selectedTab) {
-            ExploreView()
-                .environmentObject(tabRouter)
-                .tabItem {
-                    Label("探索", systemImage: "person.2.fill")
-                }
-                .tag(0)
+        ZStack {
+            TabView(selection: $tabRouter.selectedTab) {
+                ExploreView()
+                    .environmentObject(tabRouter)
+                    .tabItem {
+                        Label("探索", systemImage: "person.2.fill")
+                    }
+                    .tag(0)
 
-            DeskHubView()
-                .environmentObject(tabRouter)
-                .tabItem {
-                    Label("Desk", systemImage: "briefcase.fill")
-                }
-                .tag(1)
+                DeskHubView()
+                    .environmentObject(tabRouter)
+                    .tabItem {
+                        Label("Desk", systemImage: "briefcase.fill")
+                    }
+                    .tag(1)
 
-            MessagesInboxView()
-                .environmentObject(tabRouter)
-                .tabItem {
-                    Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
-                }
-                .tag(2)
+                MessagesInboxView()
+                    .environmentObject(tabRouter)
+                    .tabItem {
+                        Label("訊息", systemImage: "bubble.left.and.bubble.right.fill")
+                    }
+                    .tag(2)
 
-            ProfileView()
-                .tabItem {
-                    Label("我的", systemImage: "person.fill")
+                ProfileView()
+                    .tabItem {
+                        Label("我的", systemImage: "person.fill")
+                    }
+                    .tag(3)
+            }
+            .overlay(alignment: .top) {
+                if !connectivity.isConnected {
+                    macOfflineBanner
+                        .padding(.top, 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                .tag(3)
+            }
+            .animation(.easeInOut(duration: 0.22), value: connectivity.isConnected)
+            .onChange(of: connectivity.isConnected) { _, online in
+                if online {
+                    Task { await OfflineDirectMessageQueue.shared.flush(using: DMRepository()) }
+                }
+            }
         }
         .onAppear {
             PushNotificationService.shared.configure(tabRouter: tabRouter, auth: auth)

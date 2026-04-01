@@ -366,7 +366,6 @@ struct ExploreView: View {
                         Button {
                             HapticFeedback.selection()
                             viewModel.selectedFilterChip = chip
-                            viewModel.applyFiltersReselectingIfNeeded()
                         } label: {
                             Text(chip)
                                 .font(.subheadline.weight(on ? .semibold : .regular))
@@ -613,7 +612,7 @@ private struct ExplorePublicProfileSheet: View {
         Group {
             if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                CachedAsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url, maxPixelDimension: 240) { phase in
                     switch phase {
                     case .success(let img):
                         img.resizable().scaledToFill()
@@ -820,7 +819,7 @@ private struct ExploreFounderCard: View {
             Group {
                 if let s = founder.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                    let url = URL(string: s) {
-                    CachedAsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url, maxPixelDimension: 220) { phase in
                         switch phase {
                         case .success(let img):
                             img

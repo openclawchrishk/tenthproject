@@ -16,9 +16,13 @@
 		1B5B7E684120EFF9191F9829 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4854C843299AC9173F7BB236 /* OnboardingViewModel.swift */; };
 		2F260CA4E265AFF62F106967 /* PushNotificationPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF05935B2CBA4C1803D0943 /* PushNotificationPlaceholderView.swift */; };
 		331E20F3CE39E7CCA2258E97 /* IGCardExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBD9B08872DD2C82B128038 /* IGCardExportService.swift */; };
+		E4D5C6B7A89990896C5D4E13 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5C6B7A89990896C5D4E12 /* PushNotificationService.swift */; };
+		E4D5C6B7A89990896C5D4E15 /* CriticalDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5C6B7A89990896C5D4E14 /* CriticalDataCache.swift */; };
+		E4D5C6B7A89990896C5D4E17 /* OfflineDirectMessageQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5C6B7A89990896C5D4E16 /* OfflineDirectMessageQueue.swift */; };
 		F1E2D3C4B5A69788796A5B4C2 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */; };
 		F2E3D4C5B6A79889796B5C4D2 /* CachedAsyncImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E3D4C5B6A79889796B5C4D1 /* CachedAsyncImage.swift */; };
 		F3E4D5C6B7A89990896C5D4E2 /* ConnectivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */; };
+		E4D5C6B7A89990896C5D4E11 /* DeepLinkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4D5C6B7A89990896C5D4E10 /* DeepLinkHandler.swift */; };
 		3445C27DF315516D25956FDD /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD466517B1C2A0A979EBEB1 /* SupabaseManager.swift */; };
 		453AC1370601761D9A7AEAF5 /* Invite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62FCEBCCEFE7005784F15387 /* Invite.swift */; };
 		4E9FE02DE09C99A25C0E106A /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90A3008EA1051527384B9BF /* Connection.swift */; };
@@ -79,8 +83,12 @@
 		F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCache.swift; sourceTree = "<group>"; };
 		F2E3D4C5B6A79889796B5C4D1 /* CachedAsyncImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAsyncImage.swift; sourceTree = "<group>"; };
 		F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
+		E4D5C6B7A89990896C5D4E14 /* CriticalDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalDataCache.swift; sourceTree = "<group>"; };
+		E4D5C6B7A89990896C5D4E16 /* OfflineDirectMessageQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineDirectMessageQueue.swift; sourceTree = "<group>"; };
+		E4D5C6B7A89990896C5D4E12 /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
 		108F09C9BAF758522FD3B832 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		15B72A2A0CFB478C66D8EED3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E4D5C6B7A89990896C5D4E10 /* DeepLinkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkHandler.swift; sourceTree = "<group>"; };
 		165680953AD33BDAF2AA0389 /* PremiumUpgradeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumUpgradeSheet.swift; sourceTree = "<group>"; };
 		1B3EE71AF7AE30AC1AAE572A /* DMChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMChatView.swift; sourceTree = "<group>"; };
 		1C34C290EB91064314D418CD /* DeskerHK.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DeskerHK.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -165,8 +173,12 @@
 			isa = PBXGroup;
 			children = (
 				F3E4D5C6B7A89990896C5D4E1 /* ConnectivityMonitor.swift */,
+				E4D5C6B7A89990896C5D4E14 /* CriticalDataCache.swift */,
+				E4D5C6B7A89990896C5D4E10 /* DeepLinkHandler.swift */,
 				0EBD9B08872DD2C82B128038 /* IGCardExportService.swift */,
 				F1E2D3C4B5A69788796A5B4C1 /* ImageCache.swift */,
+				E4D5C6B7A89990896C5D4E16 /* OfflineDirectMessageQueue.swift */,
+				E4D5C6B7A89990896C5D4E12 /* PushNotificationService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -435,14 +447,18 @@
 				6794A6D72947B170503C2F82 /* HapticFeedback.swift in Sources */,
 				F2E3D4C5B6A79889796B5C4D2 /* CachedAsyncImage.swift in Sources */,
 				F3E4D5C6B7A89990896C5D4E2 /* ConnectivityMonitor.swift in Sources */,
+				E4D5C6B7A89990896C5D4E15 /* CriticalDataCache.swift in Sources */,
+				E4D5C6B7A89990896C5D4E11 /* DeepLinkHandler.swift in Sources */,
 				331E20F3CE39E7CCA2258E97 /* IGCardExportService.swift in Sources */,
 				F1E2D3C4B5A69788796A5B4C2 /* ImageCache.swift in Sources */,
 				453AC1370601761D9A7AEAF5 /* Invite.swift in Sources */,
+				E4D5C6B7A89990896C5D4E13 /* PushNotificationService.swift in Sources */,
 				F194EC2EC047E8721E368688 /* InviteRepository.swift in Sources */,
 				A5544A9FA1FF0AEE557E8516 /* Message.swift in Sources */,
 				0F3DFA8BEB920416763D9D55 /* MessageRepository.swift in Sources */,
 				50A01FA541AE328054D10A29 /* MessagesInboxView.swift in Sources */,
 				B3FED0B504072D47EFAF3ABF /* MyConnectionsView.swift in Sources */,
+				E4D5C6B7A89990896C5D4E17 /* OfflineDirectMessageQueue.swift in Sources */,
 				0EA3976432B05E2EF3428357 /* NotificationRepository.swift in Sources */,
 				C00BA172A41E48E31F16E093 /* NotificationsView.swift in Sources */,
 				EFF6A0793ACF077195993A73 /* OnboardingContainerView.swift in Sources */,

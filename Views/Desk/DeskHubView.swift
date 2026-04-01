@@ -376,7 +376,7 @@ struct DeskHubView: View {
         Group {
             if let s = url?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let u = URL(string: s) {
-                CachedAsyncImage(url: u) { phase in
+                CachedAsyncImage(url: u, maxPixelDimension: 200) { phase in
                     switch phase {
                     case .success(let img):
                         img

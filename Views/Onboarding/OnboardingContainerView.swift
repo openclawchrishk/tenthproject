@@ -209,7 +209,7 @@ struct CompletionView: View {
 /// Confetti-like dots falling from the top of the field (non-interactive).
 private struct CompletionConfettiField: View {
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 18.0, paused: false)) { timeline in
             Canvas { context, size in
                 let t = CGFloat(timeline.date.timeIntervalSinceReferenceDate)
                 let colors: [Color] = [AppColor.gold, AppColor.secondary, AppColor.teal, .white]

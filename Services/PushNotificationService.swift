@@ -34,16 +34,16 @@ final class PushNotificationService: NSObject, UNUserNotificationCenterDelegate 
         HapticFeedback.medium()
         switch type {
         case "connection_request":
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 3
             }
         case "desk_application":
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 1
             }
         case "new_message":
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 0
             }
@@ -52,7 +52,7 @@ final class PushNotificationService: NSObject, UNUserNotificationCenterDelegate 
                 tabRouter.pendingDMConversationId = id
             }
         case "desk_invite":
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.88)) {
+            withAnimation(DeskerAnimation.tabCrossFade) {
                 tabRouter.selectedTab = 2
                 tabRouter.messagesSegmentToSelect = 2
             }
@@ -71,7 +71,8 @@ final class PushNotificationService: NSObject, UNUserNotificationCenterDelegate 
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .badge, .sound])
+        // Foreground: banner + badge update; omit sound to reduce disruption and battery use.
+        completionHandler([.banner, .badge])
     }
 
     func userNotificationCenter(

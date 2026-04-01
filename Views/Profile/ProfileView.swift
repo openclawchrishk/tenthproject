@@ -265,7 +265,7 @@ struct ProfileView: View {
         ZStack {
                 if let s = user.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                    let url = URL(string: s) {
-                    CachedAsyncImage(url: url) { phase in
+                    CachedAsyncImage(url: url, maxPixelDimension: 400) { phase in
                         switch phase {
                         case .success(let img):
                             img

@@ -14,12 +14,13 @@ final class AuthRepository: ObservableObject {
     private var authListenerTask: Task<Void, Never>?
 
     init() {
-        authListenerTask = Task { @MainActor in
+        authListenerTask = Task { @MainActor [weak self] in
+            guard let self else { return }
             for await (_, session) in await SupabaseManager.shared.client.auth.authStateChanges {
                 self.session = session
                 if let session {
                     do {
-                        try await fetchUserProfile(userId: session.user.id)
+                        try await self.fetchUserProfile(userId: session.user.id)
                     } catch {
                         repositoryLogger.error("Auth authStateChanges fetchUserProfile: \(error.localizedDescription, privacy: .public)")
                         self.currentUser = nil

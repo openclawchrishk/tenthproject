@@ -85,7 +85,9 @@ struct MyConnectionsView: View {
                 .multilineTextAlignment(.center)
             Button {
                 HapticFeedback.medium()
-                tabRouter.selectedTab = 0
+                withAnimation(DeskerAnimation.tabCrossFade) {
+                    tabRouter.selectedTab = 0
+                }
             } label: {
                 Text("去Explore探索創業者")
                     .font(.headline.weight(.semibold))
@@ -143,7 +145,7 @@ struct MyConnectionsView: View {
         return Group {
             if let s = urlString?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                CachedAsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url, maxPixelDimension: 256) { phase in
                     switch phase {
                     case .success(let img):
                         img

@@ -185,7 +185,7 @@ struct MessagesInboxView: View {
                             .frame(maxWidth: 520)
                         Button {
                             HapticFeedback.medium()
-                            withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                            withAnimation(DeskerAnimation.tabCrossFade) {
                                 tabRouter.selectedTab = 0
                             }
                         } label: {

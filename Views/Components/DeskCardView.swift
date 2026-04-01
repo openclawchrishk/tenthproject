@@ -281,7 +281,7 @@ private struct FounderAvatar: View {
         Group {
             if let s = urlString?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                CachedAsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url, maxPixelDimension: 200) { phase in
                     switch phase {
                     case .success(let img):
                         img

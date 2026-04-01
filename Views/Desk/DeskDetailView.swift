@@ -591,7 +591,7 @@ struct DeskDetailView: View {
         Group {
             if let s = avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                CachedAsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url, maxPixelDimension: 220) { phase in
                     switch phase {
                     case .success(let img):
                         img

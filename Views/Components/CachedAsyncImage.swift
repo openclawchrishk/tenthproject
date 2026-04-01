@@ -10,13 +10,21 @@ import AppKit
 /// Remote image view using `ImageCache` and task cancellation when `url` changes.
 struct CachedAsyncImage<Content: View>: View {
     let url: URL?
+    /// When set (e.g. 256–384 for avatars), decodes a downsampled image to save memory.
+    var maxPixelDimension: CGFloat? = nil
     @ViewBuilder let content: (CachedAsyncImagePhase) -> Content
 
     @State private var phase: CachedAsyncImagePhase = .empty
 
+    private var loadTaskId: String {
+        let base = url?.absoluteString ?? ""
+        if let m = maxPixelDimension { return "\(base)|d:\(Int(m))" }
+        return base
+    }
+
     var body: some View {
         content(phase)
-            .task(id: url?.absoluteString) {
+            .task(id: loadTaskId) {
                 await load()
             }
     }
@@ -29,7 +37,7 @@ struct CachedAsyncImage<Content: View>: View {
         await MainActor.run { phase = .empty }
         do {
             #if canImport(UIKit)
-            if let ui = try await ImageCache.shared.uiImage(for: url) {
+            if let ui = try await ImageCache.shared.uiImage(for: url, maxPixelDimension: maxPixelDimension) {
                 try Task.checkCancellation()
                 let img = Image(uiImage: ui)
                 await MainActor.run { phase = .success(img) }
@@ -37,6 +45,7 @@ struct CachedAsyncImage<Content: View>: View {
                 await MainActor.run { phase = .failure }
             }
             #elseif canImport(AppKit)
+            _ = maxPixelDimension
             let data = try await ImageCache.shared.imageData(for: url)
             try Task.checkCancellation()
             if let ns = NSImage(data: data) {

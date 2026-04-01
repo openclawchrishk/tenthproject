@@ -13,6 +13,7 @@ struct BasicInfoView: View {
     @State private var langError: String?
     @State private var regionError: String?
     @State private var validationShakeTrigger = 0
+    @State private var nameFieldErrorPulseTrigger = 0
 #if os(iOS)
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var showCameraPicker = false
@@ -81,7 +82,7 @@ struct BasicInfoView: View {
                             .stroke(nameError != nil ? AppColor.error.opacity(0.85) : Color.clear, lineWidth: 1.5)
                     )
                     .deskerShake(trigger: validationShakeTrigger)
-                    .deskerErrorBorderPulse(trigger: validationShakeTrigger, cornerRadius: CardChrome.cornerRadiusMedium)
+                    .deskerErrorBorderPulse(trigger: nameFieldErrorPulseTrigger, cornerRadius: CardChrome.cornerRadiusMedium)
 
                     if let nameError {
                         inlineError(nameError)
@@ -389,6 +390,7 @@ struct BasicInfoView: View {
                 nameError = "請輸入顯示名稱"
             }
             validationShakeTrigger += 1
+            nameFieldErrorPulseTrigger += 1
             HapticFeedback.error()
             ok = false
         } else if name.count > ProfileFieldValidation.displayNameMaxLength {
@@ -396,6 +398,7 @@ struct BasicInfoView: View {
                 nameError = "顯示名稱最多 \(ProfileFieldValidation.displayNameMaxLength) 字"
             }
             validationShakeTrigger += 1
+            nameFieldErrorPulseTrigger += 1
             HapticFeedback.error()
             ok = false
         }

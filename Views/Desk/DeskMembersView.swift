@@ -134,7 +134,7 @@ struct DeskMembersView: View {
         Group {
             if let s = profile?.avatarUrl?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
                let url = URL(string: s) {
-                CachedAsyncImage(url: url) { phase in
+                CachedAsyncImage(url: url, maxPixelDimension: 200) { phase in
                     switch phase {
                     case .success(let img):
                         img.resizable().scaledToFill()

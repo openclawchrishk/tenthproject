@@ -204,7 +204,13 @@ struct DMChatView: View {
             HapticFeedback.light()
             await loadMessages()
         } catch {
-            errorText = error.localizedDescription
+            if NetworkFailureDetection.isConnectivityFailure(error) {
+                OfflineDirectMessageQueue.shared.enqueue(conversationId: c.id, senderId: uid, content: text)
+                errorText = "網絡不穩定：訊息已加入佇列，連線恢復後會自動送出"
+            } else {
+                inputText = text
+                errorText = error.localizedDescription
+            }
             HapticFeedback.error()
         }
     }
