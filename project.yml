@@ -56,3 +56,5 @@ targets:
           UISceneConfigurations: {}
         NSPhotoLibraryAddUsageDescription: "DeskerHK 需要存取相簿以保存 IG 卡片"
         UIBackgroundModes: []
+        SUPABASE_URL: "https://dxihaspyxzocrnxyhbow.supabase.co"
+        SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWhhc3B5eHpvY3JueHloYm93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODUwNjQsImV4cCI6MjA5MDI2MTA2NH0.NzJj0qKNjKigPZ-Gp_rxQPG0_3h6QUwcLAXok4yhwsw"
