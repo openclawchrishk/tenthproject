@@ -88,7 +88,7 @@
 		165680953AD33BDAF2AA0389 /* PremiumUpgradeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumUpgradeSheet.swift; sourceTree = "<group>"; };
 		17AECEF4C4AD4822C6C70624 /* ConnectivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectivityMonitor.swift; sourceTree = "<group>"; };
 		1B3EE71AF7AE30AC1AAE572A /* DMChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DMChatView.swift; sourceTree = "<group>"; };
-		1C34C290EB91064314D418CD /* DeskerHK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeskerHK.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1C34C290EB91064314D418CD /* DeskerHK.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = DeskerHK.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C80BFC9912194CE8C05A5F9 /* EmailRegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmailRegisterView.swift; sourceTree = "<group>"; };
 		1DF9F772CA29E11C5975D2A6 /* ReferralRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferralRepository.swift; sourceTree = "<group>"; };
 		1FB89C588F008B4D8FC27219 /* Desk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Desk.swift; sourceTree = "<group>"; };
@@ -394,6 +394,7 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					4979C3334FA322C69D949480 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -594,7 +595,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = RJMS5PG449;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;

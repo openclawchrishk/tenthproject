@@ -296,6 +296,7 @@ ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY;
 -- USERS policies
 CREATE POLICY "Users are viewable by everyone" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- DESKS policies
 CREATE POLICY "Recruiting desks are viewable by everyone" ON public.desks FOR SELECT USING (status = 'recruiting' OR founder_id = auth.uid());
