@@ -242,17 +242,10 @@ final class ExploreViewModel: ObservableObject {
             return
         }
         var map: [UUID: String] = [:]
-        await withTaskGroup(of: (UUID, String?).self) { group in
-            for id in ids {
-                group.addTask { [users] in
-                    guard let profile = try? await users.fetchUser(id: id) else { return (id, nil) }
-                    let n = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    return (id, n.isEmpty ? nil : n)
-                }
-            }
-            for await (id, name) in group {
-                if let name { map[id] = name }
-            }
+        for id in ids {
+            guard let profile = try? await users.fetchUser(id: id) else { continue }
+            let n = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !n.isEmpty { map[id] = n }
         }
         founderDisplayNameByFounderId = map
     }
