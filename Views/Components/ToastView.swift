@@ -87,7 +87,7 @@ struct ToastBanner: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: CardChrome.shadowColor.opacity(0.45), radius: 16, x: 0, y: 8)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
         .overlay(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)

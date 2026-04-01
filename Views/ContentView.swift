@@ -75,7 +75,7 @@ struct MainTabView: View {
             iosTabButton(0, "探索", "person.2.fill")
             iosTabButton(1, "Desk", "briefcase.fill")
             iosTabButton(2, "訊息", "bubble.left.and.bubble.right.fill")
-            iosTabButton(3, "我的", "person.crop.circle.fill")
+            iosTabButton(3, "我的", "person.fill")
         }
         .padding(.top, 10)
         .padding(.bottom, 6)
@@ -126,7 +126,7 @@ struct MainTabView: View {
 
             ProfileView()
                 .tabItem {
-                    Label("我的", systemImage: "person.crop.circle.fill")
+                    Label("我的", systemImage: "person.fill")
                 }
                 .tag(3)
         }

@@ -132,7 +132,7 @@ struct CreateDeskView: View {
                         .overlay {
                             VStack(spacing: 12) {
                                 ProgressView()
-                                    .tint(AppColor.secondary)
+                                    .tint(AppColor.primary)
                                 Text("發佈中...")
                                     .font(.subheadline)
                                     .foregroundStyle(.white)

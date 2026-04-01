@@ -72,7 +72,7 @@ struct DeskDetailView: View {
             if isLoading {
                 VStack(spacing: 10) {
                     ProgressView()
-                        .tint(AppColor.secondary)
+                        .tint(AppColor.primary)
                     Text("載入中...")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
@@ -246,7 +246,7 @@ struct DeskDetailView: View {
                 Text(desk.name)
                     .font(.largeTitle.bold())
                     .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, y: 2)
                 Text(desk.pitch)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.92))
@@ -453,7 +453,7 @@ struct DeskDetailView: View {
                                 HStack {
                                     Spacer()
                                     ProgressView()
-                                        .tint(AppColor.secondary)
+                                        .tint(AppColor.primary)
                                     Spacer()
                                 }
                             } else {

@@ -28,6 +28,7 @@ struct DeskGroupChatView: View {
         VStack(spacing: 0) {
             if isLoading {
                 ProgressView("載入群組聊天…")
+                    .tint(AppColor.primary)
                     .frame(maxHeight: .infinity)
             } else if let errorText {
                 ContentUnavailableView("無法使用", systemImage: "exclamationmark.triangle", description: Text(errorText))

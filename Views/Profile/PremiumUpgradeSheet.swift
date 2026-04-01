@@ -24,7 +24,7 @@ struct PremiumUpgradeSheet: View {
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 52))
                                 .foregroundStyle(.white)
-                                .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+                                .shadow(color: Color.black.opacity(0.08), radius: 8, y: 3)
                             Text("Level 3 Premium")
                                 .font(.title.bold())
                                 .foregroundStyle(.white)
@@ -35,7 +35,7 @@ struct PremiumUpgradeSheet: View {
                         }
                         .padding(28)
                     }
-                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
 
                     VStack(alignment: .leading, spacing: 14) {
                         benefitRow("Desk 成員上限提升至 8 人", icon: "person.3.fill")
@@ -48,7 +48,7 @@ struct PremiumUpgradeSheet: View {
                     .background(
                         RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                             .fill(AppColor.cardBackground)
-                            .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                     )
 
                     VStack(spacing: 8) {
@@ -67,7 +67,7 @@ struct PremiumUpgradeSheet: View {
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
+                            .frame(height: 50)
                             .background(
                                 LinearGradient(
                                     colors: [Color(hex: "C9A227"), AppColor.primary],
@@ -75,7 +75,7 @@ struct PremiumUpgradeSheet: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .clipShape(Capsule())
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .deskerButtonShadow()

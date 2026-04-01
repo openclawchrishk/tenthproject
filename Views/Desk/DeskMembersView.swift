@@ -23,9 +23,15 @@ struct DeskMembersView: View {
         Group {
             if isLoading {
                 ProgressView("載入成員…")
+                    .tint(AppColor.primary)
                     .frame(maxHeight: .infinity)
             } else if let errorText {
                 ContentUnavailableView("無法載入", systemImage: "exclamationmark.triangle", description: Text(errorText))
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button("重試") { Task { await load() } }
+                        }
+                    }
             } else {
                 List {
                     ForEach(members) { m in

@@ -65,6 +65,7 @@ struct DeskerShareOptionsSheet: View {
                                 if igBusy {
                                     Spacer()
                                     ProgressView()
+                                        .tint(AppColor.primary)
                                 }
                             }
                         }

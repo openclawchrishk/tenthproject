@@ -89,7 +89,7 @@ struct SkillsAndNeedsView: View {
                     .padding()
                     .frame(maxWidth: .infinity)
                     .background(AppColor.error.opacity(0.1))
-                    .cornerRadius(12)
+                    .cornerRadius(CardChrome.cornerRadiusMedium)
                 }
 
                 // Save button
@@ -125,6 +125,7 @@ struct SkillsAndNeedsView: View {
                 ZStack {
                     Color.black.opacity(0.04).ignoresSafeArea()
                     ProgressView()
+                        .tint(AppColor.primary)
                         .padding(22)
                         .background(
                             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
@@ -190,7 +191,7 @@ struct SkillsAndNeedsView: View {
                             .background(isSelected ? accent : accent.opacity(0.1))
                             .foregroundStyle(isSelected ? .white : accent)
                             .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
-                            .shadow(color: .black.opacity(isSelected ? 0.15 : 0.05), radius: 3, x: 0, y: 1)
+                            .shadow(color: Color.black.opacity(isSelected ? 0.08 : 0.05), radius: 3, x: 0, y: 1)
                             .overlay(
                                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
                                     .stroke(isSelected ? accent : AppColor.textSecondary.opacity(0.2), lineWidth: 1)

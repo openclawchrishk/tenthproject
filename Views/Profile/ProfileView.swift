@@ -67,7 +67,7 @@ struct ProfileView: View {
                                 Color.black.opacity(0.06).ignoresSafeArea()
                                 VStack(spacing: 10) {
                                     ProgressView()
-                                        .tint(AppColor.secondary)
+                                        .tint(AppColor.primary)
                                     Text("儲存中...")
                                         .font(.subheadline)
                                         .foregroundStyle(AppColor.textSecondary)
@@ -147,7 +147,7 @@ struct ProfileView: View {
                             placeholderAvatar(for: user)
                         case .empty:
                             ProgressView()
-                                .tint(AppColor.secondary)
+                                .tint(AppColor.primary)
                         @unknown default:
                             placeholderAvatar(for: user)
                         }
@@ -200,7 +200,7 @@ struct ProfileView: View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
             )
         }
     }

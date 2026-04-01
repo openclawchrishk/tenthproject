@@ -31,7 +31,7 @@ struct MyConnectionsView: View {
                 if isLoading {
                     VStack(spacing: 16) {
                         ProgressView()
-                            .tint(AppColor.secondary)
+                            .tint(AppColor.primary)
                         Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)

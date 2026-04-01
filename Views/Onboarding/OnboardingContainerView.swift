@@ -76,7 +76,7 @@ struct CompletionView: View {
                         .font(.system(size: 52))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(AppColor.success, AppColor.primary)
-                        .shadow(color: AppColor.gold.opacity(0.45), radius: 12, y: 2)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, y: 3)
                 }
 
                 Text("歡迎加入 Desker HK！")
@@ -108,9 +108,9 @@ struct CompletionView: View {
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(height: 50)
                     .background(AppColor.brandGradient)
-                    .cornerRadius(14)
+                    .cornerRadius(CardChrome.cornerRadiusMedium)
                     .overlay {
                         GeometryReader { geo in
                             LinearGradient(
@@ -122,9 +122,9 @@ struct CompletionView: View {
                             .offset(x: shimmerX * geo.size.width)
                             .blendMode(.overlay)
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                     }
-                    .shadow(color: AppColor.primary.opacity(0.35), radius: 12, x: 0, y: 6)
+                    .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 28)

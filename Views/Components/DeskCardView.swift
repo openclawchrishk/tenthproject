@@ -141,7 +141,7 @@ struct DeskCardView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -186,7 +186,7 @@ struct DeskCardView: View {
                 Text(desk.name.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 20))
                     .font(.headline)
                     .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, y: 2)
 
                 Text(desk.pitch.trimmingCharacters(in: .whitespacesAndNewlines).deskerTruncated(maxLength: 100))
                     .font(.subheadline)

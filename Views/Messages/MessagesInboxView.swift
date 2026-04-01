@@ -30,7 +30,7 @@ struct MessagesInboxView: View {
                 if isLoading && (segment == 0 || segment == 2) {
                     VStack(spacing: 16) {
                         ProgressView()
-                            .tint(AppColor.secondary)
+                            .tint(AppColor.primary)
                         Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
@@ -74,10 +74,10 @@ struct MessagesInboxView: View {
 
     private var inboxSegmentPicker: some View {
         Picker("", selection: $segment) {
-            Label("私訊", systemImage: "bubble.left.and.bubble.right").tag(0)
-            Label("通知", systemImage: "bell").tag(1)
-            Label("Desk邀請", systemImage: "envelope.open").tag(2)
-            Label("人脈", systemImage: "person.2").tag(3)
+            Label("私訊", systemImage: "bubble.left.and.bubble.right.fill").tag(0)
+            Label("通知", systemImage: "bell.fill").tag(1)
+            Label("Desk邀請", systemImage: "envelope.open.fill").tag(2)
+            Label("人脈", systemImage: "person.2.fill").tag(3)
         }
         .pickerStyle(.segmented)
         .tint(AppColor.primary)
@@ -153,7 +153,7 @@ struct MessagesInboxView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
     }
 
@@ -234,7 +234,7 @@ struct MessagesInboxView: View {
                             .background(
                                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                                     .fill(AppColor.cardBackground)
-                                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                             )
                         }
                     }

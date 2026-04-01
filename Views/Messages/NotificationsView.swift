@@ -27,7 +27,7 @@ struct NotificationsView: View {
             if isLoading {
                 VStack(spacing: 16) {
                     ProgressView()
-                        .tint(AppColor.secondary)
+                        .tint(AppColor.primary)
                     Text("載入中...")
                         .font(.subheadline)
                         .foregroundStyle(AppColor.textSecondary)
@@ -173,7 +173,7 @@ struct NotificationsView: View {
         .background(
             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                 .fill(AppColor.cardBackground)
-                .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
         )
         .overlay(alignment: .leading) {
             if !n.read {
@@ -343,6 +343,7 @@ private struct ConnectionInviteNotificationDetailView: View {
                 } else {
                     VStack(spacing: 16) {
                         ProgressView()
+                            .tint(AppColor.primary)
                         Text("載入邀請…")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)

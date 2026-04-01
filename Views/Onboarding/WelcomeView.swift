@@ -27,7 +27,7 @@ struct WelcomeView: View {
                     Image(systemName: "briefcase.fill")
                         .font(.system(size: 56))
                         .foregroundStyle(.white)
-                        .shadow(color: Color.black.opacity(0.35), radius: 24, y: 8)
+                        .shadow(color: Color.black.opacity(0.1), radius: 16, y: 6)
 
                     Text("Desker HK")
                         .font(.largeTitle.bold())
@@ -59,7 +59,7 @@ struct WelcomeView: View {
                         }
                     )
                     .signInWithAppleButtonStyle(.white)
-                    .frame(height: 54)
+                    .frame(height: 50)
                     .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                     .deskerButtonShadow()
 
@@ -73,7 +73,7 @@ struct WelcomeView: View {
                         .font(.headline)
                         .foregroundStyle(AppColor.primary)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        .frame(height: 50)
                         .background(
                             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                                 .fill(Color.white)
@@ -135,6 +135,7 @@ struct WelcomeView: View {
             Task {
                 do {
                     try await auth.signInWithApple(idToken: idTokenString, nonce: "")
+                    await MainActor.run { isLoading = false }
                 } catch {
                     await MainActor.run {
                         errorText = "登入失敗：\(error.localizedDescription)"
@@ -224,7 +225,7 @@ struct PhoneLoginView: View {
                         .padding(.vertical, 16)
                         .background(AppColor.cardBackground)
                         .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous))
-                        .shadow(color: CardChrome.shadowColor.opacity(0.5), radius: 4, y: 2)
+                        .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
 
                     TextField("手機號碼", text: $phoneNumber)
                         .keyboardType(.phonePad)
@@ -252,7 +253,7 @@ struct PhoneLoginView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        .frame(height: 50)
                         .background(
                             phoneNumber.count >= 8
                             ? AppColor.brandGradient
@@ -312,7 +313,7 @@ struct PhoneLoginView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        .frame(height: 50)
                         .background(
                             otpCode.count >= 6
                             ? AppColor.brandGradient

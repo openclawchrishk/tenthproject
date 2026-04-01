@@ -72,8 +72,8 @@ struct BasicInfoView: View {
                     }
                     .padding(14)
                     .background(AppColor.cardBackground)
-                    .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    .cornerRadius(CardChrome.cornerRadiusMedium)
+                    .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
                 }
                 .id("displayNameField")
                 .padding(.horizontal, 24)
@@ -107,8 +107,8 @@ struct BasicInfoView: View {
                         }
                         .padding(14)
                         .background(AppColor.cardBackground)
-                        .cornerRadius(12)
-                        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                        .cornerRadius(CardChrome.cornerRadiusMedium)
+                        .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -189,9 +189,9 @@ struct BasicInfoView: View {
                                 }
                                 .padding(12)
                                 .background(AppColor.cardBackground)
-                                .cornerRadius(12)
+                                .cornerRadius(CardChrome.cornerRadiusMedium)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
+                                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium)
                                         .stroke(isSelected ? AppColor.primary : Color.clear, lineWidth: 2)
                                 )
                             }
@@ -222,7 +222,7 @@ struct BasicInfoView: View {
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(12)
+                    .cornerRadius(CardChrome.cornerRadiusMedium)
                 }
                 .disabled(viewModel.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedLanguages.isEmpty)
                 .opacity(viewModel.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.selectedLanguages.isEmpty ? 0.5 : 1)

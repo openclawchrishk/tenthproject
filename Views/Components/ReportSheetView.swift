@@ -27,7 +27,7 @@ struct ReportSheetView: View {
                         Task { await submit() }
                     } label: {
                         if isSending {
-                            HStack { Spacer(); ProgressView(); Spacer() }
+                            HStack { Spacer(); ProgressView().tint(AppColor.primary); Spacer() }
                         } else {
                             Text("送出檢舉").frame(maxWidth: .infinity)
                         }

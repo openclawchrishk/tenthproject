@@ -95,7 +95,7 @@ struct ExploreView: View {
                 if viewModel.isLoading {
                     VStack(spacing: 12) {
                         ProgressView()
-                            .tint(AppColor.secondary)
+                            .tint(AppColor.primary)
                         Text("載入中...")
                             .font(.subheadline)
                             .foregroundStyle(AppColor.textSecondary)
@@ -104,7 +104,7 @@ struct ExploreView: View {
                     .background(
                         RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                             .fill(.ultraThinMaterial)
-                            .shadow(color: CardChrome.shadowColor, radius: 12, x: 0, y: 4)
+                            .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
                     )
                     .allowsHitTesting(false)
                 }
@@ -167,7 +167,7 @@ struct ExploreView: View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: CardChrome.shadowColor.opacity(0.5), radius: 8, x: 0, y: 2)
+                    .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
             )
             .padding(.horizontal, CardChrome.padding)
 
@@ -189,7 +189,7 @@ struct ExploreView: View {
                                         .fill(on ? AppColor.primary : AppColor.primary.opacity(0.1))
                                 )
                                 .foregroundStyle(on ? Color.white : AppColor.primary)
-                                .shadow(color: CardChrome.shadowColor.opacity(0.35), radius: 4, x: 0, y: 1)
+                                .shadow(color: on ? CardChrome.buttonShadowColor : Color.clear, radius: 4, x: 0, y: 1)
                         }
                         .buttonStyle(DeskerChipPressStyle())
                     }
@@ -380,7 +380,7 @@ private struct ExploreFounderCard: View {
                             Image(systemName: "star.fill")
                                 .font(.caption.weight(.bold))
                                 .foregroundStyle(AppColor.gold)
-                                .shadow(color: AppColor.gold.opacity(0.45), radius: 2, y: 0)
+                                .shadow(color: Color.black.opacity(0.08), radius: 2, y: 0)
                         }
                     }
                     roleBadge
@@ -496,7 +496,7 @@ private struct ExploreFounderCard: View {
                         initialsAvatar
                     case .empty:
                         ProgressView()
-                            .tint(AppColor.secondary)
+                            .tint(AppColor.primary)
                     @unknown default:
                         initialsAvatar
                     }

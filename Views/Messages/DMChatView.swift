@@ -59,7 +59,7 @@ struct DMChatView: View {
                         .background(
                             RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                                 .fill(AppColor.cardBackground)
-                                .shadow(color: CardChrome.shadowColor.opacity(0.4), radius: 6, x: 0, y: 2)
+                                .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
                         )
                     Button {
                         Task { await send() }
@@ -124,7 +124,7 @@ struct DMChatView: View {
                 .background(
                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                         .fill(mine ? AppColor.primary.opacity(0.18) : AppColor.cardBackground)
-                        .shadow(color: CardChrome.shadowColor.opacity(0.3), radius: 5, x: 0, y: 2)
+                        .shadow(color: CardChrome.buttonShadowColor, radius: 5, x: 0, y: 2)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)

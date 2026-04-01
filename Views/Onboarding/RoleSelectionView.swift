@@ -116,7 +116,7 @@ struct RoleCard: View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)

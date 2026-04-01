@@ -21,8 +21,9 @@ enum AppColor {
     static let teal = Color(hex: "7ECBC0")
 
     #if os(iOS)
-    static var background: Color { Color(uiColor: .systemBackground) }
-    static var cardBackground: Color { Color(uiColor: .secondarySystemBackground) }
+    /// App canvas — fixed cream (#F5F5F7) for brand consistency (cards stay white).
+    static let background = Color(hex: "F5F5F7")
+    static let cardBackground = Color.white
     static var surfaceElevated: Color { Color(uiColor: .tertiarySystemBackground) }
     static var textPrimary: Color { Color(uiColor: .label) }
     static var textSecondary: Color { Color(uiColor: .secondaryLabel) }
@@ -30,8 +31,8 @@ enum AppColor {
     /// Grouped list chips / bubbles.
     static var secondaryGroupedSurface: Color { Color(uiColor: .secondarySystemFill) }
     #elseif os(macOS)
-    static var background: Color { Color(nsColor: .windowBackgroundColor) }
-    static var cardBackground: Color { Color(nsColor: .controlBackgroundColor) }
+    static let background = Color(hex: "F5F5F7")
+    static let cardBackground = Color.white
     static var surfaceElevated: Color { Color(nsColor: .underPageBackgroundColor) }
     static var textPrimary: Color { Color(nsColor: .labelColor) }
     static var textSecondary: Color { Color(nsColor: .secondaryLabelColor) }
@@ -115,8 +116,11 @@ enum CardChrome {
     static let sectionSpacing: CGFloat = 24
     static let padding: CGFloat = 16
 
-    /// Premium elevated card shadow (matches design spec).
+    /// Elevated cards — opacity 0.06, radius 16, y 6.
     static let shadowColor = Color.black.opacity(0.06)
+
+    /// Buttons — opacity 0.08, radius 8, y 3.
+    static let buttonShadowColor = Color.black.opacity(0.08)
 
     /// Elevated cards (main surfaces).
     static let shadowRadiusElevated: CGFloat = 16
@@ -138,7 +142,7 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
             )
     }
 
@@ -148,12 +152,12 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
                     .fill(AppColor.cardBackground)
-                    .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+                    .shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusElevated, x: 0, y: CardChrome.shadowYElevated)
             )
     }
 
     func deskerButtonShadow() -> some View {
-        shadow(color: CardChrome.shadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+        shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
     }
 
     /// `navigationBarTitleDisplayMode` is unavailable on macOS.

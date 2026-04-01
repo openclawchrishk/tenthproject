@@ -35,6 +35,6 @@ struct AppHeaderView: View {
             )
             .frame(height: 1)
         }
-        .shadow(color: Color.black.opacity(0.06), radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
+        .shadow(color: CardChrome.buttonShadowColor, radius: CardChrome.shadowRadiusButton, x: 0, y: CardChrome.shadowYButton)
     }
 }
