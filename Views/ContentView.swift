@@ -28,6 +28,7 @@ struct ContentView: View {
     @StateObject private var toastCenter = ToastCenter()
     @StateObject private var tabRouter = MainTabRouter()
     @StateObject private var deepLinkHandler = DeepLinkHandler()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -51,6 +52,10 @@ struct ContentView: View {
         }
         .onOpenURL { url in
             deepLinkHandler.handle(url, tabRouter: tabRouter)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, authRepository.session != nil else { return }
+            Task { await authRepository.refreshProfile() }
         }
     }
 }
