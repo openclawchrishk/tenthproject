@@ -39,6 +39,8 @@ struct ProfileView: View {
     @State private var isEditingProfile = false
     @State private var displayNameDraft = ""
     @State private var roleDraft: UserRole = .aspiringFounder
+    @State private var showDeleteAccountConfirm = false
+    @State private var accountActionBusy = false
 
     private let userRepo = UserRepository()
     private let referralRepo = ReferralRepository()
@@ -287,6 +289,18 @@ struct ProfileView: View {
 
     private func profileEditShortcutsRow() -> some View {
         HStack(spacing: 10) {
+            Button {
+                HapticFeedback.light()
+                syncFromProfile()
+                isEditingProfile = true
+            } label: {
+                Label("編輯", systemImage: "pencil.circle.fill")
+                    .font(.caption.weight(.bold))
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColor.primary)
+
             Button {
                 HapticFeedback.light()
                 scrollToSection = "section_bio"
@@ -871,6 +885,31 @@ struct ProfileView: View {
                 .autocorrectionDisabled()
                 .foregroundStyle(AppColor.textPrimary)
                 .disabled(!isEditingProfile)
+
+            Button {
+                Task { await logoutTapped() }
+            } label: {
+                Label("登出", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+            .disabled(accountActionBusy)
+            .foregroundStyle(AppColor.primary)
+
+            Button(role: .destructive) {
+                showDeleteAccountConfirm = true
+            } label: {
+                Label("刪除帳戶", systemImage: "trash")
+            }
+            .disabled(accountActionBusy)
+        }
+        .confirmationDialog(
+            "確定刪除帳戶？所有資料將無法還原。需先在 Supabase 執行 SUPABASE_DELETE_ACCOUNT_RPC.sql。",
+            isPresented: $showDeleteAccountConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("刪除", role: .destructive) {
+                Task { await deleteAccountTapped() }
+            }
+            Button("取消", role: .cancel) {}
         }
         .listRowBackground(AppColor.cardBackground)
     }
@@ -1155,6 +1194,32 @@ struct ProfileView: View {
         #else
         return nil
         #endif
+    }
+
+    private func logoutTapped() async {
+        accountActionBusy = true
+        defer { accountActionBusy = false }
+        do {
+            try await auth.signOut()
+            toast.show(.success, "已登出")
+            HapticFeedback.success()
+        } catch {
+            toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
+            HapticFeedback.error()
+        }
+    }
+
+    private func deleteAccountTapped() async {
+        accountActionBusy = true
+        defer { accountActionBusy = false }
+        do {
+            try await auth.deleteOwnAccount()
+            toast.show(.success, "帳戶已刪除")
+            HapticFeedback.success()
+        } catch {
+            toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
+            HapticFeedback.error()
+        }
     }
 
     private func syncFromProfile() {

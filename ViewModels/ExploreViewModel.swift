@@ -36,6 +36,8 @@ final class ExploreViewModel: ObservableObject {
     /// True while re-resolving founder after search / filter changes.
     @Published private(set) var isFilterBusy = false
     @Published var errorMessage: String?
+    /// Set when the user directory fails to load (RLS or network).
+    @Published var browseUsersError: String?
     /// Changing this forces card content to refresh (再看一次).
     @Published private(set) var refreshGeneration = UUID()
 
@@ -137,10 +139,13 @@ final class ExploreViewModel: ObservableObject {
     }
 
     func loadBrowseUsers() async {
+        browseUsersError = nil
         do {
             browseUsers = try await users.fetchUsers(limit: 200)
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             browseUsers = []
+            browseUsersError = Self.userFacingMessage(for: error)
         }
     }
 
@@ -159,6 +164,7 @@ final class ExploreViewModel: ObservableObject {
             pickCurrentDesk(excluding: nil)
             await refreshFounderForCurrentDesk()
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             exploreVMLog.error("load failed: \(error.localizedDescription, privacy: .public)")
             guard req == loadRequestID else { return }
             if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
@@ -276,6 +282,7 @@ final class ExploreViewModel: ObservableObject {
             }
             await refreshFounderForCurrentDesk()
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             exploreVMLog.error("viewAgain failed: \(error.localizedDescription, privacy: .public)")
             guard req == loadRequestID else { return }
             if desks.isEmpty, let cached = CriticalDataCache.loadExploreDesks(), !cached.isEmpty {
@@ -357,6 +364,7 @@ final class ExploreViewModel: ObservableObject {
             guard req == founderRequestID else { return }
             currentFounder = profile
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             guard req == founderRequestID else { return }
             exploreVMLog.error("refreshFounder failed: \(error.localizedDescription, privacy: .public)")
             currentFounder = nil

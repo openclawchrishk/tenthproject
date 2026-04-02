@@ -457,6 +457,7 @@ struct DeskHubView: View {
             myDesks = try await d
             applications = try await a
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             let msg = APIErrorMessages.userFacingMessage(for: error)
             errorText = msg
             if !myDesks.isEmpty || !applications.isEmpty {

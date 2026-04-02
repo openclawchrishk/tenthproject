@@ -10,7 +10,7 @@ struct DeskGroupChatView: View {
     @State private var isLoading = true
     @State private var errorText: String?
     @State private var canAccess = false
-    @State private var realtimeTask: Task<Void, Never>?
+    @State private var pollTask: Task<Void, Never>?
     @State private var memberToRemove: DeskMember?
     @State private var showReport = false
     @State private var senderCache: [UUID: String] = [:]
@@ -48,6 +48,9 @@ struct DeskGroupChatView: View {
                         }
                     }
                     .padding()
+                }
+                .refreshable {
+                    await refreshMessages()
                 }
                 HStack(spacing: 12) {
                     TextField("群組訊息…", text: $inputText, axis: .vertical)
@@ -90,11 +93,11 @@ struct DeskGroupChatView: View {
         }
         .task {
             await loadAccessAndMessages()
-            startRealtime()
+            startPolling()
         }
         .onDisappear {
-            realtimeTask?.cancel()
-            realtimeTask = nil
+            pollTask?.cancel()
+            pollTask = nil
         }
         .alert("移除成員？", isPresented: Binding(
             get: { memberToRemove != nil },
@@ -175,7 +178,20 @@ struct DeskGroupChatView: View {
             messages = try await msgs
             await loadSenderNames()
         } catch {
+            if DeskerCancellation.isCancellation(error) { return }
             errorText = error.localizedDescription
+        }
+    }
+
+    private func refreshMessages() async {
+        guard canAccess else { return }
+        do {
+            messages = try await chatRepo.fetchMessages(deskId: desk.id)
+            await loadSenderNames()
+        } catch {
+            if !DeskerCancellation.isCancellation(error) {
+                errorText = error.localizedDescription
+            }
         }
     }
 
@@ -206,10 +222,11 @@ struct DeskGroupChatView: View {
         do {
             try await chatRepo.sendMessage(deskId: desk.id, senderId: uid, content: t)
             HapticFeedback.success()
-            messages = try await chatRepo.fetchMessages(deskId: desk.id)
-            await loadSenderNames()
+            await refreshMessages()
         } catch {
-            errorText = error.localizedDescription
+            if !DeskerCancellation.isCancellation(error) {
+                errorText = error.localizedDescription
+            }
             HapticFeedback.error()
         }
     }
@@ -227,12 +244,14 @@ struct DeskGroupChatView: View {
         }
     }
 
-    private func startRealtime() {
-        realtimeTask?.cancel()
-        realtimeTask = chatRepo.subscribeToDeskMessages(deskId: desk.id) {
-            Task { @MainActor in
-                messages = (try? await chatRepo.fetchMessages(deskId: desk.id)) ?? []
-                await loadSenderNames()
+    /// Polls Supabase periodically — no Realtime subscription required.
+    private func startPolling() {
+        pollTask?.cancel()
+        pollTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 25_000_000_000)
+                guard !Task.isCancelled else { break }
+                await refreshMessages()
             }
         }
     }

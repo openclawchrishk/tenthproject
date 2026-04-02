@@ -201,4 +201,18 @@ final class AuthRepository: ObservableObject {
         session = nil
         Task { await ImageCache.shared.removeAll() }
     }
+
+    /// Requires `SUPABASE_DELETE_ACCOUNT_RPC.sql` on the project. Deletes `auth.users` row (cascades public data) then signs out locally.
+    func deleteOwnAccount() async throws {
+        try ensureConfigured()
+        do {
+            try await client.rpc("delete_own_account").execute()
+        } catch {
+            throw RepositoryErrorMapping.map(error, context: "AuthRepository.deleteOwnAccount")
+        }
+        currentUser = nil
+        session = nil
+        Task { await ImageCache.shared.removeAll() }
+        try? await client.auth.signOut()
+    }
 }

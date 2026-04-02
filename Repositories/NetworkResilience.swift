@@ -1,5 +1,16 @@
 import Foundation
 
+/// SwiftUI `.refreshable` / task cancellation — do not treat as failures.
+enum DeskerCancellation {
+    static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain, ns.code == NSURLErrorCancelled { return true }
+        if let u = error as? URLError, u.code == .cancelled { return true }
+        return false
+    }
+}
+
 /// Network resilience helpers for retry logic with exponential backoff
 enum NetworkResilience {
     /// Maximum number of retry attempts
@@ -28,7 +39,8 @@ enum NetworkResilience {
                 return try await operation()
             } catch {
                 lastError = error
-                
+                if DeskerCancellation.isCancellation(error) { throw error }
+
                 // Don't retry on last attempt
                 if attempt < maxAttempts {
                     // Check if error is retryable (network-related)

@@ -5,22 +5,29 @@ struct AppHeaderView: View {
     var subtitle: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.title2.bold())
-                .foregroundStyle(AppColor.textPrimary)
-                .tracking(-0.3)
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [AppColor.textPrimary, AppColor.textPrimary.opacity(0.88)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .tracking(-0.8)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineSpacing(2)
                     .lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 22)
+        .padding(.top, 8)
+        .padding(.bottom, 18)
         .background {
             AppColor.headerGradient
         }

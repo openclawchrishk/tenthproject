@@ -19,6 +19,7 @@ let package = Package(
                 "Package.swift", "App", ".git", "Resources/Assets.xcassets",
                 "README.md", "project.yml",
                 "SUPPLEMENTAL_SCHEMA.sql", "SUPABASE_SCHEMA.sql", "FRESH_START.sql",
+                "SUPABASE_EXPLORE_DESKS_RLS.sql", "SUPABASE_DELETE_ACCOUNT_RPC.sql", "QUICK_FIX_AUTH_TRIGGER.sql",
             ],
             sources: ["Models", "Repositories", "Resources", "Services", "ViewModels", "Views"]
         ),

@@ -11,6 +11,9 @@ struct ExploreView: View {
     @State private var showShareSheet = false
     @State private var shareItems: [Any] = []
     @State private var searchDebounceTask: Task<Void, Never>?
+    /// Shuffled copy of `filteredDesks` for the Tinder-style deck.
+    @State private var exploreDeskDeck: [Desk] = []
+    @State private var exploreDeskListMode = false
 
     private let connectionsRepo = ConnectionRepository()
     private let usersRepo = UserRepository()
@@ -72,6 +75,7 @@ struct ExploreView: View {
             }
             .task {
                 await reloadExploreAndInviteState()
+                reshuffleExploreDeskDeck()
             }
             .onChange(of: viewModel.searchText) { _, _ in
                 searchDebounceTask?.cancel()
@@ -80,11 +84,13 @@ struct ExploreView: View {
                     guard !Task.isCancelled else { return }
                     await MainActor.run {
                         viewModel.applyFiltersReselectingIfNeeded()
+                        reshuffleExploreDeskDeck()
                     }
                 }
             }
             .onChange(of: viewModel.selectedFilterChip) { _, _ in
                 viewModel.applyFiltersReselectingIfNeeded()
+                reshuffleExploreDeskDeck()
             }
             .onChange(of: viewModel.errorMessage) { _, new in
                 if let new, !viewModel.desks.isEmpty, !viewModel.filteredDesks.isEmpty {
@@ -140,7 +146,14 @@ struct ExploreView: View {
                     desk: nil
                 )
             }
+            .navigationDestination(for: UUID.self) { deskId in
+                DeskDetailView(deskId: deskId)
+            }
         }
+    }
+
+    private func reshuffleExploreDeskDeck() {
+        exploreDeskDeck = viewModel.filteredDesks.shuffled()
     }
 
     private var browseTabPicker: some View {
@@ -175,30 +188,46 @@ struct ExploreView: View {
             exploreEmpty
                 .padding(.horizontal, CardChrome.padding)
         } else {
-            ForEach(viewModel.pagedFilteredDesks) { desk in
-                NavigationLink {
-                    DeskDetailView(deskId: desk.id)
-                } label: {
-                    ExploreDeskBrowseCard(desk: desk)
+            VStack(alignment: .leading, spacing: 14) {
+                Picker("Desk 顯示方式", selection: $exploreDeskListMode) {
+                    Text("卡片滑卡").tag(false)
+                    Text("列表").tag(true)
                 }
-                .buttonStyle(DeskerCardPressStyle())
-            }
-            .padding(.horizontal, CardChrome.padding)
-            if viewModel.canLoadMoreDesks {
-                Button {
-                    HapticFeedback.light()
-                    viewModel.loadMoreDesks()
-                } label: {
-                    Text("載入更多")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(AppColor.surfaceElevated)
-                        .foregroundStyle(AppColor.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-                }
-                .buttonStyle(.plain)
+                .pickerStyle(.segmented)
                 .padding(.horizontal, CardChrome.padding)
+
+                if exploreDeskListMode {
+                    ForEach(viewModel.pagedFilteredDesks) { desk in
+                        NavigationLink(value: desk.id) {
+                            ExploreDeskBrowseCard(desk: desk)
+                        }
+                        .buttonStyle(DeskerCardPressStyle())
+                    }
+                    .padding(.horizontal, CardChrome.padding)
+                    if viewModel.canLoadMoreDesks {
+                        Button {
+                            HapticFeedback.light()
+                            viewModel.loadMoreDesks()
+                        } label: {
+                            Text("載入更多")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppColor.surfaceElevated)
+                                .foregroundStyle(AppColor.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, CardChrome.padding)
+                    }
+                } else {
+                    ExploreDeskSwipeDeckView(
+                        stack: $exploreDeskDeck,
+                        founderNames: viewModel.founderDisplayNameByFounderId,
+                        onNeedMoreCards: { reshuffleExploreDeskDeck() }
+                    )
+                    .padding(.horizontal, CardChrome.padding)
+                }
             }
         }
     }
@@ -207,47 +236,62 @@ struct ExploreView: View {
     private var usersBrowseSection: some View {
         let users = viewModel.pagedBrowseUsers(exceptUserId: auth.currentUser?.id)
         let allFiltered = viewModel.filteredBrowseUsers(exceptUserId: auth.currentUser?.id)
-        if allFiltered.isEmpty {
-            Group {
-                if viewModel.browseUsers.isEmpty {
-                    exploreUsersEmpty
-                } else {
-                    exploreUsersFilteredEmpty
+        VStack(alignment: .leading, spacing: 12) {
+            if let uErr = viewModel.browseUsersError {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColor.warning)
+                    Text(uErr)
+                        .font(.caption)
+                        .foregroundStyle(AppColor.textSecondary)
                 }
-            }
-            .padding(.horizontal, CardChrome.padding)
-        } else {
-            ForEach(users) { user in
-                ExploreUserBrowseCard(
-                    user: user,
-                    connectBusy: inviteInFlightUserId == user.id,
-                    onProfile: {
-                        profileSheetUser = user
-                        HapticFeedback.light()
-                    },
-                    onConnect: {
-                        Task { await connectFromDirectory(user) }
-                    }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous)
+                        .fill(AppColor.warning.opacity(0.12))
                 )
             }
-            .padding(.horizontal, CardChrome.padding)
-            if viewModel.canLoadMoreUsers(exceptUserId: auth.currentUser?.id) {
-                Button {
-                    HapticFeedback.light()
-                    viewModel.loadMoreUsers()
-                } label: {
-                    Text("載入更多")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(AppColor.surfaceElevated)
-                        .foregroundStyle(AppColor.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+            if allFiltered.isEmpty {
+                Group {
+                    if viewModel.browseUsers.isEmpty {
+                        exploreUsersEmpty
+                    } else {
+                        exploreUsersFilteredEmpty
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, CardChrome.padding)
+            } else {
+                ForEach(users) { user in
+                    ExploreUserBrowseCard(
+                        user: user,
+                        connectBusy: inviteInFlightUserId == user.id,
+                        onProfile: {
+                            profileSheetUser = user
+                            HapticFeedback.light()
+                        },
+                        onConnect: {
+                            Task { await connectFromDirectory(user) }
+                        }
+                    )
+                }
+                if viewModel.canLoadMoreUsers(exceptUserId: auth.currentUser?.id) {
+                    Button {
+                        HapticFeedback.light()
+                        viewModel.loadMoreUsers()
+                    } label: {
+                        Text("載入更多")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppColor.surfaceElevated)
+                            .foregroundStyle(AppColor.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
+        .padding(.horizontal, CardChrome.padding)
     }
 
     private func connectFromDirectory(_ user: UserProfile) async {
@@ -582,6 +626,212 @@ private struct ExplorePublicProfileSheet: View {
                     .font(.title.weight(.bold))
                     .foregroundStyle(.white)
             }
+    }
+}
+
+// MARK: - Desk swipe deck (Tinder-style)
+
+private struct ExploreDeskSwipeDeckView: View {
+    @Binding var stack: [Desk]
+    let founderNames: [UUID: String]
+    let onNeedMoreCards: () -> Void
+
+    @State private var dragOffset: CGSize = .zero
+    @State private var dragRotation: Double = 0
+
+    var body: some View {
+        if stack.isEmpty {
+            VStack(spacing: 16) {
+                Image(systemName: "rectangle.stack.fill.badge.person.crop")
+                    .font(.system(size: 44))
+                    .foregroundStyle(AppColor.secondary)
+                    .symbolRenderingMode(.hierarchical)
+                Text("這批 Desk 已看完")
+                    .font(.headline)
+                    .foregroundStyle(AppColor.textPrimary)
+                Text("向左或向右滑可略過；或重新洗牌繼續探索。")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                Button {
+                    HapticFeedback.medium()
+                    onNeedMoreCards()
+                } label: {
+                    Text("重新洗牌")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColor.brandGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(DeskerButtonPressStyle())
+            }
+            .padding(.vertical, 28)
+        } else {
+            VStack(spacing: 16) {
+                ZStack {
+                    ForEach(Array(stack.prefix(3).enumerated()), id: \.element.id) { index, desk in
+                        swipeCard(desk: desk, isTop: index == 0, depth: index)
+                    }
+                }
+                .frame(height: 400)
+
+                if let top = stack.first {
+                    HStack(spacing: 12) {
+                        Button {
+                            skipTop()
+                        } label: {
+                            Label("略過", systemImage: "xmark")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppColor.surfaceElevated)
+                                .foregroundStyle(AppColor.error)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink(value: top.id) {
+                            Label("查看 Desk", systemImage: "arrow.right.circle.fill")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(AppColor.brandGradient)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Text("左右滑動略過 · 底部可開詳情")
+                    .font(.caption)
+                    .foregroundStyle(AppColor.textTertiary)
+            }
+        }
+    }
+
+    private func founderLine(for desk: Desk) -> String {
+        let n = founderNames[desk.founderId]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return n.isEmpty ? "創辦人" : n
+    }
+
+    private func swipeCard(desk: Desk, isTop: Bool, depth: Int) -> some View {
+        let lift = CGFloat(depth) * 10
+        let scale = 1.0 - Double(depth) * 0.045
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(desk.name)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+                Spacer()
+                deskStatusPill(desk.status)
+            }
+            Text(founderLine(for: desk))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppColor.gold)
+            Text(desk.pitch)
+                .font(.body)
+                .foregroundStyle(AppColor.textSecondary)
+                .lineLimit(5)
+                .lineSpacing(3)
+            if !desk.industryTags.isEmpty {
+                Text(desk.industryTags.joined(separator: " · "))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppColor.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            HStack {
+                Label("\(desk.currentMemberCount) / \(desk.memberLimit) 人", systemImage: "person.2.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+                Spacer()
+            }
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background {
+            RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .background(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    AppColor.cardBackground.opacity(0.95),
+                                    AppColor.primary.opacity(0.08),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.5), AppColor.gold.opacity(0.35)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.2
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.12), radius: 20, x: 0, y: 10)
+        }
+        .offset(y: lift)
+        .scaleEffect(scale)
+        .offset(x: isTop ? dragOffset.width : 0, y: isTop ? dragOffset.height * 0.15 : 0)
+        .rotationEffect(.degrees(isTop ? dragRotation : 0))
+        .zIndex(Double(100 - depth))
+        .animation(.interactiveSpring(response: 0.32, dampingFraction: 0.78), value: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { v in
+                    guard isTop else { return }
+                    dragOffset = v.translation
+                    dragRotation = Double(v.translation.width / 18)
+                }
+                .onEnded { v in
+                    guard isTop else { return }
+                    if abs(v.translation.width) > 90 || abs(v.predictedEndTranslation.width) > 200 {
+                        skipTop()
+                    }
+                    dragOffset = .zero
+                    dragRotation = 0
+                }
+        )
+    }
+
+    private func deskStatusPill(_ status: DeskStatus) -> some View {
+        let (t, c): (String, Color) = {
+            switch status {
+            case .recruiting: return ("招募中", AppColor.secondary)
+            case .full: return ("已滿", AppColor.warning)
+            case .archived: return ("已歸檔", AppColor.textSecondary)
+            }
+        }()
+        return Text(t)
+            .font(.caption.bold())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(c.opacity(0.2))
+            .foregroundStyle(c)
+            .clipShape(Capsule())
+    }
+
+    private func skipTop() {
+        guard !stack.isEmpty else { return }
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+            stack.removeFirst()
+        }
+        HapticFeedback.light()
+        if stack.isEmpty {
+            onNeedMoreCards()
+        }
     }
 }
 
