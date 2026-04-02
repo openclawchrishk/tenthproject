@@ -5,6 +5,12 @@ import Supabase
 final class UserRepository {
     private let client = SupabaseManager.shared.client
 
+    /// Matches `QUICK_FIX_AUTH_TRIGGER.sql` / signup trigger: `user_` + first 8 chars of `id::text` (required NOT NULL `users.username`).
+    static func defaultUsername(for userId: UUID) -> String {
+        let prefix = String(userId.uuidString.prefix(8)).lowercased()
+        return "user_\(prefix)"
+    }
+
     func fetchUser(id: UUID) async throws -> UserProfile {
         do {
             return try await NetworkResilience.withRetry {
@@ -113,7 +119,14 @@ final class UserRepository {
         if let bio = user.bio, !ProfileFieldValidation.isValidBioLength(bio) {
             throw RepositoryError.serverError("簡介最多 \(ProfileFieldValidation.bioMaxLength) 字")
         }
-        let payload = UserUpsertPayload(from: user)
+        var userToUpsert = user
+        let trimmedHandle = userToUpsert.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmedHandle.isEmpty {
+            userToUpsert.username = Self.defaultUsername(for: user.id)
+        } else {
+            userToUpsert.username = trimmedHandle.lowercased()
+        }
+        let payload = UserUpsertPayload(from: userToUpsert)
         do {
             try await client
                 .from("users")
