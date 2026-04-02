@@ -87,6 +87,7 @@ struct ProfileView: View {
                         }
                         .tint(AppColor.primary)
                         .scrollContentBackground(.hidden)
+                        .padding(.bottom, 96)
                         .onChange(of: scrollToSection) { _, id in
                             guard let id else { return }
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
@@ -108,7 +109,7 @@ struct ProfileView: View {
                                 Color.black.opacity(0.3)
                                     .ignoresSafeArea()
                                 ProgressView()
-                                    .tint(AppColor.gold)
+                                    .tint(AppColor.primary)
                             }
                         }
                     }
@@ -120,6 +121,29 @@ struct ProfileView: View {
             .background(AppColor.background.ignoresSafeArea())
             .deskerInlineNavigationTitle()
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if auth.currentUser != nil {
+                        Menu {
+                            Button {
+                                Task { await logoutTapped() }
+                            } label: {
+                                Label("登出", systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                            .disabled(accountActionBusy)
+                            Button(role: .destructive) {
+                                showDeleteAccountConfirm = true
+                            } label: {
+                                Label("刪除帳戶", systemImage: "trash")
+                            }
+                            .disabled(accountActionBusy)
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(AppColor.primary)
+                        }
+                        .accessibilityLabel("帳戶選項")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     if auth.currentUser != nil {
                         if isEditingProfile {

@@ -17,7 +17,7 @@ enum TabBarAppearanceConfigurator {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(AppColor.tabBarBackground)
-        appearance.shadowColor = UIColor(AppColor.gold.opacity(0.28))
+        appearance.shadowColor = UIColor(AppColor.primary.opacity(0.08))
 
         let itemAppearance = UITabBarItemAppearance()
         itemAppearance.normal.iconColor = UIColor(AppColor.tabBarUnselected)

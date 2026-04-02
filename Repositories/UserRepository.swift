@@ -90,7 +90,7 @@ final class UserRepository {
             .replacingOccurrences(of: "_", with: "\\_")
         let pattern = "%\(escaped)%"
         do {
-            let filter = "display_name.ilike.\(pattern),username.ilike.\(pattern)"
+            let filter = "display_name.ilike.\(pattern),username.ilike.\(pattern),bio_short.ilike.\(pattern)"
             return try await client
                 .from("users")
                 .select()

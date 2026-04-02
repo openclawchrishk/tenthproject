@@ -301,7 +301,7 @@ struct MainTabView: View {
                 DeskHubView()
                     .environmentObject(tabRouter)
                     .tabItem {
-                        Label("Desk", systemImage: "briefcase.fill")
+                        Label("專案", systemImage: "briefcase.fill")
                     }
                     .tag(1)
 

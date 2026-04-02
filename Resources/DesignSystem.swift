@@ -7,46 +7,46 @@ import UIKit
 import AppKit
 #endif
 
-// MARK: - App colors (premium indigo / gold)
+// MARK: - App colors (LinkedIn / Tinder–inspired: professional blue, clean neutrals, coral accent)
 
-/// Brand and surface colors — rich indigo, royal purple, champagne gold.
+/// Primary surfaces: LinkedIn-style cool gray canvas, crisp cards, blue trust + coral energy for CTAs.
 enum AppColor {
-    /// Rich deep indigo — main brand.
-    static let primary = Color(hex: "1E2642")
-    /// Royal purple — CTAs, links.
-    static let secondary = Color(hex: "4A3AFF")
-    /// Warm champagne gold — premium accents, badges, highlights.
-    static let gold = Color(hex: "D4AF37")
-    /// Platinum — premium chrome and highlights.
-    static let platinum = Color(hex: "E5E4E2")
-    /// Soft teal — secondary accents.
-    static let teal = Color(hex: "7ECBC0")
+    /// Professional blue — primary actions, links (LinkedIn #0A66C2 family).
+    static let primary = Color(hex: "0A66C2")
+    /// Coral accent — highlights, secondary CTAs (Tinder-style energy without heavy red).
+    static let secondary = Color(hex: "E11D48")
+    /// Refined gold — badges, verification only.
+    static let gold = Color(hex: "B45309")
+    /// Platinum — chrome.
+    static let platinum = Color(hex: "E5E7EB")
+    /// Teal — success-adjacent accents.
+    static let teal = Color(hex: "0D9488")
 
     #if os(iOS)
-    /// Warm off-white canvas.
-    static let background = Color(hex: "F8F6F3")
+    /// App canvas — warm gray (AngelList / LinkedIn feed tone).
+    static let background = Color(hex: "F3F2EF")
     static let cardBackground = Color.white
-    static var surfaceElevated: Color { Color(hex: "EEEDEA") }
-    static let textPrimary = Color(hex: "1A1A2E")
-    static let textSecondary = Color(hex: "5C5C6E")
-    static let textTertiary = Color(hex: "9898A6")
+    static var surfaceElevated: Color { Color(hex: "E8E6E1") }
+    static let textPrimary = Color(hex: "191919")
+    static let textSecondary = Color(hex: "666666")
+    static let textTertiary = Color(hex: "8A8A8A")
     /// Grouped list chips / bubbles.
     static var secondaryGroupedSurface: Color { Color(uiColor: .secondarySystemFill) }
     #elseif os(macOS)
-    static let background = Color(hex: "F8F6F3")
+    static let background = Color(hex: "F3F2EF")
     static let cardBackground = Color.white
-    static var surfaceElevated: Color { Color(hex: "EEEDEA") }
-    static let textPrimary = Color(hex: "1A1A2E")
-    static let textSecondary = Color(hex: "5C5C6E")
-    static let textTertiary = Color(hex: "9898A6")
+    static var surfaceElevated: Color { Color(hex: "E8E6E1") }
+    static let textPrimary = Color(hex: "191919")
+    static let textSecondary = Color(hex: "666666")
+    static let textTertiary = Color(hex: "8A8A8A")
     static var secondaryGroupedSurface: Color { Color(nsColor: .controlBackgroundColor) }
     #else
-    static let background = Color(hex: "F8F6F3")
+    static let background = Color(hex: "F3F2EF")
     static let cardBackground = Color.white
-    static let surfaceElevated = Color(hex: "EEEDEA")
-    static let textPrimary = Color(hex: "1A1A2E")
-    static let textSecondary = Color(hex: "5C5C6E")
-    static let textTertiary = Color(hex: "9898A6")
+    static let surfaceElevated = Color(hex: "E8E6E1")
+    static let textPrimary = Color(hex: "191919")
+    static let textSecondary = Color(hex: "666666")
+    static let textTertiary = Color(hex: "8A8A8A")
     static let secondaryGroupedSurface = surfaceElevated
     #endif
 
@@ -54,12 +54,10 @@ enum AppColor {
     static let success = Color(hex: "059669")
     static let warning = Color(hex: "D97706")
 
-    /// Rich dark navy tab bar.
-    static let tabBarBackground = Color(hex: "14172A")
-    /// Tab bar — selected icon/label (white on dark bar).
-    static let tabBarSelected = Color.white
-    /// Tab bar — unselected (#6B7280).
-    static let tabBarUnselected = Color(hex: "6B7280")
+    /// Light tab bar — LinkedIn-style.
+    static let tabBarBackground = Color.white
+    static let tabBarSelected = Color(hex: "0A66C2")
+    static let tabBarUnselected = Color(hex: "666666")
 
     /// Primary brand label color (use instead of `Color.primary`).
     static let labelPrimary = textPrimary
@@ -73,7 +71,7 @@ enum AppColor {
     static let expertBadge = teal
 
     static let brandGradient = LinearGradient(
-        colors: [Color(hex: "1E2642"), Color(hex: "4A3AFF")],
+        colors: [Color(hex: "0A66C2"), Color(hex: "004182")],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -91,15 +89,15 @@ enum AppColor {
 
     static var headerGradient: LinearGradient {
         LinearGradient(
-            colors: [AppColor.background, AppColor.surfaceElevated],
+            colors: [Color.white, AppColor.background],
             startPoint: .top,
             endPoint: .bottom
         )
     }
 
-    /// Gold shimmer for premium CTAs and headline accents.
+    /// Coral → blue for standout buttons (Tinder × LinkedIn blend).
     static let goldAccentGradient = LinearGradient(
-        colors: [Color(hex: "D4AF37"), Color(hex: "F4E4BA"), Color(hex: "D4AF37")],
+        colors: [Color(hex: "E11D48"), Color(hex: "0A66C2")],
         startPoint: .leading,
         endPoint: .trailing
     )

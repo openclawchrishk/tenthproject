@@ -13,7 +13,6 @@ struct ExploreView: View {
     @State private var searchDebounceTask: Task<Void, Never>?
     /// Shuffled copy of `filteredDesks` for the Tinder-style deck.
     @State private var exploreDeskDeck: [Desk] = []
-    @State private var exploreDeskListMode = false
 
     private let connectionsRepo = ConnectionRepository()
     private let usersRepo = UserRepository()
@@ -23,7 +22,7 @@ struct ExploreView: View {
             VStack(spacing: 0) {
                 AppHeaderView(
                     title: "探索",
-                    subtitle: "發現新的創業 Desk 與機會"
+                    subtitle: "發現創業專案與合作對象"
                 )
 
                 searchAndFilters
@@ -69,7 +68,7 @@ struct ExploreView: View {
                         Color.black.opacity(0.3)
                             .ignoresSafeArea()
                         ProgressView()
-                            .tint(AppColor.gold)
+                            .tint(AppColor.primary)
                     }
                 }
             }
@@ -85,6 +84,9 @@ struct ExploreView: View {
                     await MainActor.run {
                         viewModel.applyFiltersReselectingIfNeeded()
                         reshuffleExploreDeskDeck()
+                        if viewModel.browseTab == .users {
+                            Task { await viewModel.loadBrowseUsers() }
+                        }
                     }
                 }
             }
@@ -94,7 +96,7 @@ struct ExploreView: View {
             }
             .onChange(of: viewModel.errorMessage) { _, new in
                 if let new, !viewModel.desks.isEmpty, !viewModel.filteredDesks.isEmpty {
-                    toast.show(.info, "無法更新列表：\(new)")
+                    toast.show(.info, "無法更新資料：\(new)")
                 }
             }
             .onDisappear {
@@ -112,7 +114,7 @@ struct ExploreView: View {
             }
             .onChange(of: viewModel.browseTab) { _, tab in
                 viewModel.resetListPagination()
-                if tab == .users, viewModel.browseUsers.isEmpty {
+                if tab == .users {
                     Task { await viewModel.loadBrowseUsers() }
                 }
             }
@@ -188,47 +190,12 @@ struct ExploreView: View {
             exploreEmpty
                 .padding(.horizontal, CardChrome.padding)
         } else {
-            VStack(alignment: .leading, spacing: 14) {
-                Picker("Desk 顯示方式", selection: $exploreDeskListMode) {
-                    Text("卡片滑卡").tag(false)
-                    Text("列表").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, CardChrome.padding)
-
-                if exploreDeskListMode {
-                    ForEach(viewModel.pagedFilteredDesks) { desk in
-                        NavigationLink(value: desk.id) {
-                            ExploreDeskBrowseCard(desk: desk)
-                        }
-                        .buttonStyle(DeskerCardPressStyle())
-                    }
-                    .padding(.horizontal, CardChrome.padding)
-                    if viewModel.canLoadMoreDesks {
-                        Button {
-                            HapticFeedback.light()
-                            viewModel.loadMoreDesks()
-                        } label: {
-                            Text("載入更多")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(AppColor.surfaceElevated)
-                                .foregroundStyle(AppColor.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, CardChrome.padding)
-                    }
-                } else {
-                    ExploreDeskSwipeDeckView(
-                        stack: $exploreDeskDeck,
-                        founderNames: viewModel.founderDisplayNameByFounderId,
-                        onNeedMoreCards: { reshuffleExploreDeskDeck() }
-                    )
-                    .padding(.horizontal, CardChrome.padding)
-                }
-            }
+            ExploreDeskSwipeDeckView(
+                stack: $exploreDeskDeck,
+                founderNames: viewModel.founderDisplayNameByFounderId,
+                onNeedMoreCards: { reshuffleExploreDeskDeck() }
+            )
+            .padding(.horizontal, CardChrome.padding)
         }
     }
 
@@ -297,28 +264,28 @@ struct ExploreView: View {
     private func connectFromDirectory(_ user: UserProfile) async {
         HapticFeedback.medium()
         guard let uid = auth.currentUser?.id else {
-            toast.show(.error, "請先登入")
+            toast.show(.error, "請先登入帳戶")
             return
         }
         if user.id == uid {
-            toast.show(.info, "呢個係你本人")
+            toast.show(.info, "此為您本人之資料")
             return
         }
         inviteInFlightUserId = user.id
         defer { inviteInFlightUserId = nil }
         do {
             if try await connectionsRepo.areConnected(uid, user.id) {
-                toast.show(.info, "你們已連接")
+                toast.show(.info, "雙方已建立連接")
                 HapticFeedback.success()
                 return
             }
             if try await connectionsRepo.outgoingPendingConnectionInvite(from: uid, to: user.id) != nil {
-                toast.show(.info, "連接邀請待對方回覆")
+                toast.show(.info, "連接邀請已送出，待對方回覆")
                 HapticFeedback.success()
                 return
             }
             try await connectionsRepo.sendConnectionInvite(from: uid, to: user.id, message: nil)
-            toast.show(.success, "連接邀請已送出")
+            toast.show(.success, "已成功送出連接邀請")
             HapticFeedback.success()
         } catch {
             toast.show(.error, APIErrorMessages.userFacingMessage(for: error))
@@ -331,10 +298,10 @@ struct ExploreView: View {
             Image(systemName: "person.3")
                 .font(.system(size: 48))
                 .foregroundStyle(AppColor.secondary)
-            Text("暫時沒有創業者")
+            Text("目前尚無使用者資料")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("成為第一個創業者")
+            Text("請確認網路連線，或於註冊後返回此處瀏覽。")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -344,7 +311,7 @@ struct ExploreView: View {
                     tabRouter.selectedTab = 3
                 }
             } label: {
-                Text("前往「我的」完善資料")
+                Text("前往個人資料")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -364,10 +331,10 @@ struct ExploreView: View {
             Image(systemName: "person.3")
                 .font(.system(size: 44))
                 .foregroundStyle(AppColor.secondary)
-            Text("沒有符合的用戶")
+            Text("沒有符合條件之使用者")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
-            Text("試試其他關鍵字或篩選條件。")
+            Text("請嘗試其他關鍵字或篩選條件。")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -391,8 +358,8 @@ struct ExploreView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(AppColor.gold.opacity(0.9))
-                TextField("搜尋創業者或Desk", text: $viewModel.searchText)
+                    .foregroundStyle(AppColor.primary.opacity(0.85))
+                TextField("搜尋使用者、專案或關鍵字", text: $viewModel.searchText)
                     .font(.body)
                     .foregroundStyle(AppColor.textPrimary)
                     .deskerTextFieldNoAutocaps()
@@ -410,7 +377,7 @@ struct ExploreView: View {
                         RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                             .stroke(
                                 LinearGradient(
-                                    colors: [Color.white.opacity(0.65), AppColor.gold.opacity(0.22)],
+                                    colors: [Color.white.opacity(0.65), AppColor.primary.opacity(0.18)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
@@ -441,9 +408,9 @@ struct ExploreView: View {
                                 .foregroundStyle(on ? Color.white : AppColor.primary)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusChip, style: .continuous)
-                                        .stroke(on ? AppColor.gold.opacity(0.45) : Color.clear, lineWidth: 1)
+                                        .stroke(on ? AppColor.primary.opacity(0.35) : Color.clear, lineWidth: 1)
                                 )
-                                .shadow(color: on ? AppColor.gold.opacity(0.22) : Color.clear, radius: 8, x: 0, y: 2)
+                                .shadow(color: on ? AppColor.primary.opacity(0.15) : Color.clear, radius: 8, x: 0, y: 2)
                                 .scaleEffect(on ? 1.04 : 1)
                                 .animation(.spring(response: 0.32, dampingFraction: 0.72), value: on)
                         }
@@ -464,11 +431,11 @@ struct ExploreView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(AppColor.secondary)
                 .symbolRenderingMode(.hierarchical)
-            Text(noDesksAtAll ? "暫時沒有創業者" : "暫時沒有Desk")
+            Text(noDesksAtAll ? "目前尚無可顯示之專案" : "目前沒有符合條件之專案")
                 .font(.headline)
                 .foregroundStyle(AppColor.textPrimary)
                 .multilineTextAlignment(.center)
-            Text(noDesksAtAll ? "成為第一個創業者" : "調整上方篩選或搜尋，或稍後再試。")
+            Text(noDesksAtAll ? "請先建立或完善個人資料，以便他人找到您。" : "請調整上方篩選條件或搜尋關鍵字，或稍後再試。")
                 .font(.subheadline)
                 .foregroundStyle(AppColor.textSecondary)
                 .multilineTextAlignment(.center)
@@ -482,7 +449,7 @@ struct ExploreView: View {
                             tabRouter.selectedTab = 3
                         }
                     } label: {
-                        Text("前往「我的」完善資料")
+                        Text("前往個人資料以完善資訊")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -498,7 +465,7 @@ struct ExploreView: View {
                         viewModel.searchText = ""
                         viewModel.applyFiltersReselectingIfNeeded()
                     } label: {
-                        Text("重設篩選")
+                        Text("重設篩選條件")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -644,12 +611,12 @@ private struct ExploreDeskSwipeDeckView: View {
             VStack(spacing: 16) {
                 Image(systemName: "rectangle.stack.fill.badge.person.crop")
                     .font(.system(size: 44))
-                    .foregroundStyle(AppColor.secondary)
+                    .foregroundStyle(AppColor.primary)
                     .symbolRenderingMode(.hierarchical)
-                Text("這批 Desk 已看完")
+                Text("已瀏覽本輪專案")
                     .font(.headline)
                     .foregroundStyle(AppColor.textPrimary)
-                Text("向左或向右滑可略過；或重新洗牌繼續探索。")
+                Text("向左或向右滑動可跳過卡片；您亦可重新載入以繼續瀏覽。")
                     .font(.subheadline)
                     .foregroundStyle(AppColor.textSecondary)
                     .multilineTextAlignment(.center)
@@ -657,7 +624,7 @@ private struct ExploreDeskSwipeDeckView: View {
                     HapticFeedback.medium()
                     onNeedMoreCards()
                 } label: {
-                    Text("重新洗牌")
+                    Text("重新載入專案")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -682,18 +649,18 @@ private struct ExploreDeskSwipeDeckView: View {
                         Button {
                             skipTop()
                         } label: {
-                            Label("略過", systemImage: "xmark")
+                            Label("跳過", systemImage: "xmark")
                                 .font(.headline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(AppColor.surfaceElevated)
-                                .foregroundStyle(AppColor.error)
+                                .foregroundStyle(AppColor.textSecondary)
                                 .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
                         }
                         .buttonStyle(.plain)
 
                         NavigationLink(value: top.id) {
-                            Label("查看 Desk", systemImage: "arrow.right.circle.fill")
+                            Label("查看專案詳情", systemImage: "arrow.right.circle.fill")
                                 .font(.headline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -705,7 +672,7 @@ private struct ExploreDeskSwipeDeckView: View {
                     }
                 }
 
-                Text("左右滑動略過 · 底部可開詳情")
+                Text("左右滑動以跳過；下方按鈕可開啟專案詳情")
                     .font(.caption)
                     .foregroundStyle(AppColor.textTertiary)
             }
@@ -714,7 +681,7 @@ private struct ExploreDeskSwipeDeckView: View {
 
     private func founderLine(for desk: Desk) -> String {
         let n = founderNames[desk.founderId]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return n.isEmpty ? "創辦人" : n
+        return n.isEmpty ? "發起人" : n
     }
 
     private func swipeCard(desk: Desk, isTop: Bool, depth: Int) -> some View {
@@ -731,7 +698,7 @@ private struct ExploreDeskSwipeDeckView: View {
             }
             Text(founderLine(for: desk))
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.gold)
+                .foregroundStyle(AppColor.primary)
             Text(desk.pitch)
                 .font(.body)
                 .foregroundStyle(AppColor.textSecondary)
@@ -773,7 +740,7 @@ private struct ExploreDeskSwipeDeckView: View {
                     RoundedRectangle(cornerRadius: CardChrome.cornerRadiusLarge, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.5), AppColor.gold.opacity(0.35)],
+                                colors: [Color.white.opacity(0.55), AppColor.primary.opacity(0.22)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),

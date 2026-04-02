@@ -17,8 +17,8 @@ private let exploreVMLog = Logger(subsystem: "hk.desker", category: "Explore")
 
 /// Main Explore screen: browse **用戶** vs **Desk** lists (search applies to both).
 enum ExploreBrowseTab: String, CaseIterable {
-    case users = "用戶"
-    case desks = "Desk"
+    case users = "使用者"
+    case desks = "專案"
 }
 
 @MainActor
@@ -138,10 +138,17 @@ final class ExploreViewModel: ObservableObject {
         userListDisplayLimit = 20
     }
 
+    /// Loads the user directory. When the search field is non-empty, queries the server (`ilike` on name / username) so results are not limited to the first 200 rows.
     func loadBrowseUsers() async {
         browseUsersError = nil
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            browseUsers = try await users.fetchUsers(limit: 200)
+            if q.isEmpty {
+                browseUsers = try await users.fetchUsers(limit: 200)
+            } else {
+                let found = try await users.searchUsers(query: q, limit: 120)
+                browseUsers = found
+            }
         } catch {
             if DeskerCancellation.isCancellation(error) { return }
             browseUsers = []
