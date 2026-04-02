@@ -65,7 +65,7 @@ struct MyConnectionsView: View {
                     connectedListSection
                 }
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, CardChrome.mainTabBarContentInset + 24)
         }
         .background(AppColor.background.ignoresSafeArea())
         .task { await load() }

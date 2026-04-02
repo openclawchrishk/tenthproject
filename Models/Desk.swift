@@ -62,11 +62,14 @@ struct Desk: Identifiable, Codable, Equatable {
     var fundingNeeds: String?
     var expectations: String?
     var currentMemberCount: Int
+    /// `desks.member_limit` from Supabase when present (team capacity). Do not confuse with `currentMemberCount`.
+    var serverMemberLimit: Int?
     /// Stored as ISO8601 in Supabase `timestamptz`
     var createdAt: Date?
 
     var memberLimit: Int {
-        max(1, recruitingRoles.reduce(1) { $0 + $1.count })
+        if let m = serverMemberLimit { return max(1, m) }
+        return max(1, recruitingRoles.reduce(1) { $0 + $1.count })
     }
 
     var skillsSummary: String {
@@ -91,6 +94,7 @@ struct Desk: Identifiable, Codable, Equatable {
         case fundingNeeds = "funding_needs"
         case expectations
         case currentMemberCount = "current_member_count"
+        case serverMemberLimit = "member_limit"
         case createdAt = "created_at"
     }
 
@@ -99,7 +103,6 @@ struct Desk: Identifiable, Codable, Equatable {
         case industries
         case languages
         case description
-        case member_limit
     }
 
     init(
@@ -116,6 +119,7 @@ struct Desk: Identifiable, Codable, Equatable {
         fundingNeeds: String? = nil,
         expectations: String? = nil,
         currentMemberCount: Int,
+        serverMemberLimit: Int? = nil,
         createdAt: Date? = nil
     ) {
         self.id = id
@@ -131,6 +135,7 @@ struct Desk: Identifiable, Codable, Equatable {
         self.fundingNeeds = fundingNeeds
         self.expectations = expectations
         self.currentMemberCount = currentMemberCount
+        self.serverMemberLimit = serverMemberLimit
         self.createdAt = createdAt
     }
 
@@ -163,11 +168,12 @@ struct Desk: Identifiable, Codable, Equatable {
         }
         fundingNeeds = try c.decodeIfPresent(String.self, forKey: .fundingNeeds)
         expectations = try c.decodeIfPresent(String.self, forKey: .expectations)
+        serverMemberLimit = try c.decodeIfPresent(Int.self, forKey: .serverMemberLimit)
         if let cm = try c.decodeIfPresent(Int.self, forKey: .currentMemberCount) {
-            currentMemberCount = cm
+            currentMemberCount = max(0, cm)
         } else {
-            let alt = try decoder.container(keyedBy: DeskSQLKeys.self)
-            currentMemberCount = try alt.decodeIfPresent(Int.self, forKey: .member_limit) ?? 1
+            // `current_member_count` may be absent on older DBs — never use `member_limit` as a stand-in for headcount.
+            currentMemberCount = 1
         }
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
     }
@@ -187,6 +193,7 @@ struct Desk: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(fundingNeeds, forKey: .fundingNeeds)
         try c.encodeIfPresent(expectations, forKey: .expectations)
         try c.encode(currentMemberCount, forKey: .currentMemberCount)
+        try c.encodeIfPresent(serverMemberLimit, forKey: .serverMemberLimit)
         try c.encodeIfPresent(createdAt, forKey: .createdAt)
     }
 }

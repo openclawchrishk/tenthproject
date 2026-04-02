@@ -147,6 +147,7 @@ struct ExploreView: View {
                     founder: user,
                     desk: nil
                 )
+                .environmentObject(auth)
             }
             .navigationDestination(for: UUID.self) { deskId in
                 DeskDetailView(deskId: deskId)
@@ -507,6 +508,10 @@ private struct ExplorePublicProfileSheet: View {
     let desk: Desk?
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var auth: AuthRepository
+    @State private var isConnected: Bool?
+
+    private let connectionsRepo = ConnectionRepository()
 
     var body: some View {
         NavigationStack {
@@ -525,28 +530,42 @@ private struct ExplorePublicProfileSheet: View {
                         }
                     }
                     if let bio = founder.bio?.trimmingCharacters(in: .whitespacesAndNewlines), !bio.isEmpty {
-                        Text(bio)
-                            .font(.body)
-                            .foregroundStyle(AppColor.textSecondary)
-                            .lineSpacing(4)
-                            .frame(maxWidth: 560, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("簡介")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                            Text(bio)
+                                .font(.body)
+                                .foregroundStyle(AppColor.textSecondary)
+                                .lineSpacing(4)
+                                .frame(maxWidth: 560, alignment: .leading)
+                        }
                     }
                     if let desk {
-                        NavigationLink {
-                            DeskDetailView(deskId: desk.id)
-                        } label: {
-                            Label("查看 Desk：\(desk.name)", systemImage: "briefcase.fill")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(AppColor.brandGradient)
-                                .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("對方 Desk")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppColor.textTertiary)
+                            NavigationLink {
+                                DeskDetailView(deskId: desk.id)
+                            } label: {
+                                Label("查看 Desk：\(desk.name)", systemImage: "briefcase.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(AppColor.brandGradient)
+                                    .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    }
+                    if let me = auth.currentUser?.id, me != founder.id {
+                        connectionActions
                     }
                 }
                 .padding(CardChrome.padding)
+                .padding(.bottom, CardChrome.mainTabBarContentInset)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(AppColor.background.ignoresSafeArea())
@@ -559,6 +578,57 @@ private struct ExplorePublicProfileSheet: View {
             }
         }
         .deskerSheetSpringContent()
+        .task {
+            await refreshConnectionState()
+        }
+    }
+
+    @ViewBuilder
+    private var connectionActions: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("私訊")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppColor.textTertiary)
+            if isConnected == nil {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(AppColor.primary)
+                    Text("檢查連接狀態…")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.textSecondary)
+                }
+            } else if isConnected == true {
+                NavigationLink {
+                    DMChatView(
+                        peerId: founder.id,
+                        peerDisplayName: founder.displayName.isEmpty ? "聯絡人" : founder.displayName
+                    )
+                } label: {
+                    Label("傳送訊息", systemImage: "bubble.left.and.bubble.right.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColor.brandGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: CardChrome.cornerRadiusMedium, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("尚未連接。請在「探索」向對方發送連接邀請；連接後即可在此開啟私訊，或到「訊息 → 人脈」進入對話。")
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineSpacing(4)
+            }
+        }
+    }
+
+    private func refreshConnectionState() async {
+        guard let me = auth.currentUser?.id, me != founder.id else {
+            await MainActor.run { isConnected = nil }
+            return
+        }
+        let connected = (try? await connectionsRepo.areConnected(me, founder.id)) ?? false
+        await MainActor.run { isConnected = connected }
     }
 
     private var founderAvatar: some View {
@@ -679,9 +749,9 @@ private struct ExploreDeskSwipeDeckView: View {
         }
     }
 
-    private func founderLine(for desk: Desk) -> String {
+    private func founderDisplayName(for desk: Desk) -> String {
         let n = founderNames[desk.founderId]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return n.isEmpty ? "發起人" : n
+        return n.isEmpty ? "—" : n
     }
 
     private func swipeCard(desk: Desk, isTop: Bool, depth: Int) -> some View {
@@ -689,33 +759,56 @@ private struct ExploreDeskSwipeDeckView: View {
         let scale = 1.0 - Double(depth) * 0.045
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(desk.name)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("專案名稱")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text(desk.name)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(AppColor.textPrimary)
+                        .lineLimit(2)
+                }
                 Spacer()
                 deskStatusPill(desk.status)
             }
-            Text(founderLine(for: desk))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppColor.primary)
-            Text(desk.pitch)
-                .font(.body)
-                .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(5)
-                .lineSpacing(3)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("發起人")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Text(founderDisplayName(for: desk))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppColor.primary)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("一句介紹")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Text(desk.pitch)
+                    .font(.body)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(5)
+                    .lineSpacing(3)
+            }
             if !desk.industryTags.isEmpty {
-                Text(desk.industryTags.joined(separator: " · "))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(AppColor.secondary)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("產業標籤")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text(desk.industryTags.joined(separator: " · "))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(AppColor.secondary)
+                        .lineLimit(2)
+                }
             }
             Spacer(minLength: 0)
             HStack {
-                Label("\(desk.currentMemberCount) / \(desk.memberLimit) 人", systemImage: "person.2.fill")
+                Label("目前人數／名額", systemImage: "person.2.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Spacer()
+                Text("\(desk.currentMemberCount) / \(desk.memberLimit) 人")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppColor.primary)
-                Spacer()
             }
         }
         .padding(22)
@@ -813,23 +906,43 @@ private struct ExploreDeskBrowseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(desk.name)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(2)
-            Text(desk.pitch)
-                .font(.subheadline)
-                .foregroundStyle(AppColor.textSecondary)
-                .lineLimit(3)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(industryLine)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppColor.secondary)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("專案名稱")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Text(desk.name)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(AppColor.textPrimary)
+                    .lineLimit(2)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("一句介紹")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Text(desk.pitch)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.textSecondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("產業標籤")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(AppColor.textTertiary)
+                Text(industryLine)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppColor.secondary)
+                    .lineLimit(2)
+            }
             HStack {
-                Label("\(desk.currentMemberCount) / \(desk.memberLimit) 人", systemImage: "person.2.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppColor.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("目前人數／名額")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(AppColor.textTertiary)
+                    Text("\(desk.currentMemberCount) / \(desk.memberLimit) 人")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppColor.primary)
+                }
                 Spacer()
                 exploreDeskStatusCapsule(desk.status)
             }

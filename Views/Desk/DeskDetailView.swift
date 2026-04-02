@@ -275,8 +275,9 @@ struct DeskDetailView: View {
             .padding(.bottom, visitorBottomPadding(desk))
         }
         .background(AppColor.background.ignoresSafeArea())
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomActionBar(desk)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -412,8 +413,10 @@ struct DeskDetailView: View {
     }
 
     private func visitorBottomPadding(_ desk: Desk) -> CGFloat {
-        if !isFounder, desk.status == .recruiting, auth.currentUser != nil { return 8 }
-        return 0
+        if !isFounder, desk.status == .recruiting, auth.currentUser != nil {
+            return 12
+        }
+        return CardChrome.padding
     }
 
     @ViewBuilder
@@ -438,6 +441,8 @@ struct DeskDetailView: View {
                     .background(AppColor.secondary.opacity(0.9))
                     .clipShape(Capsule())
                     .padding(.horizontal, CardChrome.padding)
+                    .padding(.top, 10)
+                    .padding(.bottom, CardChrome.mainTabBarContentInset)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("已申請，狀態 \(applicationStatusLabel(app.status))")
                 } else {
@@ -457,9 +462,9 @@ struct DeskDetailView: View {
                     .buttonStyle(DeskerButtonPressStyle())
                     .deskerButtonShadow()
                     .padding(.horizontal, CardChrome.padding)
-                    .padding(.vertical, 12)
+                    .padding(.top, 10)
+                    .padding(.bottom, CardChrome.mainTabBarContentInset)
                 }
-                Spacer().frame(height: 0)
             }
             .background(AppColor.background)
         } else {
@@ -470,10 +475,10 @@ struct DeskDetailView: View {
     private func prepareApplySheet(_ desk: Desk) {
         applyError = nil
         applyStatement = ""
-        if let first = desk.recruitingRoles.first {
-            applySelectedRole = first.title
-        } else {
+        if desk.recruitingRoles.isEmpty {
             applySelectedRole = "成員"
+        } else {
+            applySelectedRole = ""
         }
     }
 
@@ -490,10 +495,13 @@ struct DeskDetailView: View {
                 } else {
                     Section {
                         if desk.recruitingRoles.isEmpty {
-                            Text(applySelectedRole)
-                                .foregroundStyle(.secondary)
+                            LabeledContent("應徵角色") {
+                                Text(applySelectedRole)
+                                    .foregroundStyle(.secondary)
+                            }
                         } else {
-                            Picker("應徵角色", selection: $applySelectedRole) {
+                            Picker("應徵角色（必填）", selection: $applySelectedRole) {
+                                Text("請選擇").tag("")
                                 ForEach(desk.recruitingRoles, id: \.id) { r in
                                     Text(r.title).tag(r.title)
                                 }
@@ -528,7 +536,11 @@ struct DeskDetailView: View {
                                     .frame(maxWidth: .infinity)
                             }
                         }
-                        .disabled(applyInFlight || applyStatement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(
+                            applyInFlight
+                                || applyStatement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                || (!desk.recruitingRoles.isEmpty && applySelectedRole.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        )
                     }
                 }
             }

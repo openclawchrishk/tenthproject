@@ -217,8 +217,8 @@ final class DeskRepository {
         }
         guard app.status == .pending else { return }
 
-        try await updateApplicationStatus(applicationId: applicationId, status: .accepted)
-
+        // Insert membership first while status is still `pending`, then mark accepted. Avoids a state where
+        // the application is `active` but the member row failed (which made the second tap appear broken).
         if try await !isUserMemberOfDesk(deskId: app.deskId, userId: app.applicantId) {
             struct MemberInsert: Encodable {
                 let id: UUID
@@ -235,9 +235,45 @@ final class DeskRepository {
             do {
                 try await client.from("desk_members").insert(row).execute()
             } catch {
-                throw RepositoryErrorMapping.map(error, context: "DeskRepository.approveApplication insert member")
+                if !Self.isLikelyDuplicateKeyError(error) {
+                    throw RepositoryErrorMapping.map(error, context: "DeskRepository.approveApplication insert member")
+                }
             }
         }
+
+        try await updateApplicationStatus(applicationId: applicationId, status: .accepted)
+        await syncDeskMemberCount(deskId: app.deskId)
+    }
+
+    /// Sets `desks.current_member_count` to the number of active `desk_members` (no-op if column/API fails).
+    func syncDeskMemberCount(deskId: UUID) async {
+        struct IdRow: Decodable { let id: UUID }
+        struct Patch: Encodable { let current_member_count: Int }
+        do {
+            let rows: [IdRow] = try await client
+                .from("desk_members")
+                .select("id")
+                .eq("desk_id", value: deskId)
+                .eq("status", value: "active")
+                .execute()
+                .value
+            let n = rows.count
+            try await client
+                .from("desks")
+                .update(Patch(current_member_count: n))
+                .eq("id", value: deskId)
+                .execute()
+        } catch {
+            // Older projects may not have `current_member_count`; ignore so approval still succeeds.
+        }
+    }
+
+    private static func isLikelyDuplicateKeyError(_ error: Error) -> Bool {
+        let s = String(describing: error).lowercased()
+        if s.contains("23505") { return true }
+        if s.contains("duplicate key") { return true }
+        if s.contains("unique constraint") { return true }
+        return false
     }
 
     /// Declines a pending application (founder only).
@@ -337,9 +373,14 @@ final class DeskRepository {
         } catch {
             throw RepositoryErrorMapping.map(error, context: "DeskRepository.removeDeskMember")
         }
+        await syncDeskMemberCount(deskId: deskId)
     }
 
     func submitApplication(deskId: UUID, applicantId: UUID, selectedRole: String, statement: String) async throws {
+        let trimmedRole = selectedRole.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedRole.isEmpty else {
+            throw RepositoryError.serverError("請選擇應徵角色")
+        }
         struct Insert: Encodable {
             let id: UUID
             let desk_id: UUID
@@ -352,7 +393,7 @@ final class DeskRepository {
             id: UUID(),
             desk_id: deskId,
             applicant_id: applicantId,
-            selected_role: selectedRole,
+            selected_role: trimmedRole,
             statement: statement,
             status: ApplicationStatus.pending.databaseValue
         )
@@ -467,5 +508,6 @@ final class DeskRepository {
         } catch {
             throw RepositoryErrorMapping.map(error, context: "DeskRepository.createDesk insert founder member")
         }
+        await syncDeskMemberCount(deskId: deskId)
     }
 }

@@ -117,6 +117,8 @@ enum CardChrome {
 
     static let sectionSpacing: CGFloat = 24
     static let padding: CGFloat = 16
+    /// Scroll / stack padding above custom tab bar + home indicator for unobstructed CTAs.
+    static let mainTabBarContentInset: CGFloat = 20
     /// Primary buttons — horizontal / vertical padding (spec).
     static let buttonPaddingHorizontal: CGFloat = 16
     static let buttonPaddingVertical: CGFloat = 12
