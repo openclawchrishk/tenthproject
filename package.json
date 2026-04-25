@@ -8,6 +8,8 @@
     "react-dom": "^18"
   },
   "scripts": {
+    "vercel-build": "npm run build",
+    "verify:vercel-manifest": "node scripts/verify-vercel-manifest.mjs",
     "build": "npm run build -w tenthproject && npm run stage:vercel",
     "stage:vercel": "rm -rf .next && cp -a Tenthproject/.next .next && cp Tenthproject/next.config.mjs next.config.mjs && (test -d Tenthproject/public && rm -rf public && cp -a Tenthproject/public public || true)",
     "lint": "npm run lint -w tenthproject",

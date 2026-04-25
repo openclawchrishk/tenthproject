@@ -2,6 +2,12 @@
 
 The Next.js site lives in **`Tenthproject/`** (this repo also contains the iOS app at the root).
 
+## `No Next.js version detected` / install finishes in under ~1s
+
+1. **Read the commit line in the Vercel log** (`Commit: abc1234`). Open that exact commit on GitHub and open **`package.json` at the path Vercel uses as project root** (repo root if Root Directory is empty, or `Tenthproject/package.json` if Root Directory is `Tenthproject`). It **must** list `"next"` under **`dependencies`** or **`devDependencies`**. If it does not, you are deploying an **old commit** — merge the latest `main` / `master` from the source repo and redeploy.
+2. **Root Directory** must match the folder that contains that `package.json`. For this monorepo: either **empty** (build from repo root) **or** **`Tenthproject`** (not a parent folder name from another machine).
+3. Locally: **`npm ci`** then **`npm run verify:vercel-manifest`** then **`npm run build`** at repo root (GitHub Actions runs the same on push).
+
 ## “No framework detected” / build finishes in ~100ms with no `npm install`
 
 That usually means Vercel never entered the Node.js + Next pipeline. Check **Project → Settings → Build and Deployment**:
