@@ -2,6 +2,11 @@
   "name": "tenthproject-monorepo",
   "private": true,
   "workspaces": ["Tenthproject"],
+  "dependencies": {
+    "next": "14.2.18",
+    "react": "^18",
+    "react-dom": "^18"
+  },
   "scripts": {
     "build": "npm run build -w tenthproject && npm run stage:vercel",
     "stage:vercel": "rm -rf .next && cp -a Tenthproject/.next .next && cp Tenthproject/next.config.mjs next.config.mjs && (test -d Tenthproject/public && rm -rf public && cp -a Tenthproject/public public || true)",

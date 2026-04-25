@@ -2,6 +2,15 @@
 
 The Next.js site lives in **`Tenthproject/`** (this repo also contains the iOS app at the root).
 
+## “No framework detected” / build finishes in ~100ms with no `npm install`
+
+That usually means Vercel never entered the Node.js + Next pipeline. Check **Project → Settings → Build and Deployment**:
+
+- **Framework Preset** should be **Next.js** (or rely on this repo’s `vercel.json` + root `package.json` which declares `next`).
+- If **Install Command**, **Build Command**, or **Output Directory** use **project overrides**, clear them so they inherit from the repo (or set **Build** to `npm run build` and **Install** to `npm install`).
+
+This repo pins **`vercel.json`** with `"framework": "nextjs"`, `"installCommand": "npm install"`, and `"buildCommand": "npm run build"` so detection is explicit. Redeploy after pulling.
+
 ## Fix for `404: NOT_FOUND` (edge `NOT_FOUND`)
 
 Vercel’s Next.js output must include a **`.next` folder at the project root** Vercel uses for that deployment. If the repo root is the Vercel project root but `next build` only writes **`Tenthproject/.next`**, the deployment can succeed in logs yet serve **platform `NOT_FOUND`** for every URL.
