@@ -1,6 +1,9 @@
 .build/
 .DS_Store
 
+# npm (root workspace for Tenthproject web + Vercel)
+node_modules/
+
 # Xcode user state
 **/xcuserdata/
 *.xcuserstate

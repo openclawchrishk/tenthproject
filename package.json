@@ -1,0 +1,13 @@
+{
+  "name": "tenthproject-monorepo",
+  "private": true,
+  "workspaces": ["Tenthproject"],
+  "scripts": {
+    "build": "npm run build -w tenthproject",
+    "lint": "npm run lint -w tenthproject",
+    "dev:web": "npm run dev -w tenthproject"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

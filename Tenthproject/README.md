@@ -26,4 +26,8 @@ npm run dev
 
 ## 部署
 
-建議 Vercel；設定與 `.env.example` 相同之環境變數，並於 Stripe Dashboard 設定 Webhook 指向 `/api/stripe/webhook`。
+建議 Vercel。本倉庫根目錄已設 **npm workspaces**（見上層 `package.json`），Vercel 在 repo 根執行 `npm install` / `npm run build` 即可建置此 Next 應用。
+
+若仍見 **404: NOT_FOUND**，請確認 Vercel 專案未把 **Root Directory** 設錯；詳見上層 [`VERCEL.md`](../VERCEL.md)。
+
+設定與 `.env.example` 相同之環境變數，並於 Stripe Dashboard 設定 Webhook 指向 `/api/stripe/webhook`。
