@@ -1,3 +1,16 @@
+# Tenthproject monorepo（本倉庫）
+
+此 Git 倉庫遠端名為 `tenthproject`，包含：
+
+| 子專案 | 說明 |
+|--------|------|
+| **DeskerHK** | iOS 應用（SwiftUI + Supabase） |
+| **Tenthproject** | tenthproject.com 官網（Next.js 14 + Supabase + Stripe）— 與 iOS **共用同一 Supabase 資料庫** |
+
+官網說明與建置請見 [`Tenthproject/README.md`](Tenthproject/README.md)。
+
+---
+
 # DeskerHK 🇭🇰
 
 > Hong Kong & Greater Bay Area startup matching — iOS app (SwiftUI + Supabase)
