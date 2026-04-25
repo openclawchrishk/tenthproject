@@ -4,6 +4,11 @@
 # npm (root workspace for Tenthproject web + Vercel)
 node_modules/
 
+# Staged Next.js output at repo root for Vercel (source: Tenthproject/)
+/.next/
+/next.config.mjs
+/public/
+
 # Xcode user state
 **/xcuserdata/
 *.xcuserstate
